@@ -41,32 +41,28 @@ export default function SelectInterests() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] px-5 py-10 flex flex-col">
+    <div className="min-h-screen bg-[#F0F6FF] px-5 py-10 flex flex-col">
 
-      {/* Background glow */}
-      <div className="fixed top-[-80px] left-1/2 -translate-x-1/2 w-96 h-96
-                      bg-violet-700/20 rounded-full blur-3xl pointer-events-none -z-0" />
+      <div className="max-w-md mx-auto w-full flex flex-col flex-1">
 
-      <div className="relative z-10 max-w-md mx-auto w-full flex flex-col flex-1">
-
-        {/* Step indicator */}
+        {/* Step Indicator */}
         <div className="mb-8">
-          <div className="text-violet-400 text-xs font-semibold tracking-widest uppercase mb-3">
+          <div className="text-[#1565C0] text-xs font-semibold tracking-widest uppercase mb-3">
             Step 1 of 2
           </div>
           <div className="flex gap-2 mb-6">
-            <div className="flex-1 h-1 bg-violet-500 rounded-full" />
-            <div className="flex-1 h-1 bg-[#2a2a3e] rounded-full" />
+            <div className="flex-1 h-1 bg-[#1565C0] rounded-full" />
+            <div className="flex-1 h-1 bg-[#BBDEFB] rounded-full" />
           </div>
-          <h1 className="text-white text-2xl font-bold tracking-tight mb-2">
+          <h1 className="text-black text-2xl font-bold tracking-tight mb-2">
             What sparks your interest?
           </h1>
-          <p className="text-slate-400 text-sm leading-relaxed">
+          <p className="text-[#546E7A] text-sm leading-relaxed">
             Pick at least 3 categories. We'll personalise your feed based on your choices.
           </p>
         </div>
 
-        {/* Category grid */}
+        {/* Category Grid */}
         <div className="grid grid-cols-3 gap-3 mb-8">
           {INTERESTS.map(({ id, label, emoji }) => {
             const active = selected.includes(id);
@@ -79,23 +75,22 @@ export default function SelectInterests() {
                   gap-2 py-4 px-2 rounded-2xl border
                   transition-all duration-200 active:scale-95 cursor-pointer
                   ${active
-                    ? 'bg-violet-600/20 border-violet-500 shadow-lg shadow-violet-500/20'
-                    : 'bg-[#1a1a2e] border-[#2a2a3e] hover:border-[#3a3a5e]'}
+                    ? 'bg-[#E3F2FD] border-[#1565C0] shadow-md shadow-blue-100'
+                    : 'bg-white border-[#BBDEFB] hover:border-[#1565C0]'}
                 `}
               >
-                {/* Checkmark badge */}
+                {/* Checkmark Badge */}
                 {active && (
-                  <div className="absolute top-2 right-2 w-4 h-4 bg-violet-500
-                                  rounded-full flex items-center justify-center">
+                  <div className="absolute top-2 right-2 w-4 h-4 bg-[#1565C0] rounded-full flex items-center justify-center">
                     <svg className="w-2.5 h-2.5 text-white" fill="none"
-                         viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
                 )}
                 <span className="text-2xl">{emoji}</span>
                 <span className={`text-xs font-medium text-center leading-tight
-                  ${active ? 'text-violet-300' : 'text-slate-400'}`}>
+                  ${active ? 'text-[#1565C0]' : 'text-black'}`}>
                   {label}
                 </span>
               </button>
@@ -106,16 +101,15 @@ export default function SelectInterests() {
         {/* Footer */}
         <div className="mt-auto">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-500 text-sm">
+            <span className="text-[#546E7A] text-sm">
               {selected.length} selected
               {selected.length < 3 && (
-                <span className="text-slate-600"> · need {3 - selected.length} more</span>
+                <span className="text-[#90A4AE]"> · need {3 - selected.length} more</span>
               )}
             </span>
             <button
               onClick={() => setSelected([])}
-              className="text-slate-600 text-xs hover:text-slate-400 transition"
-            >
+              className="text-[#90A4AE] text-xs hover:text-[#1565C0] transition">
               Clear all
             </button>
           </div>
@@ -123,13 +117,7 @@ export default function SelectInterests() {
           <button
             onClick={handleContinue}
             disabled={selected.length < 3 || loading}
-            className="w-full bg-gradient-to-r from-violet-600 to-purple-500
-                       hover:from-violet-500 hover:to-purple-400
-                       text-white font-semibold py-4 rounded-2xl
-                       transition-all duration-200 active:scale-95
-                       disabled:opacity-40 disabled:cursor-not-allowed
-                       shadow-lg shadow-violet-500/25"
-          >
+            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-4 rounded-2xl transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-blue-200">
             {loading ? 'Saving…' : 'Continue →'}
           </button>
         </div>
