@@ -20,6 +20,8 @@
 
   <properties>
     <java.version>17</java.version>
+    <!-- Override Spring Boot's bundled Lombok (1.18.30) — that version predates JDK 23 support -->
+    <lombok.version>1.18.36</lombok.version>
   </properties>
 
   <dependencies>
@@ -92,6 +94,21 @@
 
   <build>
     <plugins>
+      <!-- Register Lombok as an explicit annotation processor.
+           Required on JDK 23+, which no longer auto-discovers processors on the classpath. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
