@@ -25,7 +25,7 @@ Legend: ✅ implemented · ⏳ under development
 
 `user` = `{ id, name, email, bio?, avatarUrl?, interests?[] }`
 
-OTP ⏳ under development (Vishakha — JavaMailSender). Frontend: `src/api/authApi.jsx`,
+OTP ⏳ under development . Frontend: `src/api/authApi.jsx`,
 mock-backed via `USE_MOCK.otp` (mock accepts any 6-digit code, e.g. `123456`).
 Onboarding order: **Register → /verify-otp → /select-interests → /follow-creators → /home**.
 
