@@ -118,9 +118,4 @@ Frontend hook `subscribeToNotifications()` is wired for both — pick one and co
 
 ---
 
-## Swap procedure (frontend)
 
-When Vishakha confirms an endpoint matches this contract:
-1. Flip its flag in `src/api/config.js` (`USE_MOCK.<domain> = false`).
-2. Re-test against her live server using the shared Postman collection.
-3. Log any mismatch back into this file and ping her.
