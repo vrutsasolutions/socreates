@@ -1,14 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav';
 import IdeaCard from '../components/common/IdeaCard';
-import api from '../api/axiosInstance';
+import { searchIdeas } from '../api/searchApi';
 
 const CATEGORIES = ['All','Technology','Design','Business','Science','Art','Health','Education','Finance'];
 const TRENDING   = ['AI Tools','Startup Ideas','Passive Income','Design System','No-Code Apps','Mental Health'];
 
 export default function Search() {
-  const navigate        = useNavigate();
   const inputRef        = useRef();
   const [query, setQuery]       = useState('');
   const [category, setCategory] = useState('All');
@@ -21,10 +19,7 @@ export default function Search() {
     if (!q.trim() && cat === 'All') { setResults([]); setSearched(false); return; }
     setLoading(true); setSearched(true);
     try {
-      const params = new URLSearchParams();
-      if (q.trim()) params.set('q', q.trim());
-      if (cat !== 'All') params.set('category', cat);
-      const { data } = await api.get(`/search?${params}`);
+      const { data } = await searchIdeas({ q, category: cat });
       setResults(data);
     } catch { setResults([]); }
     setLoading(false);

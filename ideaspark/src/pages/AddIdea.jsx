@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav';
-import api from '../api/axiosInstance';
+import { createIdea, checkPlagiarism } from '../api/ideaApi';
 
 const CATEGORIES = ['Technology','Design','Business','Science','Art','Health','Education','Finance','Music','Travel','Food','Sports'];
 const STEPS = ['Details', 'Media', 'Publish'];
@@ -39,13 +39,10 @@ export default function AddIdea() {
   const handlePublish = async () => {
     setChecking(true); setCheckResult(null); setError('');
     try {
-      const { data: plag } = await api.post('/plagiarism/check', { description: form.description });
+      const { data: plag } = await checkPlagiarism(form.description);
       if (plag.isPlagiarized) { setCheckResult('flagged'); setError(plag.message); setChecking(false); return; }
       setCheckResult('ok'); setChecking(false); setPublishing(true);
-      const fd = new FormData();
-      fd.append('idea', new Blob([JSON.stringify(form)], { type: 'application/json' }));
-      if (image) fd.append('image', image);
-      await api.post('/ideas', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await createIdea(form, image);
       navigate('/home');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to publish.'); setChecking(false); setPublishing(false);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { registerUser } from '../api/authApi';
+import { registerUser, sendOtp } from '../api/authApi';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -19,7 +19,9 @@ export default function Register() {
     try {
       const { data } = await registerUser(form);
       login(data.user, data.token);
-      navigate('/select-interests');
+      // Send the verification code, then route into the OTP step.
+      try { await sendOtp(form.email); } catch { /* non-blocking */ }
+      navigate('/verify-otp', { state: { email: form.email } });
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Try again.');
     } finally { setLoading(false); }

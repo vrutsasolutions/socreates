@@ -11,7 +11,9 @@ import { useAuth } from '../context/AuthContext';
 import Welcome         from '../pages/Welcome';
 import Login           from '../pages/Login';           // ← THIS LINE MUST EXIST
 import Register        from '../pages/Register';
+import VerifyOtp       from '../pages/VerifyOtp';
 import SelectInterests from '../pages/SelectInterests';
+import FollowCreators  from '../pages/FollowCreators';
 import Home            from '../pages/Home';
 import AddIdea         from '../pages/AddIdea';
 import Premium         from '../pages/Premium';
@@ -43,8 +45,12 @@ export default function AppRouter() {
         <Route path="/login"     element={<PublicOnly><Login /></PublicOnly>} />       {/* ← LOGIN ROUTE */}
         <Route path="/register"  element={<PublicOnly><Register /></PublicOnly>} />
 
-        {/* Protected routes */}
+        {/* Onboarding (protected) — Register → OTP → Interests → Follow → Home */}
+        <Route path="/verify-otp"       element={<PrivateRoute><VerifyOtp /></PrivateRoute>} />
         <Route path="/select-interests" element={<PrivateRoute><SelectInterests /></PrivateRoute>} />
+        <Route path="/follow-creators"  element={<PrivateRoute><FollowCreators /></PrivateRoute>} />
+
+        {/* Protected routes */}
         <Route path="/home"             element={<PrivateRoute><Home /></PrivateRoute>} />
         <Route path="/add-idea"         element={<PrivateRoute><AddIdea /></PrivateRoute>} />
         <Route path="/premium"          element={<PrivateRoute><Premium /></PrivateRoute>} />

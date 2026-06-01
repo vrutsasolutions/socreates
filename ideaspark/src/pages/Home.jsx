@@ -4,18 +4,10 @@ import BottomNav from '../components/common/BottomNav';
 import DrawerMenu from '../components/common/DrawerMenu';
 import IdeaCard from '../components/common/IdeaCard';
 import { useAuth } from '../context/AuthContext';
-import api from '../api/axiosInstance';
+import { fetchIdeas } from '../api/ideaApi';
+import { MOCK_IDEAS } from '../api/mockData';
 
 const TABS = ['Trending', 'Latest', 'For You'];
-
-const MOCK_IDEAS = [
-  { id: '1', title: 'AI-Powered Plant Doctor App', description: 'Take a photo of your plant and get instant diagnosis using computer vision.', category: 'Technology', isPremium: false, likeCount: 142, creatorName: 'Arjun Sharma', createdAt: new Date(Date.now() - 3600000).toISOString() },
-  { id: '2', title: 'Micro-Learning Platform', description: 'Learn any skill in 5-minute daily sessions. Gamified progress tracking.', category: 'Education', isPremium: true, likeCount: 89, creatorName: 'Priya Nair', createdAt: new Date(Date.now() - 7200000).toISOString() },
-  { id: '3', title: 'Food Rescue Network', description: 'Connect restaurants with surplus food to nearby NGOs in real-time.', category: 'Social', isPremium: false, likeCount: 203, creatorName: 'Rahul Gupta', createdAt: new Date(Date.now() - 86400000).toISOString() },
-  { id: '4', title: 'Digital Wardrobe Stylist', description: 'Photograph your wardrobe once, get AI outfit suggestions every morning.', category: 'Design', isPremium: true, likeCount: 67, creatorName: 'Deepika Menon', createdAt: new Date(Date.now() - 172800000).toISOString() },
-  { id: '5', title: 'Community Skill Swap', description: 'Trade your skills with others. Teach coding, learn cooking. No money needed.', category: 'Business', isPremium: false, likeCount: 310, creatorName: 'Vikram Patel', createdAt: new Date(Date.now() - 259200000).toISOString() },
-  { id: '6', title: 'Mental Wellness Journal', description: 'Daily mood tracking with AI-powered insights and personalized recommendations.', category: 'Health', isPremium: false, likeCount: 178, creatorName: 'Sneha Reddy', createdAt: new Date(Date.now() - 345600000).toISOString() },
-];
 
 export default function Home() {
   const navigate = useNavigate();
@@ -25,19 +17,19 @@ export default function Home() {
   const [ideas, setIdeas]           = useState([]);
   const [loading, setLoading]       = useState(true);
 
-  const fetchIdeas = useCallback(async () => {
+  const loadIdeas = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/ideas?sort=${activeTab.toLowerCase()}`);
+      const { data } = await fetchIdeas({ sort: activeTab.toLowerCase() });
       setIdeas(data);
-    } catch (_) {
+    } catch {
       setIdeas(MOCK_IDEAS);
     } finally {
       setLoading(false);
     }
   }, [activeTab]);
 
-  useEffect(() => { fetchIdeas(); }, [fetchIdeas]);
+  useEffect(() => { loadIdeas(); }, [loadIdeas]);
 
   return (
     <div className="min-h-screen bg-white pb-24">
