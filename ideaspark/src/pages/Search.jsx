@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import BottomNav from '../components/common/BottomNav';
-import IdeaCard from '../components/common/IdeaCard';
+import BottomNav from '../components/common/BottomNav.premium';
+import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
 import { searchIdeas } from '../api/searchApi';
+import { SearchSkeleton, SearchResultsSkeleton } from '../components/common/LoadingStates.premium';
+import { EmptySearch } from '../components/common/EmptyStates.premium';
+
 
 const CATEGORIES = ['All','Technology','Design','Business','Science','Art','Health','Education','Finance'];
 const TRENDING   = ['AI Tools','Startup Ideas','Passive Income','Design System','No-Code Apps','Mental Health'];
