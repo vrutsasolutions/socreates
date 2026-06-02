@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNav from '../components/common/BottomNav';
+import BottomNav from '../components/common/BottomNav.premium';
 import api from '../api/axiosInstance';
 import { AddIdeaSkeleton, PublishingSkeleton, ButtonLoadingState } from '../components/common/LoadingStates.premium';
 import { UploadError, AIError, ValidationError, FormError } from '../components/common/ErrorStates.premium';
