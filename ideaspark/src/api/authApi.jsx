@@ -6,6 +6,25 @@ export const loginUser    = (data) => api.post('/auth/login',    data)
 export const logoutUser   = ()     => api.post('/auth/logout')
 export const fetchMe      = ()     => api.get('/users/me')
 
+// GET /api/auth/check-username?username= → { success, message }
+// success=true → available; false → taken or invalid.
+// MOCK: a few reserved handles are treated as taken so the UI can be exercised.
+const MOCK_TAKEN = ['admin', 'mayank', 'vishakha', 'ideaspark']
+export const checkUsername = (username) => {
+  if (USE_MOCK.auth) {
+    const u = String(username || '').trim().toLowerCase()
+    const valid = /^[a-z0-9._]{3,30}$/.test(u)
+    const available = valid && !MOCK_TAKEN.includes(u)
+    return mockResponse({
+      success: available,
+      message: !valid
+        ? 'Username must be 3–30 chars: a–z, 0–9, . or _'
+        : available ? 'Username is available' : 'Username is not available',
+    })
+  }
+  return api.get('/auth/check-username', { params: { username } })
+}
+
 // ── OTP verification ────────────────────────────────────────────────────────
 // Backend: ⏳ under development (Vishakha). Mock-backed until live.
 // Flip USE_MOCK.otp → false in config.js when the endpoints are ready.

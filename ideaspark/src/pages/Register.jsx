@@ -1,19 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { registerUser, sendOtp } from '../api/authApi';
+import { registerUser, sendOtp, checkUsername } from '../api/authApi';
+
+const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 
 export default function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [form, setForm]       = useState({ name: '', email: '', password: '' });
+  const [form, setForm]       = useState({ name: '', username: '', email: '', password: '' });
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
+  // Username availability: 'idle' | 'invalid' | 'checking' | 'available' | 'taken'
+  const [uname, setUname]     = useState({ state: 'idle', message: '' });
+  const reqId = useRef(0); // guards against out-of-order responses
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Username inputs are forced lowercase, like Instagram handles.
+  const handleUsernameChange = (e) =>
+    setForm({ ...form, username: e.target.value.toLowerCase().trim() });
+
+  // Debounced availability check while the user types.
+  useEffect(() => {
+    const u = form.username;
+    if (!u) { setUname({ state: 'idle', message: '' }); return; }
+    if (!USERNAME_RE.test(u)) {
+      setUname({ state: 'invalid', message: '3–30 chars: a–z, 0–9, . or _' });
+      return;
+    }
+    setUname({ state: 'checking', message: 'Checking availability…' });
+    const id = ++reqId.current;
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await checkUsername(u);
+        if (id !== reqId.current) return; // a newer keystroke superseded this
+        setUname(data.success
+          ? { state: 'available', message: 'Username is available' }
+          : { state: 'taken',     message: data.message || 'Username is not available' });
+      } catch {
+        if (id !== reqId.current) return;
+        setUname({ state: 'idle', message: '' }); // don't block on a check failure
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [form.username]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!USERNAME_RE.test(form.username)) { setError('Please choose a valid username'); return; }
+    if (uname.state === 'taken') { setError('That username is already taken'); return; }
     if (form.password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setError(''); setLoading(true);
     try {
@@ -48,8 +84,47 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {[{ name: 'name', type: 'text', label: 'Full Name', placeholder: 'John Doe' }]
+            .map(({ name, type, label, placeholder }) => (
+            <div key={name}>
+              <label className="block text-[#1565C0] text-xs font-semibold
+                                uppercase tracking-widest mb-2">{label}</label>
+              <input type={type} name={name} value={form[name]}
+                     onChange={handleChange} placeholder={placeholder} required
+                     className="w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl
+                                px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm
+                                focus:outline-none focus:border-[#1565C0]
+                                focus:ring-2 focus:ring-[#1565C0]/20 transition" />
+            </div>
+          ))}
+
+          {/* Username — Instagram-style unique handle with live availability */}
+          <div>
+            <label className="block text-[#1565C0] text-xs font-semibold
+                              uppercase tracking-widest mb-2">Username</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#90A4AE] text-sm">@</span>
+              <input type="text" name="username" value={form.username}
+                     onChange={handleUsernameChange} placeholder="yourname" required
+                     autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                     className={`w-full bg-[#F0F6FF] border rounded-2xl
+                                pl-8 pr-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm
+                                focus:outline-none focus:ring-2 transition
+                                ${uname.state === 'available' ? 'border-green-400 focus:border-green-500 focus:ring-green-500/20'
+                                  : uname.state === 'taken' || uname.state === 'invalid' ? 'border-red-300 focus:border-red-400 focus:ring-red-400/20'
+                                  : 'border-[#BBDEFB] focus:border-[#1565C0] focus:ring-[#1565C0]/20'}`} />
+            </div>
+            {uname.message && (
+              <p className={`text-xs mt-1.5 ${
+                uname.state === 'available' ? 'text-green-600'
+                : uname.state === 'checking' ? 'text-[#90A4AE]'
+                : 'text-red-500'}`}>
+                {uname.state === 'available' ? '✓ ' : uname.state === 'taken' ? '✕ ' : ''}{uname.message}
+              </p>
+            )}
+          </div>
+
           {[
-            { name: 'name',     type: 'text',     label: 'Full Name', placeholder: 'John Doe' },
             { name: 'email',    type: 'email',    label: 'Email',     placeholder: 'you@example.com' },
             { name: 'password', type: 'password', label: 'Password',  placeholder: 'Min. 6 characters' },
           ].map(({ name, type, label, placeholder }) => (
@@ -65,7 +140,8 @@ export default function Register() {
             </div>
           ))}
 
-          <button type="submit" disabled={loading}
+          <button type="submit"
+                  disabled={loading || uname.state === 'checking' || uname.state === 'taken' || uname.state === 'invalid'}
                   className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white
                              font-bold py-4 rounded-2xl transition-all active:scale-95
                              disabled:opacity-50 shadow-lg shadow-blue-300/40 text-sm mt-2">

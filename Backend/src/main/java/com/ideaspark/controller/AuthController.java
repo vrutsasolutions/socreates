@@ -24,4 +24,14 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest req) {
         return ResponseEntity.ok(authService.login(req));
     }
+
+    // GET /api/auth/check-username?username=mayank
+    // success=true  → available; success=false → taken or invalid.
+    @GetMapping("/check-username")
+    public ResponseEntity<ApiResponse> checkUsername(@RequestParam String username) {
+        boolean available = authService.isUsernameAvailable(username);
+        return ResponseEntity.ok(new ApiResponse(
+                available,
+                available ? "Username is available" : "Username is not available"));
+    }
 }

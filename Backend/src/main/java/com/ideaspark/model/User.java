@@ -23,6 +23,11 @@ public class User {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
+    // Stored lowercase, like Instagram handles. Unique across all users.
+    // Column left nullable so ddl-auto=update doesn't fail on pre-existing NULL rows.
+    @Column(unique = true, length = 30)
+    private String username;
+
     @Column(nullable = false)
     private String password;
 
