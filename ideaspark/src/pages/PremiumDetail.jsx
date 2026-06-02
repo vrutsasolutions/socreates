@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
+import { NotFoundError } from '../components/common/ErrorStates.premium';
 
 const MOCK = {
   id: 'p1',
