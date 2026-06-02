@@ -51,10 +51,13 @@ export default function AddIdea() {
   const handlePublish = async () => {
     setChecking(true); setCheckResult(null); setError('');
     try {
-      const { data: plag } = await checkPlagiarism(form.description);
+      const { data: plag } = await api.post('/plagiarism/check', { description: form.description });
       if (plag.isPlagiarized) { setCheckResult('flagged'); setError(plag.message); setChecking(false); return; }
       setCheckResult('ok'); setChecking(false); setPublishing(true);
-      await createIdea(form, image);
+      const fd = new FormData();
+      fd.append('idea', new Blob([JSON.stringify(form)], { type: 'application/json' }));
+      if (image) fd.append('image', image);
+      await api.post('/ideas', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       navigate('/home');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to publish.'); setChecking(false); setPublishing(false);
@@ -93,6 +96,7 @@ export default function AddIdea() {
         {step === 0 && <>
           <div>
             <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Idea Title *</label>
+            <AIAssistantBar onAsk={() => { /* your AI logic */ }} />
             <input name="title" value={form.title} onChange={handleChange} placeholder="What's your big idea?" className={inputCls}/>
           </div>
           <div>
