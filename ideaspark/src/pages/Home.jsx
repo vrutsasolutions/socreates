@@ -89,6 +89,8 @@ export default function Home() {
               </button>
             ))}
           </div>
+          <AIOnboardingPrompt onDismiss={() => {}} onTryAI={() => navigate('/add-idea')} />
+
 
           {/* Feed */}
           <div className="px-4">
