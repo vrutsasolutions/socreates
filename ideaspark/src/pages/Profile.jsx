@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNav from '../components/common/BottomNav';
-import IdeaCard from '../components/common/IdeaCard';
+import BottomNav from '../components/common/BottomNav.premium';
+import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
+import { ProfileSkeleton } from '../components/common/LoadingStates.premium';
+import { EmptyProfile, EmptyProfileSaved } from '../components/common/EmptyStates.premium';
+import { ProfileLoadError, PermissionError } from '../components/common/ErrorStates.premium';
 
 const TABS = ['My Ideas', 'Saved'];
 
