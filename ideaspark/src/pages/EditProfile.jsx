@@ -1,14 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
+import { checkUsername } from '../api/authApi';
+
+const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 
 export default function EditProfile() {
   const navigate        = useNavigate();
   const { user, login } = useAuth();
   const fileRef         = useRef();
 
-  const [form, setForm]         = useState({ name: user?.name || '', bio: user?.bio || '', email: user?.email || '' });
+  const originalUsername = user?.username || '';
+  const originalUsernameRef = useRef(originalUsername); // stable read for the effect
+  const [form, setForm]         = useState({ name: user?.name || '', username: originalUsername, bio: user?.bio || '', email: user?.email || '' });
   const [passwords, setPasswords] = useState({ current: '', newPass: '', confirm: '' });
   const [avatar, setAvatar]     = useState(null);
   const [preview, setPreview]   = useState(user?.profileImage || null);
@@ -16,6 +21,44 @@ export default function EditProfile() {
   const [error, setError]       = useState('');
   const [success, setSuccess]   = useState('');
   const [section, setSection]   = useState('profile');
+  // Username availability: 'idle' | 'invalid' | 'checking' | 'available' | 'taken'
+  const [uname, setUname]       = useState({ state: 'idle', message: '' });
+  const reqId = useRef(0);
+
+  const handleUsernameChange = (e) => {
+    const next = e.target.value.toLowerCase().trim();
+    setForm({ ...form, username: next });
+    // Reset status immediately for the unchanged/empty cases; the effect
+    // handles validation + the debounced availability check for the rest.
+    if (!next || next === originalUsernameRef.current) setUname({ state: 'idle', message: '' });
+  };
+
+  // Debounced availability check — only runs for a changed, non-empty handle.
+  // All status updates happen inside the timeout callback (never synchronously
+  // in the effect body) so a keystroke doesn't trigger a cascading render.
+  useEffect(() => {
+    const u = form.username;
+    if (!u || u === originalUsernameRef.current) return; // idle handled in the change handler
+    const id = ++reqId.current;
+    const t = setTimeout(async () => {
+      if (!USERNAME_RE.test(u)) {
+        setUname({ state: 'invalid', message: '3–30 chars: a–z, 0–9, . or _' });
+        return;
+      }
+      setUname({ state: 'checking', message: 'Checking availability…' });
+      try {
+        const { data } = await checkUsername(u);
+        if (id !== reqId.current) return;
+        setUname(data.success
+          ? { state: 'available', message: 'Username is available' }
+          : { state: 'taken',     message: data.message || 'Username is not available' });
+      } catch {
+        if (id !== reqId.current) return;
+        setUname({ state: 'idle', message: '' });
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [form.username]);
 
   const handleImage = (e) => {
     const file = e.target.files[0];
@@ -23,11 +66,17 @@ export default function EditProfile() {
   };
 
   const handleSave = async () => {
+    const usernameChanged = form.username !== originalUsername;
+    if (usernameChanged && !USERNAME_RE.test(form.username)) { setError('Please choose a valid username'); return; }
+    if (usernameChanged && uname.state === 'taken') { setError('That username is already taken'); return; }
     setError(''); setSuccess(''); setSaving(true);
     try {
+      // Only send username when it actually changed.
+      const profile = { name: form.name, bio: form.bio };
+      if (usernameChanged) profile.username = form.username;
       const fd = new FormData();
-      fd.append('profile', new Blob([JSON.stringify({ name: form.name, bio: form.bio })], { type: 'application/json' }));
-      if (avatar) fd.append('image', avatar);
+      fd.append('profile', new Blob([JSON.stringify(profile)], { type: 'application/json' }));
+      if (avatar) fd.append('avatar', avatar);
       const { data } = await api.put('/users/me', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       login(data, localStorage.getItem('token'));
       setSuccess('Profile updated!');
@@ -114,6 +163,30 @@ export default function EditProfile() {
           </div>
 
           <div>
+            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Username</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#90A4AE] text-sm">@</span>
+              <input value={form.username} onChange={handleUsernameChange}
+                placeholder="yourname" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                className={`${inputCls} pl-7 ${
+                  uname.state === 'available' ? 'border-green-400 focus:border-green-500 focus:ring-green-500'
+                  : uname.state === 'taken' || uname.state === 'invalid' ? 'border-red-300 focus:border-red-400 focus:ring-red-400'
+                  : ''}`}/>
+            </div>
+            {!originalUsername && (
+              <p className="text-[#90A4AE] text-xs mt-1">You don't have a username yet — pick one.</p>
+            )}
+            {uname.message && (
+              <p className={`text-xs mt-1 ${
+                uname.state === 'available' ? 'text-green-600'
+                : uname.state === 'checking' ? 'text-[#90A4AE]'
+                : 'text-red-500'}`}>
+                {uname.state === 'available' ? '✓ ' : uname.state === 'taken' ? '✕ ' : ''}{uname.message}
+              </p>
+            )}
+          </div>
+
+          <div>
             <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Bio</label>
             <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})}
               rows={3} placeholder="Tell people about yourself..."
@@ -126,7 +199,8 @@ export default function EditProfile() {
             <p className="text-[#90A4AE] text-xs mt-1">Email cannot be changed</p>
           </div>
 
-          <button onClick={handleSave} disabled={saving}
+          <button onClick={handleSave}
+            disabled={saving || uname.state === 'checking' || uname.state === 'taken' || uname.state === 'invalid'}
             className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-3.5 rounded-2xl active:scale-95 transition-all shadow-md shadow-blue-200 disabled:opacity-50">
             {saving ? 'Saving...' : 'Save Changes'}
           </button>

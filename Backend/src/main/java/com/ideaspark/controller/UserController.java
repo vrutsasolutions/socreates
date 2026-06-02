@@ -22,6 +22,7 @@ public class UserController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final com.ideaspark.service.AuthService authService;
 
     // GET /api/users/me — get my profile
     @GetMapping("/me")
@@ -43,6 +44,15 @@ public class UserController {
 
         if (req.getName() != null && !req.getName().isBlank()) {
             user.setName(req.getName());
+        }
+        if (req.getUsername() != null && !req.getUsername().isBlank()) {
+            String newUsername = authService.normalizeUsername(req.getUsername());
+            // Only enforce uniqueness when it actually changes (avoids self-collision).
+            if (!newUsername.equals(user.getUsername())
+                    && userRepository.existsByUsername(newUsername)) {
+                throw new RuntimeException("Username '" + newUsername + "' is already taken");
+            }
+            user.setUsername(newUsername);
         }
         if (req.getBio() != null) {
             user.setBio(req.getBio());
@@ -92,6 +102,7 @@ public class UserController {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
         dto.setName(user.getName());
+        dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setProfileImage(user.getProfileImage());
         dto.setBio(user.getBio());

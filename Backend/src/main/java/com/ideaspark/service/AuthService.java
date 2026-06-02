@@ -66,7 +66,7 @@ public class AuthService {
     }
 
     // Trim, lowercase and validate a requested username.
-    private String normalizeUsername(String raw) {
+    public String normalizeUsername(String raw) {
         if (raw == null || raw.isBlank())
             throw new RuntimeException("Username is required");
         String username = raw.trim().toLowerCase();

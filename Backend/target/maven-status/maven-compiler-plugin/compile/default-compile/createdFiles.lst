@@ -4,6 +4,7 @@ com\ideaspark\model\Idea.class
 com\ideaspark\service\AuthService.class
 com\ideaspark\dto\IdeaDTO.class
 com\ideaspark\controller\UserController.class
+com\ideaspark\controller\PlagiarismController.class
 com\ideaspark\dto\MembershipDTO.class
 com\ideaspark\controller\MembershipController.class
 com\ideaspark\dto\UpdateProfileRequest.class
