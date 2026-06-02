@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNav from '../components/common/BottomNav';
-import IdeaCard from '../components/common/IdeaCard';
+import BottomNav from '../components/common/BottomNav.premium';
+import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
 import api from '../api/axiosInstance';
+import { SavedIdeasSkeleton } from '../components/common/LoadingStates.premium';
+import { EmptySaved } from '../components/common/EmptyStates.premium';
+import { IdeaLoadError } from '../components/common/ErrorStates.premium';
+
 
 export default function SavedIdeas() {
   const navigate = useNavigate();
