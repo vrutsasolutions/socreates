@@ -1,7 +1,19 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav';
-import { createIdea, checkPlagiarism } from '../api/ideaApi';
+import api from '../api/axiosInstance';
+import { AddIdeaSkeleton, PublishingSkeleton, ButtonLoadingState } from '../components/common/LoadingStates.premium';
+import { UploadError, AIError, ValidationError, FormError } from '../components/common/ErrorStates.premium';
+import {
+  AIAssistantBar,
+  AIThinkingBubble,
+  AISuggestionCard,
+  AISuggestionList,
+  AITagSuggestions,
+  AIDescriptionHelper,
+  AIResultPanel,
+  AIPlagiarismResult,
+} from '../components/common/AIInteractions.premium';
 
 const CATEGORIES = ['Technology','Design','Business','Science','Art','Health','Education','Finance','Music','Travel','Food','Sports'];
 const STEPS = ['Details', 'Media', 'Publish'];
