@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNav from '../components/common/BottomNav';
-import DrawerMenu from '../components/common/DrawerMenu';
-import IdeaCard from '../components/common/IdeaCard';
+import BottomNav from '../components/common/BottomNav.premium';
+import DrawerMenu from '../components/common/DrawerMenu.premium';
+import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
 import { useAuth } from '../context/AuthContext';
 import { fetchIdeas } from '../api/ideaApi';
 import { MOCK_IDEAS } from '../api/mockData';
+import { FeedSkeleton } from '../components/common/LoadingStates.premium';
+import { EmptyFeed, EmptyForYou } from '../components/common/EmptyStates.premium';
+import { NetworkError, IdeaLoadError, ServerError } from '../components/common/ErrorStates.premium';
+import { AIOnboardingPrompt } from '../components/common/AIInteractions.premium';
 
 const TABS = ['Trending', 'Latest', 'For You'];
 
