@@ -113,11 +113,7 @@ export default function Home() {
             )}
 
             {!loading && ideas.length === 0 && (
-              <div className="text-center py-20">
-                <div className="text-5xl mb-4">💡</div>
-                <p className="text-[#1565C0] font-semibold">No ideas yet</p>
-                <p className="text-[#90A4AE] text-xs mt-1">Be the first to share one!</p>
-              </div>
+              activeTab === 'For You' ? <EmptyForYou /> : <EmptyFeed />
             )}
           </div>
         </div>
