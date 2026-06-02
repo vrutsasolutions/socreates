@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { registerUser, sendOtp, checkUsername } from '../api/authApi';
+import { ValidationError, FormError } from '../components/common/ErrorStates.premium';
+
 
 const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 
