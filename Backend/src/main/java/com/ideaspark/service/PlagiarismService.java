@@ -17,6 +17,13 @@ public class PlagiarismService {
     private static final double THRESHOLD = 0.75;
 
     public PlagiarismResult check(String newText) {
+        if(newText == null || newText.trim().isEmpty()) {
+            PlagiarismResult result = new PlagiarismResult();
+            result.setPlagiarized(false);
+            result.setSimilarityScore(0);
+            result.setMessage("Content is empty. Please provide a valid idea description.");
+            return result;
+        }
         List<String> existing = ideaRepository.findAllDescriptions();
 
         for (String desc : existing) {
@@ -62,6 +69,9 @@ public class PlagiarismService {
 
     private Map<String, Integer> termFrequency(String text) {
         Map<String, Integer> freq = new HashMap<>();
+        if(text == null || text.isBlank()){
+            return freq;
+        }
         String[] words = text.toLowerCase()
                              .replaceAll("[^a-z0-9 ]", "")
                              .split("\\s+");

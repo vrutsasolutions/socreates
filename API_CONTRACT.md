@@ -25,7 +25,7 @@ Legend: ✅ implemented · ⏳ under development
 
 `user` = `{ id, name, email, bio?, avatarUrl?, interests?[] }`
 
-OTP ⏳ under development (Vishakha — JavaMailSender). Frontend: `src/api/authApi.jsx`,
+OTP ⏳ under development . Frontend: `src/api/authApi.jsx`,
 mock-backed via `USE_MOCK.otp` (mock accepts any 6-digit code, e.g. `123456`).
 Onboarding order: **Register → /verify-otp → /select-interests → /follow-creators → /home**.
 
@@ -118,9 +118,4 @@ Frontend hook `subscribeToNotifications()` is wired for both — pick one and co
 
 ---
 
-## Swap procedure (frontend)
 
-When Vishakha confirms an endpoint matches this contract:
-1. Flip its flag in `src/api/config.js` (`USE_MOCK.<domain> = false`).
-2. Re-test against her live server using the shared Postman collection.
-3. Log any mismatch back into this file and ping her.

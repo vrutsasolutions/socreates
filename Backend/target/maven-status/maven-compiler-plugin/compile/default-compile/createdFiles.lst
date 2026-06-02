@@ -14,6 +14,7 @@ com\ideaspark\model\User.class
 com\ideaspark\controller\IdeaController.class
 com\ideaspark\dto\UserDTO.class
 com\ideaspark\dto\LoginRequest.class
+com\ideaspark\config\userDetailsService.class
 com\ideaspark\service\IdeaService.class
 com\ideaspark\security\JwtUtil.class
 com\ideaspark\service\PlagiarismService.class
