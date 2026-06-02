@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNav from '../components/common/BottomNav';
-import IdeaCard from '../components/common/IdeaCard';
+import { PremiumPageSkeleton } from '../components/common/LoadingStates.premium';
+import { EmptyPremium } from '../components/common/EmptyStates.premium';
+import { IdeaLoadError, ServerError, PermissionError } from '../components/common/ErrorStates.premium';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
 
