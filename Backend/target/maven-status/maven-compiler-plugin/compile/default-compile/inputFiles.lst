@@ -23,6 +23,7 @@ D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\UpdateProfileRequ
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\LoginRequest.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\PlagiarismService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\SearchController.java
+D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\config\WebSocketAuthConfig.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\NotificationService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\config\SecurityConfig.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\AuthController.java
