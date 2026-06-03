@@ -2,7 +2,7 @@ package com.ideaspark.controller;
 
 import com.ideaspark.dto.*;
 import com.ideaspark.service.MembershipService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/payment")
-@RequiredArgsConstructor
 public class MembershipController {
 
-    private final MembershipService membershipService;
+    @Autowired
+    private MembershipService membershipService;
 
     // POST /api/payment/subscribe
     @PostMapping("/subscribe")

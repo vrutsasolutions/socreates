@@ -2,6 +2,7 @@ package com.ideaspark.controller;
 
 import com.ideaspark.dto.*;
 import com.ideaspark.service.IdeaService;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +19,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class IdeaController {
 
-    private final IdeaService ideaService;
-    private final ObjectMapper objectMapper;
+    @Autowired
+    private IdeaService ideaService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // GET /api/ideas?sort=trending|latest|recommended
     @GetMapping

@@ -23,11 +23,15 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+
+    public SecurityConfig(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
+        this.jwtUtil = jwtUtil;
+        this.userDetailsService = userDetailsService;
+    }
 
     @Value("${cors.allowed-origins}")
     private String allowedOriginsRaw;
@@ -49,11 +53,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/ideas").permitAll()
                 .requestMatchers("/api/ideas/{id}").permitAll()
                 .requestMatchers("/api/search").permitAll()
+                .requestMatchers("/api/notifications/**").permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
             .addFilterBefore(new JwtFilter(jwtUtil, userDetailsService), UsernamePasswordAuthenticationFilter.class);
-
         return http.build();
     }
 

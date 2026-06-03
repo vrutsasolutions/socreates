@@ -17,6 +17,7 @@ public class IdeaService {
     private final UserRepository userRepository;
     private final SavedIdeaRepository savedIdeaRepository;
     private final PlagiarismService plagiarismService;
+    private final NotificationService notificationService;
 
     // ── Get all ideas ────────────────────────────────────────
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
@@ -62,7 +63,17 @@ public class IdeaService {
                 .isPremium(req.isPremium())
                 .build();
 
-        return toDTO(ideaRepository.save(idea), creatorEmail);
+        Idea savedIdea=ideaRepository.save(idea);
+        Notification notification=Notification.builder()
+            .message(creator.getName()+"published a new idea!")
+            .readStatus(false)
+            .createdAt(java.time.LocalDateTime.now())
+            .user(creator)
+            .build();
+
+        notificationService.sendNotification(notification);
+
+        return toDTO(savedIdea, creatorEmail);
     }
 
     // ── Delete idea ──────────────────────────────────────────
@@ -82,7 +93,17 @@ public class IdeaService {
         User user = userRepository.findByEmail(userEmail).orElseThrow();
         Idea idea = ideaRepository.findById(ideaId).orElseThrow();
         if (!savedIdeaRepository.existsByUserIdAndIdeaId(user.getId(), ideaId)) {
+
             savedIdeaRepository.save(SavedIdea.builder().user(user).idea(idea).build());
+
+            Notification notification=Notification.builder()
+            .message(user.getName()+"bookmarked your idea!")
+            .readStatus(false)
+            .createdAt(java.time.LocalDateTime.now())
+            .user(idea.getCreator())
+            .build();
+
+            notificationService.sendNotification(notification);
         }
     }
 
@@ -125,6 +146,17 @@ public class IdeaService {
     // ── Like / Unlike ────────────────────────────────────────
     @Transactional
     public void likeIdea(UUID ideaId) {
+
+        Idea idea=ideaRepository.findById(ideaId)
+                .orElseThrow(() -> new RuntimeException("Idea not found"));
+        Notification notification=Notification.builder()
+        .message("Someone liked your idea!")
+        .readStatus(false)
+        .createdAt(java.time.LocalDateTime.now())
+        .user(idea.getCreator())
+        .build();
+
+        notificationService.sendNotification(notification);
         ideaRepository.incrementLikeCount(ideaId);
     }
 
