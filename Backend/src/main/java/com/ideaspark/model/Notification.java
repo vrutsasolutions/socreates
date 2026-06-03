@@ -1,5 +1,7 @@
 package com.ideaspark.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,8 +25,9 @@ public class Notification {
     private boolean readStatus;
     private LocalDateTime createdAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
 @JoinColumn(name = "user_id")
+@JsonIgnore
     private User user;
 
     

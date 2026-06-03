@@ -20,6 +20,9 @@ public class NotificationService {
     }
 
     public Notification sendNotification(Notification notification){
+        if(notification.getCreatedAt()==null){
+            notification.setCreatedAt(java.time.LocalDateTime.now());
+        }
         Notification saved = notificationRepository.save(notification);
 
         messagingTemplate.convertAndSend("/topic/notifications", saved);
