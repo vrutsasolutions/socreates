@@ -10,7 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.security.core.Authentication;
 import java.util.List;
 import java.util.UUID;
 
@@ -109,9 +109,13 @@ public class IdeaController {
 
     // POST /api/ideas/{id}/like
     @PostMapping("/{id}/like")
-    public ResponseEntity<ApiResponse> like(@PathVariable UUID id) {
-        ideaService.likeIdea(id);
-        return ResponseEntity.ok(new ApiResponse(true, "Liked"));
+    public ResponseEntity<?> likeIdea(
+            @PathVariable UUID id,
+            Authentication authentication) {
+
+        ideaService.likeIdea(id, authentication.getName());
+
+        return ResponseEntity.ok().build();
     }
 
     // DELETE /api/ideas/{id}/like

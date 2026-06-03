@@ -145,20 +145,24 @@ public class IdeaService {
 
     // ── Like / Unlike ────────────────────────────────────────
     @Transactional
-    public void likeIdea(UUID ideaId) {
+public void likeIdea(UUID ideaId, String userEmail) {
 
-        Idea idea=ideaRepository.findById(ideaId)
-                .orElseThrow(() -> new RuntimeException("Idea not found"));
-        Notification notification=Notification.builder()
-        .message("Someone liked your idea!")
-        .readStatus(false)
-        .createdAt(java.time.LocalDateTime.now())
-        .user(idea.getCreator())
-        .build();
+    User liker = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        notificationService.sendNotification(notification);
-        ideaRepository.incrementLikeCount(ideaId);
-    }
+    Idea idea = ideaRepository.findById(ideaId)
+            .orElseThrow(() -> new RuntimeException("Idea not found"));
+
+    Notification notification = Notification.builder()
+            .message(liker.getUsername() + " liked your idea!")
+            .readStatus(false)
+            .createdAt(java.time.LocalDateTime.now())
+            .user(idea.getCreator())
+            .build();
+
+    notificationService.sendNotification(notification);
+    ideaRepository.incrementLikeCount(ideaId);
+}
 
     @Transactional
     public void unlikeIdea(UUID ideaId) {
