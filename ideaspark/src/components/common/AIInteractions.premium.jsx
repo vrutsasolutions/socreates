@@ -812,11 +812,14 @@ export function AIOnboardingPrompt({ onTryAI, onDismiss }) {
     <div style={{
       position: 'relative',
       borderRadius: 'var(--sc-radius-2xl)',
+      '--sc-ai': 'var(--sc-primary-700)',
+      '--sc-ai-glow': 'var(--sc-primary-500)',
       background: 'linear-gradient(135deg, var(--sc-ai) 0%, var(--sc-ai-glow) 60%, var(--sc-primary-500) 100%)',
       padding: '20px 18px',
       color: '#fff',
       overflow: 'hidden',
       animation: 'sc-bounce-in 500ms var(--sc-ease-spring) both',
+      boxShadow: '0 4px 20px rgba(51,71,232,0.25)',
     }}>
       {/* Background decoration */}
       <div style={{
