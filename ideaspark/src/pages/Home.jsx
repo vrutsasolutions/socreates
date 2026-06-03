@@ -4,14 +4,22 @@ import BottomNav from '../components/common/BottomNav.premium';
 import DrawerMenu from '../components/common/DrawerMenu.premium';
 import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
 import { useAuth } from '../context/AuthContext';
-import { fetchIdeas } from '../api/ideaApi';
-import { MOCK_IDEAS } from '../api/mockData';
+import api from '../api/axiosInstance';
 import { FeedSkeleton } from '../components/common/LoadingStates.premium';
 import { EmptyFeed, EmptyForYou } from '../components/common/EmptyStates.premium';
 import { NetworkError, IdeaLoadError, ServerError } from '../components/common/ErrorStates.premium';
 import { AIOnboardingPrompt } from '../components/common/AIInteractions.premium';
 
 const TABS = ['Trending', 'Latest', 'For You'];
+
+const MOCK_IDEAS = [
+  { id: '1', title: 'AI-Powered Plant Doctor App', description: 'Take a photo of your plant and get instant diagnosis using computer vision.', category: 'Technology', isPremium: false, likeCount: 142, creatorName: 'Arjun Sharma', createdAt: new Date(Date.now() - 3600000).toISOString() },
+  { id: '2', title: 'Micro-Learning Platform', description: 'Learn any skill in 5-minute daily sessions. Gamified progress tracking.', category: 'Education', isPremium: true, likeCount: 89, creatorName: 'Priya Nair', createdAt: new Date(Date.now() - 7200000).toISOString() },
+  { id: '3', title: 'Food Rescue Network', description: 'Connect restaurants with surplus food to nearby NGOs in real-time.', category: 'Social', isPremium: false, likeCount: 203, creatorName: 'Rahul Gupta', createdAt: new Date(Date.now() - 86400000).toISOString() },
+  { id: '4', title: 'Digital Wardrobe Stylist', description: 'Photograph your wardrobe once, get AI outfit suggestions every morning.', category: 'Design', isPremium: true, likeCount: 67, creatorName: 'Deepika Menon', createdAt: new Date(Date.now() - 172800000).toISOString() },
+  { id: '5', title: 'Community Skill Swap', description: 'Trade your skills with others. Teach coding, learn cooking. No money needed.', category: 'Business', isPremium: false, likeCount: 310, creatorName: 'Vikram Patel', createdAt: new Date(Date.now() - 259200000).toISOString() },
+  { id: '6', title: 'Mental Wellness Journal', description: 'Daily mood tracking with AI-powered insights and personalized recommendations.', category: 'Health', isPremium: false, likeCount: 178, creatorName: 'Sneha Reddy', createdAt: new Date(Date.now() - 345600000).toISOString() },
+];
 
 export default function Home() {
   const navigate = useNavigate();
@@ -21,19 +29,19 @@ export default function Home() {
   const [ideas, setIdeas]           = useState([]);
   const [loading, setLoading]       = useState(true);
 
-  const loadIdeas = useCallback(async () => {
+  const fetchIdeas = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await fetchIdeas({ sort: activeTab.toLowerCase() });
+      const { data } = await api.get(`/ideas?sort=${activeTab.toLowerCase()}`);
       setIdeas(data);
-    } catch {
+    } catch (_) {
       setIdeas(MOCK_IDEAS);
     } finally {
       setLoading(false);
     }
   }, [activeTab]);
 
-  useEffect(() => { loadIdeas(); }, [loadIdeas]);
+  useEffect(() => { fetchIdeas(); }, [fetchIdeas]);
 
   return (
     <div className="min-h-screen bg-white pb-24">
@@ -91,19 +99,23 @@ export default function Home() {
           </div>
           <AIOnboardingPrompt onDismiss={() => {}} onTryAI={() => navigate('/add-idea')} />
 
-
           {/* Feed */}
           <div className="px-4">
             {loading ? (
+              // <div className="grid grid-cols-2 gap-3">
+              //   {Array(6).fill(0).map((_, i) => (
+              //     <div key={i} className="bg-[#F0F6FF] rounded-2xl overflow-hidden animate-pulse">
+              //       <div className="h-36 bg-[#BBDEFB]" />
+              //       <div className="p-3 space-y-2">
+              //         <div className="h-3 bg-[#BBDEFB] rounded w-3/4" />
+              //         <div className="h-2.5 bg-[#BBDEFB] rounded" />
+              //       </div>
+              //     </div>
+              //   ))}
+              // </div>
               <div className="grid grid-cols-2 gap-3">
                 {Array(6).fill(0).map((_, i) => (
-                  <div key={i} className="bg-[#F0F6FF] rounded-2xl overflow-hidden animate-pulse">
-                    <div className="h-36 bg-[#BBDEFB]" />
-                    <div className="p-3 space-y-2">
-                      <div className="h-3 bg-[#BBDEFB] rounded w-3/4" />
-                      <div className="h-2.5 bg-[#BBDEFB] rounded" />
-                    </div>
-                  </div>
+                  <IdeaCardSkeleton key={i} />
                 ))}
               </div>
             ) : (

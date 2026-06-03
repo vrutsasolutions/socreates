@@ -5,6 +5,9 @@ import { EmptyPremium } from '../components/common/EmptyStates.premium';
 import { IdeaLoadError, ServerError, PermissionError } from '../components/common/ErrorStates.premium';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
+import IdeaCard from '../components/common/IdeaCard.premium';
+import BottomNav from '../components/common/BottomNav.premium';
+
 
 const MOCK = [
   { id:'p1', title:'Quantum Computing for Startups',    description:'How early-stage companies can leverage quantum algorithms today.', category:'Technology', isPremium:true, likeCount:312, creatorName:'Arjun Sharma' },
