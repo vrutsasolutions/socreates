@@ -7,6 +7,7 @@
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationToasts from '../components/common/NotificationToasts';
 
 import Welcome         from '../pages/Welcome';
 import Login           from '../pages/Login';           // ← THIS LINE MUST EXIST
@@ -39,6 +40,8 @@ function PublicOnly({ children }) {
 export default function AppRouter() {
   return (
     <BrowserRouter>
+      {/* Global live-notification toasts (render above all routes) */}
+      <NotificationToasts />
       <Routes>
         {/* Public routes */}
         <Route path="/"          element={<Welcome />} />

@@ -98,23 +98,48 @@ creatorName, createdAt, imageUrl, savedByCurrentUser }`
 
 ---
 
-## 7. Notifications ⏳  `/api/notifications`  — frontend: `src/api/notificationApi.jsx`
+## 7. Notifications  `/api/notifications`  — frontend: `src/api/notificationApi.jsx`
 
-| Method | Path | Request | Response |
-|---|---|---|---|
-| GET | `/` | — | `Notification[]` |
-| GET | `/unread-count` | — | `{ count }` |
-| POST | `/{id}/read` | — | 204 |
-| POST | `/read-all` | — | 204 |
+**Real-time transport — DECIDED & LIVE: STOMP over SockJS** ✅
+- SockJS handshake endpoint: `http://localhost:8081/ws` (server uses `.withSockJS()`,
+  so a **raw `ws://` socket will NOT work** — use `sockjs-client` + `@stomp/stompjs`).
+- Broker prefix `/topic`, app prefix `/app`.
+- Subscribe destination: `/topic/notifications` — pushes a `Notification` JSON on every
+  like / bookmark / idea-publish.
+- Frontend: `subscribeToNotifications()` connects + normalizes the payload.
 
+**Live payload shape** (backend entity — differs from the UI shape below):
+`{ id: UUID, message: string, readStatus: boolean, createdAt: LocalDateTime, user: User }`
+Frontend `normalizeNotification()` maps this → the UI shape and derives `type`/`title`/`link`
+from the message text (backend sends none of those).
+
+**UI shape** (what the bell/toast consume):
 `Notification` = `{ id, type, title, message, read, createdAt, link }`
-`type` ∈ `like | follow | comment | system`
+`type` ∈ `like | bookmark | idea | follow | comment | system`
 
-**Real-time transport — DECISION NEEDED:** WebSocket vs SSE.
-- WebSocket: `ws://localhost:8081/ws/notifications?token=<JWT>`, pushes `Notification` JSON.
-- SSE: `GET /api/notifications/stream`, `text/event-stream` of `Notification` JSON.
+### REST endpoints
 
-Frontend hook `subscribeToNotifications()` is wired for both — pick one and confirm.
+| Method | Path | Request | Response | Status |
+|---|---|---|---|---|
+| POST | `/send` | `Notification` (entity) | `Notification` (saved + broadcast) | ✅ live |
+| GET | `/` | — | `Notification[]` | ⏳ **not implemented** |
+| GET | `/unread-count` | — | `{ count }` | ⏳ **not implemented** |
+| POST | `/{id}/read` | — | 204 | ⏳ **not implemented** |
+| POST | `/read-all` | — | 204 | ⏳ **not implemented** |
+
+> **Frontend status:** real-time push is wired LIVE (`USE_MOCK.notificationsRealtime = false`).
+> The bell's initial list / unread-count / mark-read still run on **mock**
+> (`USE_MOCK.notifications = true`) because the GET/read endpoints above don't exist yet.
+>
+> **Gaps for Vishakha to close** (so the bell is fully live, not just real-time):
+> 1. Add `GET /`, `GET /unread-count`, `POST /{id}/read`, `POST /read-all`.
+> 2. The WS handshake is currently **unauthenticated** (`setAllowedOriginPatterns("*")`,
+>    no JWT check) — add a STOMP `ChannelInterceptor`/handshake auth.
+> 3. Pushes go to one **shared** `/topic/notifications` (every client gets every
+>    notification). For per-user delivery, send to `/user/queue/notifications`
+>    via `convertAndSendToUser(...)`.
+> 4. Consider adding `type`/`title`/`link` to the `Notification` entity so the
+>    frontend doesn't have to infer `type` from message text.
 
 ---
 

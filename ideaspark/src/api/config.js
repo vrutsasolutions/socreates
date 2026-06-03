@@ -17,7 +17,13 @@ export const USE_MOCK = {
   search:        false, // ✅ backend ready  — /api/search
   ai:            true,  // ⏳ under dev      — /api/ai/*       (Vishakha)
   images:        true,  // ⏳ under dev      — /api/images/*   (Vishakha)
-  notifications: true,  // ⏳ under dev      — /api/notifications/* (Vishakha)
+
+  // Notifications are SPLIT, because the backend only shipped part of the contract:
+  //   • realtime push  → ✅ LIVE  (STOMP/SockJS, see notificationApi.subscribeToNotifications)
+  //   • REST list/unread/mark-read → ⏳ still mock — those endpoints don't exist yet
+  //     (backend only has POST /api/notifications/send). Flip when Vishakha adds them.
+  notifications:         true,  // ⏳ REST CRUD still mock — /api/notifications GET,read,read-all
+  notificationsRealtime: false, // ✅ live STOMP push at ws://localhost:8081/ws → /topic/notifications
 };
 
 // Simulate network latency so loading states are exercised during dev.
