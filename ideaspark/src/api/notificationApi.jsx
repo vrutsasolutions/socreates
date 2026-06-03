@@ -3,7 +3,7 @@
 //
 //  Backend (Vishakha) shipped real-time push but NOT the REST CRUD:
 //    ✅ LIVE  — STOMP over SockJS: connect ws://localhost:8081/ws (SockJS
-//               handshake), SUBSCRIBE destination /topic/notifications.
+//               handshake), SUBSCRIBE destination /topic/notifications
 //               Pushed on every like / bookmark / idea publish.
 //    ⏳ MOCK  — GET / , GET /unread-count , POST /{id}/read , POST /read-all
 //               do NOT exist server-side yet (only POST /send). They stay
@@ -23,7 +23,7 @@ import { MOCK_NOTIFICATIONS } from './mockData';
 
 // SockJS handshake endpoint (NOT a raw ws:// URL — backend uses .withSockJS()).
 const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:8081/ws';
-const TOPIC  = '/topic/notifications';
+const TOPIC  = '/user/queue/notifications';
 
 // Local mutable copy so mock mark-as-read reflects in the UI during dev.
 let mockStore = MOCK_NOTIFICATIONS.map((n) => ({ ...n }));
