@@ -22,7 +22,7 @@ export default function AddIdea() {
   const navigate = useNavigate();
   const fileRef  = useRef();
   const [step, setStep]               = useState(0);
-  const [form, setForm]               = useState({ title: '', description: '', category: '', isPremium: false });
+  const [form, setForm] = useState({ title: '', description: '', category: '', premium: false });
   const [image, setImage]             = useState(null);
   const [preview, setPreview]         = useState(null);
   const [checking, setChecking]       = useState(false);
@@ -152,12 +152,12 @@ export default function AddIdea() {
                 <div className="text-black font-semibold text-sm">⭐ Premium Content</div>
                 <div className="text-[#90A4AE] text-xs mt-0.5">Only paid members can view this</div>
               </div>
-              <button onClick={() => setForm({ ...form, isPremium: !form.isPremium })}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${form.isPremium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}>
-                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow ${form.isPremium ? 'translate-x-7' : 'translate-x-1'}`}/>
+              <button onClick={() => setForm({ ...form, premium: !form.premium })}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${form.premium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}>
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow ${form.premium ? 'translate-x-7' : 'translate-x-1'}`}/>
               </button>
             </div>
-            {form.isPremium && (
+            {form.premium && (
               <div className="mt-3 bg-[#FFF8E1] border border-[#FFE082] rounded-xl p-3 text-[#F9A825] text-xs">
                 💰 Premium ideas earn revenue when members view them.
               </div>
@@ -176,7 +176,7 @@ export default function AddIdea() {
             )}
             <div className="p-4">
               <div className="flex gap-2 flex-wrap mb-2">
-                {form.isPremium && (
+                {form.premium && (
                   <span className="bg-[#FFF8E1] text-[#F9A825] text-xs font-bold px-2.5 py-1 rounded-full">⭐ Premium</span>
                 )}
                 <span className="bg-[#E3F2FD] text-[#1565C0] text-xs px-2.5 py-1 rounded-full">{form.category}</span>
