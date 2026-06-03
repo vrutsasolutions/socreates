@@ -53,7 +53,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/ideas").permitAll()
                 .requestMatchers("/api/ideas/{id}").permitAll()
                 .requestMatchers("/api/search").permitAll()
-                .requestMatchers("/api/notifications/**").permitAll()
+                .requestMatchers("/api/notifications/**").authenticated()
+                .requestMatchers("/ws/**").permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )

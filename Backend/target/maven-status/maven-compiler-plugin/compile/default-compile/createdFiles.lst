@@ -6,8 +6,10 @@ com\ideaspark\dto\IdeaDTO.class
 com\ideaspark\controller\UserController.class
 com\ideaspark\controller\PlagiarismController.class
 com\ideaspark\dto\MembershipDTO.class
+com\ideaspark\repository\NotificationRepository.class
 com\ideaspark\controller\MembershipController.class
 com\ideaspark\dto\UpdateProfileRequest.class
+com\ideaspark\model\Notification$NotificationBuilder.class
 com\ideaspark\service\MembershipService.class
 com\ideaspark\IdeasparkApplication.class
 com\ideaspark\model\Membership$MembershipBuilder.class
@@ -16,6 +18,7 @@ com\ideaspark\controller\IdeaController.class
 com\ideaspark\dto\UserDTO.class
 com\ideaspark\dto\LoginRequest.class
 com\ideaspark\config\userDetailsService.class
+com\ideaspark\config\WebSocketConfig.class
 com\ideaspark\service\IdeaService.class
 com\ideaspark\security\JwtUtil.class
 com\ideaspark\service\PlagiarismService.class
@@ -27,7 +30,9 @@ com\ideaspark\controller\SearchController.class
 com\ideaspark\repository\IdeaRepository.class
 com\ideaspark\dto\ApiResponse.class
 com\ideaspark\dto\CreateIdeaRequest.class
+com\ideaspark\service\NotificationService.class
 com\ideaspark\model\Membership.class
+com\ideaspark\model\Notification.class
 com\ideaspark\repository\UserRepository.class
 com\ideaspark\model\Idea$IdeaBuilder.class
 com\ideaspark\dto\RegisterRequest.class
