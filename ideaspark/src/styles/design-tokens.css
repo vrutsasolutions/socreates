@@ -1,0 +1,600 @@
+/* ============================================================
+   SOCREATES — PREMIUM DESIGN TOKENS
+   Version: 2.0  |  Do not modify existing files.
+   Import this in main.jsx AFTER index.css:
+     import './styles/design-tokens.css';
+   ============================================================ */
+
+/* ── 1. BRAND COLOR PALETTE ─────────────────────────────────
+   Primary: Deep Indigo (elevated from flat blue)
+   Accent:  Amber Gold  (premium feel)
+   Neutral: Cool Slate  (replaces blue-grey)
+   ────────────────────────────────────────────────────────── */
+:root {
+  /* Primary — Indigo (replaces #1565C0) */
+  --sc-primary-50:  #EEF0FF;
+  --sc-primary-100: #D6DAFF;
+  --sc-primary-200: #AEBCFF;
+  --sc-primary-300: #7C8EFF;
+  --sc-primary-400: #4F62F5;
+  --sc-primary-500: #3347E8;   /* main brand */
+  --sc-primary-600: #2435C9;
+  --sc-primary-700: #1A28A0;
+  --sc-primary-800: #121C78;
+  --sc-primary-900: #0B1255;
+
+  /* Accent — Amber Gold (premium / star) */
+  --sc-accent-50:  #FFFBEB;
+  --sc-accent-100: #FEF3C7;
+  --sc-accent-200: #FDE68A;
+  --sc-accent-300: #FCD34D;
+  --sc-accent-400: #FBBF24;
+  --sc-accent-500: #F59E0B;   /* main accent */
+  --sc-accent-600: #D97706;
+  --sc-accent-700: #B45309;
+  --sc-accent-800: #92400E;
+  --sc-accent-900: #78350F;
+
+  /* Neutral — Cool Slate */
+  --sc-neutral-0:   #FFFFFF;
+  --sc-neutral-50:  #F8F9FC;
+  --sc-neutral-100: #F0F2F8;
+  --sc-neutral-200: #E2E6F0;
+  --sc-neutral-300: #C8CEDF;
+  --sc-neutral-400: #9DA5BE;
+  --sc-neutral-500: #6B7494;
+  --sc-neutral-600: #4A5270;
+  --sc-neutral-700: #343A56;
+  --sc-neutral-800: #1E2238;
+  --sc-neutral-900: #0F1224;
+
+  /* Semantic */
+  --sc-success-light: #ECFDF5;
+  --sc-success:       #10B981;
+  --sc-success-dark:  #065F46;
+
+  --sc-warning-light: #FFFBEB;
+  --sc-warning:       #F59E0B;
+  --sc-warning-dark:  #92400E;
+
+  --sc-error-light:   #FEF2F2;
+  --sc-error:         #EF4444;
+  --sc-error-dark:    #991B1B;
+
+  --sc-info-light:    #EFF6FF;
+  --sc-info:          #3B82F6;
+  --sc-info-dark:     #1E3A8A;
+
+  /* AI / Special */
+  --sc-ai-light:   #F5F0FF;
+  --sc-ai:         #7C3AED;
+  --sc-ai-dark:    #4C1D95;
+  --sc-ai-glow:    #8B5CF6;
+
+  /* ── 2. SEMANTIC SURFACE TOKENS ────────────────────────── */
+  --sc-bg-page:        var(--sc-neutral-50);
+  --sc-bg-surface:     var(--sc-neutral-0);
+  --sc-bg-elevated:    var(--sc-neutral-0);
+  --sc-bg-overlay:     rgba(15, 18, 36, 0.55);
+  --sc-bg-header:      var(--sc-primary-500);
+  --sc-bg-header-deep: var(--sc-primary-700);
+
+  --sc-text-primary:   var(--sc-neutral-900);
+  --sc-text-secondary: var(--sc-neutral-600);
+  --sc-text-muted:     var(--sc-neutral-400);
+  --sc-text-inverse:   var(--sc-neutral-0);
+  --sc-text-brand:     var(--sc-primary-500);
+  --sc-text-accent:    var(--sc-accent-600);
+
+  --sc-border-subtle:  var(--sc-neutral-100);
+  --sc-border-default: var(--sc-neutral-200);
+  --sc-border-strong:  var(--sc-neutral-300);
+  --sc-border-brand:   var(--sc-primary-300);
+  --sc-border-focus:   var(--sc-primary-400);
+
+  /* ── 3. TYPOGRAPHY SCALE ───────────────────────────────── */
+  --sc-font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --sc-font-body:    'Inter', system-ui, -apple-system, sans-serif;
+  --sc-font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Sizes */
+  --sc-text-xs:   0.6875rem;  /* 11px */
+  --sc-text-sm:   0.8125rem;  /* 13px */
+  --sc-text-base: 0.9375rem;  /* 15px */
+  --sc-text-md:   1rem;       /* 16px */
+  --sc-text-lg:   1.125rem;   /* 18px */
+  --sc-text-xl:   1.25rem;    /* 20px */
+  --sc-text-2xl:  1.5rem;     /* 24px */
+  --sc-text-3xl:  1.875rem;   /* 30px */
+  --sc-text-4xl:  2.25rem;    /* 36px */
+
+  /* Weights */
+  --sc-weight-regular:   400;
+  --sc-weight-medium:    500;
+  --sc-weight-semibold:  600;
+  --sc-weight-bold:      700;
+  --sc-weight-black:     900;
+
+  /* Line heights */
+  --sc-leading-tight:  1.2;
+  --sc-leading-snug:   1.35;
+  --sc-leading-normal: 1.5;
+  --sc-leading-relaxed:1.7;
+
+  /* Letter spacing */
+  --sc-tracking-tight:  -0.03em;
+  --sc-tracking-normal:  0em;
+  --sc-tracking-wide:    0.04em;
+  --sc-tracking-wider:   0.08em;
+  --sc-tracking-widest:  0.12em;
+
+  /* ── 4. SPACING SCALE ──────────────────────────────────── */
+  --sc-space-1:  0.25rem;   /*  4px */
+  --sc-space-2:  0.5rem;    /*  8px */
+  --sc-space-3:  0.75rem;   /* 12px */
+  --sc-space-4:  1rem;      /* 16px */
+  --sc-space-5:  1.25rem;   /* 20px */
+  --sc-space-6:  1.5rem;    /* 24px */
+  --sc-space-8:  2rem;      /* 32px */
+  --sc-space-10: 2.5rem;    /* 40px */
+  --sc-space-12: 3rem;      /* 48px */
+  --sc-space-16: 4rem;      /* 64px */
+  --sc-space-20: 5rem;      /* 80px */
+  --sc-space-24: 6rem;      /* 96px */
+
+  /* ── 5. BORDER RADIUS ──────────────────────────────────── */
+  --sc-radius-sm:   0.375rem;   /*  6px */
+  --sc-radius-md:   0.625rem;   /* 10px */
+  --sc-radius-lg:   0.875rem;   /* 14px */
+  --sc-radius-xl:   1.125rem;   /* 18px */
+  --sc-radius-2xl:  1.5rem;     /* 24px */
+  --sc-radius-3xl:  2rem;       /* 32px */
+  --sc-radius-full: 9999px;
+
+  /* ── 6. SHADOWS ────────────────────────────────────────── */
+  --sc-shadow-xs:  0 1px 2px rgba(15,18,36, 0.04);
+  --sc-shadow-sm:  0 1px 4px rgba(15,18,36, 0.06), 0 1px 2px rgba(15,18,36, 0.04);
+  --sc-shadow-md:  0 4px 12px rgba(15,18,36, 0.08), 0 2px 4px rgba(15,18,36, 0.04);
+  --sc-shadow-lg:  0 8px 24px rgba(15,18,36, 0.10), 0 4px 8px rgba(15,18,36, 0.06);
+  --sc-shadow-xl:  0 16px 40px rgba(15,18,36, 0.12), 0 8px 16px rgba(15,18,36, 0.06);
+  --sc-shadow-2xl: 0 24px 64px rgba(15,18,36, 0.16), 0 12px 24px rgba(15,18,36, 0.08);
+
+  /* Brand-tinted shadows */
+  --sc-shadow-brand: 0 8px 24px rgba(51, 71, 232, 0.24);
+  --sc-shadow-accent:0 8px 24px rgba(245,158, 11, 0.28);
+  --sc-shadow-ai:    0 8px 24px rgba(124, 58,237, 0.28);
+
+  /* ── 7. TRANSITIONS ────────────────────────────────────── */
+  --sc-ease-out:     cubic-bezier(0.0, 0.0, 0.2, 1.0);
+  --sc-ease-in:      cubic-bezier(0.4, 0.0, 1.0, 1.0);
+  --sc-ease-in-out:  cubic-bezier(0.4, 0.0, 0.2, 1.0);
+  --sc-ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1.0);
+  --sc-ease-bounce:  cubic-bezier(0.68, -0.55, 0.27, 1.55);
+
+  --sc-duration-fast:   120ms;
+  --sc-duration-normal: 200ms;
+  --sc-duration-slow:   300ms;
+  --sc-duration-slower: 450ms;
+
+  --sc-transition-base:     all var(--sc-duration-normal) var(--sc-ease-out);
+  --sc-transition-transform:transform var(--sc-duration-normal) var(--sc-ease-spring);
+  --sc-transition-color:    color var(--sc-duration-fast) var(--sc-ease-out),
+                            background-color var(--sc-duration-fast) var(--sc-ease-out),
+                            border-color var(--sc-duration-fast) var(--sc-ease-out);
+  --sc-transition-shadow:   box-shadow var(--sc-duration-slow) var(--sc-ease-out);
+
+  /* ── 8. Z-INDEX STACK ──────────────────────────────────── */
+  --sc-z-base:    0;
+  --sc-z-raised:  10;
+  --sc-z-dropdown:20;
+  --sc-z-sticky:  30;
+  --sc-z-overlay: 40;
+  --sc-z-drawer:  50;
+  --sc-z-modal:   60;
+  --sc-z-toast:   70;
+
+  /* ── 9. LAYOUT ─────────────────────────────────────────── */
+  --sc-max-width:       430px;   /* mobile-first max */
+  --sc-header-height:   56px;
+  --sc-bottom-nav-height: 72px;
+  --sc-content-pad:     var(--sc-space-4);
+}
+
+/* ── 10. COMPONENT UTILITY CLASSES ──────────────────────────
+   Reusable classes for premium components.
+   All prefixed with .sc- to avoid Tailwind conflicts.
+   ────────────────────────────────────────────────────────── */
+
+/* Cards */
+.sc-card {
+  background: var(--sc-bg-surface);
+  border: 1px solid var(--sc-border-subtle);
+  border-radius: var(--sc-radius-xl);
+  box-shadow: var(--sc-shadow-sm);
+  transition: var(--sc-transition-shadow), transform var(--sc-duration-slow) var(--sc-ease-spring);
+}
+.sc-card:hover {
+  box-shadow: var(--sc-shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--sc-border-brand);
+}
+.sc-card:active {
+  transform: scale(0.98);
+  box-shadow: var(--sc-shadow-xs);
+}
+
+.sc-card-flat {
+  background: var(--sc-bg-surface);
+  border: 1px solid var(--sc-border-default);
+  border-radius: var(--sc-radius-xl);
+}
+
+/* Buttons */
+.sc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sc-space-2);
+  font-family: var(--sc-font-body);
+  font-weight: var(--sc-weight-semibold);
+  font-size: var(--sc-text-sm);
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--sc-radius-2xl);
+  transition: var(--sc-transition-base), transform var(--sc-duration-fast) var(--sc-ease-spring);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.sc-btn:active { transform: scale(0.96); }
+.sc-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.sc-btn-primary {
+  background: var(--sc-primary-500);
+  color: var(--sc-text-inverse);
+  padding: 14px 24px;
+  box-shadow: var(--sc-shadow-brand);
+}
+.sc-btn-primary:hover:not(:disabled) {
+  background: var(--sc-primary-600);
+  box-shadow: 0 12px 32px rgba(51,71,232,0.32);
+  transform: translateY(-1px);
+}
+
+.sc-btn-secondary {
+  background: var(--sc-primary-50);
+  color: var(--sc-primary-600);
+  border: 1.5px solid var(--sc-border-brand);
+  padding: 13px 24px;
+}
+.sc-btn-secondary:hover:not(:disabled) {
+  background: var(--sc-primary-100);
+}
+
+.sc-btn-ghost {
+  background: transparent;
+  color: var(--sc-text-secondary);
+  padding: 10px 16px;
+}
+.sc-btn-ghost:hover:not(:disabled) {
+  background: var(--sc-neutral-100);
+  color: var(--sc-text-primary);
+}
+
+.sc-btn-accent {
+  background: var(--sc-accent-500);
+  color: var(--sc-neutral-900);
+  padding: 14px 24px;
+  box-shadow: var(--sc-shadow-accent);
+}
+.sc-btn-accent:hover:not(:disabled) {
+  background: var(--sc-accent-600);
+  color: var(--sc-neutral-0);
+}
+
+.sc-btn-ai {
+  background: var(--sc-ai);
+  color: var(--sc-text-inverse);
+  padding: 14px 24px;
+  box-shadow: var(--sc-shadow-ai);
+}
+.sc-btn-ai:hover:not(:disabled) { background: var(--sc-ai-dark); }
+
+.sc-btn-danger {
+  background: var(--sc-error-light);
+  color: var(--sc-error-dark);
+  padding: 14px 24px;
+}
+.sc-btn-danger:hover:not(:disabled) {
+  background: var(--sc-error);
+  color: #fff;
+}
+
+/* Badges & Pills */
+.sc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--sc-text-xs);
+  font-weight: var(--sc-weight-semibold);
+  letter-spacing: var(--sc-tracking-wide);
+  padding: 3px 9px;
+  border-radius: var(--sc-radius-full);
+}
+.sc-badge-primary { background: var(--sc-primary-100); color: var(--sc-primary-700); }
+.sc-badge-accent  { background: var(--sc-accent-100);  color: var(--sc-accent-800); }
+.sc-badge-success { background: var(--sc-success-light); color: var(--sc-success-dark); }
+.sc-badge-error   { background: var(--sc-error-light);   color: var(--sc-error-dark); }
+.sc-badge-ai      { background: var(--sc-ai-light);      color: var(--sc-ai-dark); }
+.sc-badge-neutral { background: var(--sc-neutral-100);   color: var(--sc-neutral-700); }
+
+/* PRO badge - premium gold */
+.sc-badge-pro {
+  background: linear-gradient(135deg, var(--sc-accent-400), var(--sc-accent-500));
+  color: var(--sc-neutral-900);
+  font-weight: var(--sc-weight-bold);
+  letter-spacing: var(--sc-tracking-wider);
+  padding: 3px 8px;
+}
+
+/* Inputs */
+.sc-input {
+  width: 100%;
+  background: var(--sc-neutral-50);
+  border: 1.5px solid var(--sc-border-default);
+  border-radius: var(--sc-radius-xl);
+  padding: 14px 16px;
+  font-family: var(--sc-font-body);
+  font-size: var(--sc-text-base);
+  color: var(--sc-text-primary);
+  transition: var(--sc-transition-base);
+  outline: none;
+}
+.sc-input::placeholder { color: var(--sc-text-muted); }
+.sc-input:hover { border-color: var(--sc-border-strong); background: var(--sc-neutral-0); }
+.sc-input:focus {
+  border-color: var(--sc-border-focus);
+  background: var(--sc-neutral-0);
+  box-shadow: 0 0 0 3px rgba(79, 98, 245, 0.12);
+}
+.sc-input.error {
+  border-color: var(--sc-error);
+  background: var(--sc-error-light);
+}
+.sc-input.error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.12); }
+.sc-input.success { border-color: var(--sc-success); }
+
+/* Avatar */
+.sc-avatar {
+  border-radius: var(--sc-radius-lg);
+  background: var(--sc-primary-100);
+  color: var(--sc-primary-700);
+  font-weight: var(--sc-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--sc-font-display);
+}
+.sc-avatar-sm { width: 28px; height: 28px; font-size: 11px; border-radius: var(--sc-radius-md); }
+.sc-avatar-md { width: 36px; height: 36px; font-size: 13px; }
+.sc-avatar-lg { width: 48px; height: 48px; font-size: 16px; }
+.sc-avatar-xl { width: 64px; height: 64px; font-size: 22px; border-radius: var(--sc-radius-xl); }
+
+/* Category chip */
+.sc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sc-space-1);
+  background: var(--sc-primary-50);
+  color: var(--sc-primary-600);
+  border: 1px solid var(--sc-primary-100);
+  border-radius: var(--sc-radius-full);
+  padding: 5px 12px;
+  font-size: var(--sc-text-xs);
+  font-weight: var(--sc-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--sc-transition-base);
+}
+.sc-chip:hover {
+  background: var(--sc-primary-100);
+  border-color: var(--sc-primary-300);
+}
+.sc-chip.active {
+  background: var(--sc-primary-500);
+  color: white;
+  border-color: var(--sc-primary-500);
+}
+
+/* Divider */
+.sc-divider {
+  border: none;
+  border-top: 1px solid var(--sc-border-subtle);
+  margin: var(--sc-space-4) 0;
+}
+
+/* Icon button */
+.sc-icon-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--sc-radius-lg);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--sc-text-secondary);
+  transition: var(--sc-transition-base);
+  -webkit-tap-highlight-color: transparent;
+}
+.sc-icon-btn:hover { background: var(--sc-neutral-100); color: var(--sc-text-primary); }
+.sc-icon-btn:active { transform: scale(0.92); }
+.sc-icon-btn.on-dark { color: rgba(255,255,255,0.75); }
+.sc-icon-btn.on-dark:hover { background: rgba(255,255,255,0.12); color: white; }
+
+/* ── 11. SKELETON / LOADING ──────────────────────────────── */
+@keyframes sc-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.sc-skeleton {
+  background: var(--sc-neutral-100);
+  background-image: linear-gradient(
+    90deg,
+    var(--sc-neutral-100) 0px,
+    var(--sc-neutral-50) 80px,
+    var(--sc-neutral-100) 160px
+  );
+  background-size: 400px 100%;
+  animation: sc-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--sc-radius-md);
+}
+
+.sc-skeleton-text { height: 12px; border-radius: var(--sc-radius-full); }
+.sc-skeleton-title { height: 16px; border-radius: var(--sc-radius-full); }
+.sc-skeleton-avatar {
+  border-radius: var(--sc-radius-lg);
+  aspect-ratio: 1;
+}
+.sc-skeleton-card {
+  border-radius: var(--sc-radius-xl);
+  overflow: hidden;
+}
+.sc-skeleton-image {
+  height: 144px;
+  border-radius: 0;
+}
+
+/* ── 12. MICRO-INTERACTION ANIMATIONS ────────────────────── */
+@keyframes sc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes sc-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes sc-slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes sc-scale-in {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes sc-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.22); }
+  70%  { transform: scale(0.93); }
+  100% { transform: scale(1); }
+}
+@keyframes sc-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+@keyframes sc-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes sc-bounce-in {
+  0%   { opacity: 0; transform: scale(0.8) translateY(16px); }
+  60%  { opacity: 1; transform: scale(1.04) translateY(-4px); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes sc-drawer-in {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes sc-drawer-out {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+@keyframes sc-toast-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes sc-ai-thinking {
+  0%  { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1;   transform: scale(1.1); }
+  100%{ opacity: 0.4; transform: scale(0.85); }
+}
+
+.sc-animate-fade-in   { animation: sc-fade-in   var(--sc-duration-normal) var(--sc-ease-out) both; }
+.sc-animate-slide-up  { animation: sc-slide-up  var(--sc-duration-slow) var(--sc-ease-out) both; }
+.sc-animate-scale-in  { animation: sc-scale-in  var(--sc-duration-slow) var(--sc-ease-spring) both; }
+.sc-animate-pop       { animation: sc-pop       var(--sc-duration-slow) var(--sc-ease-spring); }
+.sc-animate-bounce-in { animation: sc-bounce-in var(--sc-duration-slower) var(--sc-ease-spring) both; }
+
+/* Stagger delays for lists */
+.sc-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.sc-stagger > *:nth-child(2) { animation-delay: 60ms; }
+.sc-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.sc-stagger > *:nth-child(4) { animation-delay: 180ms; }
+.sc-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.sc-stagger > *:nth-child(6) { animation-delay: 300ms; }
+
+/* ── 13. HEADER / NAVIGATION TOKENS ─────────────────────── */
+.sc-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--sc-z-sticky);
+  height: var(--sc-header-height);
+  background: var(--sc-bg-header);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sc-space-4);
+  gap: var(--sc-space-2);
+}
+
+.sc-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--sc-z-sticky);
+  height: var(--sc-bottom-nav-height);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--sc-border-subtle);
+}
+
+/* ── 14. LAYOUT UTILITIES ────────────────────────────────── */
+.sc-page {
+  min-height: 100dvh;
+  background: var(--sc-bg-page);
+  padding-bottom: calc(var(--sc-bottom-nav-height) + var(--sc-space-4));
+}
+
+.sc-container {
+  max-width: var(--sc-max-width);
+  margin: 0 auto;
+  padding: 0 var(--sc-content-pad);
+}
+
+.sc-section {
+  padding: var(--sc-space-5) 0;
+}
+
+/* ── 15. FOCUS VISIBLE ───────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--sc-primary-400);
+  outline-offset: 2px;
+}
+
+/* ── 16. SCROLLBAR STYLING ───────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--sc-neutral-300);
+  border-radius: var(--sc-radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--sc-neutral-400); }
+
+/* ── 17. SELECTION ───────────────────────────────────────── */
+::selection {
+  background: var(--sc-primary-100);
+  color: var(--sc-primary-900);
+}
