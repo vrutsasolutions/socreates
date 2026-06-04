@@ -17,6 +17,7 @@ export const USE_MOCK = {
   search:        false, // ✅ backend ready  — /api/search
   ai:            true,  // ⏳ under dev      — /api/ai/*       (Vishakha)
   images:        true,  // ⏳ under dev      — /api/images/*   (Vishakha)
+  messaging:     true,  // ⏳ under dev      — /api/messages/* (DM/inbox feature; backend TBD)
 
   // Notifications are SPLIT, because the backend only shipped part of the contract:
   //   • realtime push  → ✅ LIVE  (STOMP/SockJS, see notificationApi.subscribeToNotifications)
