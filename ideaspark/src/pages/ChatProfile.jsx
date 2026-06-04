@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
-import { ChatActionsLayer, handleFor } from '../components/messaging/ChatActions';
+import { ChatActionsLayer, ShareProfileSheet, handleFor } from '../components/messaging/ChatActions';
 import { fetchConversation } from '../api/messagingApi';
 
 const QuickAction = ({ label, children }) => (
@@ -36,6 +36,9 @@ export default function ChatProfile() {
   const [notifications, setNotifications] = useState(true);
   const [view, setView] = useState(null); // null|'report'|'block'|'delete'
   const [toast, setToast] = useState(null);
+  const [shareOpen, setShareOpen] = useState(false);
+
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(null), 2600); };
 
   useEffect(() => {
     let alive = true;
@@ -53,7 +56,10 @@ export default function ChatProfile() {
         <button onClick={() => navigate(-1)} aria-label="Back" className="relative z-10 w-9 h-9 flex items-center justify-center text-[#1565C0]">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <h1 className="flex-1 text-center text-[18px] font-bold text-[#0D2137] -ml-9 pointer-events-none">Chat Info</h1>
+        <h1 className="flex-1 text-center text-[18px] font-bold text-[#0D2137] pointer-events-none">Chat Info</h1>
+        <button onClick={() => setShareOpen(true)} aria-label="Share profile" className="relative z-10 w-9 h-9 flex items-center justify-center text-[#1565C0]">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}><path strokeLinecap="round" strokeLinejoin="round" d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M16 6l-4-4-4 4M12 2v13" /></svg>
+        </button>
       </header>
 
       {/* Identity */}
@@ -117,8 +123,23 @@ export default function ChatProfile() {
         navigate={navigate}
         onAfterDelete={() => navigate('/messages')}
         onAfterBlock={() => navigate('/messages')}
-        onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2600); }}
+        onToast={flash}
       />
+
+      {/* Share Profile (figma "Share Profile") */}
+      {shareOpen && convo && (
+        <ShareProfileSheet
+          convo={convo}
+          onClose={() => setShareOpen(false)}
+          onCopyLink={() => {
+            const link = `https://ideaspark.app/u/${handleFor(convo.name).replace('@', '')}`;
+            navigator.clipboard?.writeText(link).catch(() => {});
+            flash('Profile link copied');
+          }}
+          onSendDM={() => { setShareOpen(false); navigate(`/messages/${id}`); }}
+          onToast={flash}
+        />
+      )}
 
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-10 z-[60] bg-[#0D2137] text-white text-sm px-4 py-2.5 rounded-full shadow-lg max-w-[90%] text-center">

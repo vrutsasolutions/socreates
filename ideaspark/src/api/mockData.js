@@ -122,6 +122,17 @@ export const MOCK_REQUESTS = [
   { id: 'r-arnav',  name: 'Arnav Singh',   initial: 'A', avatarColor: AVATAR_COLORS.purple, preview: 'Quick question about your mentorship program.',                              time: 'Mon', mutuals: 0 },
 ];
 
+// People you can share a post with (figma "06 · Share Post").
+// IDs match conversation ids where a thread already exists, so a shared post
+// can be delivered into that chat.
+export const MOCK_SHARE_TARGETS = [
+  { id: 'c-aparna', name: 'Aparna S.', initial: 'A', avatarColor: AVATAR_COLORS.blue,   subtitle: 'Close friend' },
+  { id: 'c-krati',  name: 'Krati M.',  initial: 'K', avatarColor: AVATAR_COLORS.navy,   subtitle: 'Design Team' },
+  { id: 'c-rahul',  name: 'Rahul K.',  initial: 'R', avatarColor: AVATAR_COLORS.teal,   subtitle: 'Colleague' },
+  { id: 'c-meera',  name: 'Meera J.',  initial: 'M', avatarColor: AVATAR_COLORS.purple, subtitle: 'Friend' },
+  { id: 'c-arjun',  name: 'Arjun M.',  initial: 'A', avatarColor: AVATAR_COLORS.green,  subtitle: 'Followed you' },
+];
+
 // People you can start a new chat with (figma "09 · New Chat").
 export const MOCK_CONTACTS = [
   { id: 'u-ananya', name: 'Ananya Rao',    initial: 'A', avatarColor: AVATAR_COLORS.blue,   handle: '@ananya',    online: true  },

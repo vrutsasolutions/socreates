@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Prevent horizontal overflow on mobile ──
+   Decorative bleed elements (header rings, card accents) must never create a
+   horizontal scrollbar / white gutter. The viewport stays the scroll
+   container, so sticky headers keep working. */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 
 /* ── ANIMATIONS ── */
 @keyframes bounce {

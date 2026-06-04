@@ -28,6 +28,7 @@ import {
   MOCK_MESSAGES,
   MOCK_REQUESTS,
   MOCK_CONTACTS,
+  MOCK_SHARE_TARGETS,
 } from './mockData';
 
 // Mutable copies so mock mutations (send message, accept request) reflect in UI.
@@ -166,4 +167,31 @@ export const reportUser = (id, reason) => {
     return mockResponse({ reported: id, reason }, 200);
   }
   return api.post(`/messages/users/${id}/report`, { reason });
+};
+
+// ── Share a post to people (figma "06 · Share Post") ─────────────────────────
+// GET /messages/share-targets → ShareTarget[]
+export const fetchShareTargets = () =>
+  USE_MOCK.messaging
+    ? mockResponse(MOCK_SHARE_TARGETS.map((t) => ({ ...t })))
+    : api.get('/messages/share-targets');
+
+// POST /messages/share-post   (body: { postId, title, userIds })
+// In mock mode, delivers the post into any existing conversation thread.
+export const sharePost = ({ postId, title }, userIds = []) => {
+  if (USE_MOCK.messaging) {
+    userIds.forEach((uid) => {
+      if (threads[uid]) {
+        threads[uid] = [
+          ...threads[uid],
+          { id: 'm-' + Date.now() + '-' + uid, conversationId: uid, fromMe: true, type: 'text', text: `📨 Shared a post: ${title}`, time: clock() },
+        ];
+        conversations = conversations.map((c) =>
+          c.id === uid ? { ...c, lastType: 'text', lastMessage: `📨 ${title}`, time: 'now' } : c,
+        );
+      }
+    });
+    return mockResponse({ shared: postId, count: userIds.length }, 250);
+  }
+  return api.post('/messages/share-post', { postId, title, userIds });
 };

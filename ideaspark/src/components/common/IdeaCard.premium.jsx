@@ -11,9 +11,11 @@
  */
 
 import { useState, useRef } from 'react';
+import { createPortal }     from 'react-dom';
 import { useNavigate }      from 'react-router-dom';
 import api                  from '../../api/axiosInstance';
 import { AIBadge } from './AIInteractions.premium';
+import SharePostSheet from './SharePostSheet';
 
 /* ── Helpers ─────────────────────────────────────────────── */
 function formatDate(dateString) {
@@ -95,6 +97,8 @@ export default function IdeaCard({ idea, onSaveToggle }) {
   const [saving, setSaving] = useState(false);
   const [imgErr, setImgErr] = useState(false);
   const [likeAnim, setLikeAnim] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [toast, setToast] = useState(null);
   const saveRef = useRef(false);
 
   const catColor  = CATEGORY_COLORS[idea.category] || defaultColor;
@@ -137,6 +141,16 @@ export default function IdeaCard({ idea, onSaveToggle }) {
 
   const handleClick = () =>
     navigate(idea.isPremium ? `/premium/${idea.id}` : `/ideas/${idea.id}`);
+
+  const handleComment = (e) => {
+    e.stopPropagation();
+    navigate(idea.isPremium ? `/premium/${idea.id}` : `/ideas/${idea.id}`);
+  };
+
+  const handleShare = (e) => {
+    e.stopPropagation();
+    setShareOpen(true);
+  };
 
   /* ── render ── */
   return (
@@ -321,15 +335,18 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         {/* Actions row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
+          {/* Left group: Like · Comment · Share */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+
           {/* Like button */}
           <button
             onClick={handleLike}
             style={{
-              display: 'flex', alignItems: 'center', gap: 5,
+              display: 'flex', alignItems: 'center', gap: 4,
               background: liked ? '#FEF2F2' : 'transparent',
               border: liked ? '1px solid #FCA5A5' : '1px solid transparent',
               borderRadius: 999,
-              padding: '4px 9px',
+              padding: '3px 6px',
               cursor: 'pointer',
               color: liked ? '#DC2626' : 'var(--sc-text-muted)',
               fontSize: 11, fontWeight: 600,
@@ -348,16 +365,49 @@ export default function IdeaCard({ idea, onSaveToggle }) {
             <span>{likes}</span>
           </button>
 
+          {/* Comment button */}
+          <button
+            onClick={handleComment}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'transparent', border: '1px solid transparent',
+              borderRadius: 999, padding: '3px 6px', cursor: 'pointer',
+              color: 'var(--sc-text-muted)', fontSize: 11, fontWeight: 600,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+            aria-label="Comment on idea"
+          >
+            <CommentIcon size={13} />
+            <span>{idea.commentCount ?? 0}</span>
+          </button>
+
+          {/* Share button */}
+          <button
+            onClick={handleShare}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'transparent', border: '1px solid transparent',
+              borderRadius: 999, padding: '3px 6px', cursor: 'pointer',
+              color: 'var(--sc-text-muted)', fontSize: 11, fontWeight: 600,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+            aria-label="Share idea"
+          >
+            <ShareIcon size={13} />
+          </button>
+
+          </div>
+
           {/* Save button */}
           <button
             onClick={handleSave}
             disabled={saving}
             style={{
-              display: 'flex', alignItems: 'center', gap: 5,
+              display: 'flex', alignItems: 'center', gap: 4,
               background: saved ? '#EEF0FF' : 'transparent',
               border: saved ? '1px solid #AEBCFF' : '1px solid transparent',
               borderRadius: 999,
-              padding: '4px 9px',
+              padding: '3px 6px',
               cursor: saving ? 'wait' : 'pointer',
               color: saved ? 'var(--sc-primary-600)' : 'var(--sc-text-muted)',
               fontSize: 11, fontWeight: 600,
@@ -367,11 +417,33 @@ export default function IdeaCard({ idea, onSaveToggle }) {
             }}
             aria-label={saved ? 'Unsave idea' : 'Save idea'}
           >
-            <BookmarkIcon filled={saved} size={13} />
-            <span>{saved ? 'Saved' : 'Save'}</span>
+            <BookmarkIcon filled={saved} size={14} />
           </button>
         </div>
       </div>
+
+      {/* ── Share Post sheet (figma "06 · Share Post") ─────── */}
+      {shareOpen && (
+        <SharePostSheet
+          post={idea}
+          onClose={() => setShareOpen(false)}
+          onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2600); }}
+        />
+      )}
+      {toast && createPortal(
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 90,
+            zIndex: 60, background: '#0D2137', color: '#fff', fontSize: 13,
+            padding: '10px 16px', borderRadius: 999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            maxWidth: '90%', textAlign: 'center',
+          }}
+        >
+          {toast}
+        </div>,
+        document.body,
+      )}
 
       {/* ── Hover zoom on image — injected via CSS ─────────── */}
       <style>{`
@@ -392,6 +464,29 @@ function HeartIcon({ filled, size = 14 }) {
       strokeLinecap="round" strokeLinejoin="round"
       style={{ display: 'block' }}>
       <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+    </svg>
+  );
+}
+
+function CommentIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth={2.2}
+      strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+      <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+    </svg>
+  );
+}
+
+function ShareIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth={2.2}
+      strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
     </svg>
   );
 }

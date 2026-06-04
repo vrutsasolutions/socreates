@@ -51,8 +51,10 @@ export default function Home() {
 
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[#1565C0] px-4 py-4 flex items-center gap-4 relative  fade-up">
-        <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
-<div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+        </div>
         <button onClick={() => setDrawerOpen(true)}
                 className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 text-white">
           <span className="w-5 h-0.5 bg-white rounded-full" />

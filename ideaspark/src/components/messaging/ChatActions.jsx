@@ -251,6 +251,61 @@ export function ShareAttachSheet({ onClose, onPick }) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
+   Share Profile  (full-screen sheet — figma "Share Profile")
+   ════════════════════════════════════════════════════════════════════════ */
+const SHARE_ACTIONS = [
+  { key: 'copy', letter: 'C', label: 'Copy Link' },
+  { key: 'dm',   letter: 'S', label: 'Send DM' },
+  { key: 'more', letter: 'M', label: 'More' },
+];
+
+export function ShareProfileSheet({ convo, onClose, onCopyLink, onSendDM, onToast }) {
+  const act = (key) => {
+    if (key === 'copy') onCopyLink?.();
+    else if (key === 'dm') onSendDM?.();
+    else onToast?.('Coming soon');
+  };
+  return (
+    <div className="fixed inset-0 z-50 bg-[#F4F7FF] flex flex-col">
+      <style>{SHEET_CSS}</style>
+      {/* Header */}
+      <div className="bg-white px-4 py-4 flex items-center">
+        <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center text-[#90A4AE]">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" /></svg>
+        </button>
+        <h1 className="flex-1 text-center text-[20px] font-bold text-[#0D2137]">Share Profile</h1>
+        <span className="w-8" />
+      </div>
+      <div className="h-1.5 bg-[#FACC15]" />
+
+      {/* Profile card */}
+      <div className="mx-4 mt-5 bg-white rounded-2xl border border-[#E3F2FD] shadow-sm p-6 flex flex-col items-center">
+        <Avatar initial={convo.initial} color={convo.avatarColor} size={84} />
+        <h2 className="mt-4 text-[22px] font-bold text-[#0D2137]">{convo.name}</h2>
+        <p className="text-[13px] text-[#90A4AE]">{handleFor(convo.name)}&nbsp;&nbsp;{convo.followers ?? '2.4k'} followers</p>
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex justify-center gap-6 mt-6">
+        {SHARE_ACTIONS.map((a) => (
+          <button key={a.key} onClick={() => act(a.key)} className="flex flex-col items-center gap-1.5">
+            <span className="w-14 h-14 rounded-full bg-[#E3F2FD] text-[#1565C0] font-bold text-lg flex items-center justify-center">{a.letter}</span>
+            <span className="text-[12px] text-[#90A4AE]">{a.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Send via message */}
+      <div className="mt-auto p-4">
+        <button onClick={onSendDM} className="w-full h-13 py-3.5 rounded-full bg-[#1565C0] text-white font-semibold hover:bg-[#0D47A1] transition-colors">
+          Send via Message
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
    ChatActionsLayer — single controller that renders the right overlay and
    performs the API calls. Shared by Chat.jsx and ChatProfile.jsx.
 
