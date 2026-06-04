@@ -11,13 +11,14 @@ export default function Welcome() {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-[#F4F7FF] flex flex-col">
 
       {/* Blue header */}
-      <div className="bg-[#1565C0] px-6 pt-16 pb-20 text-center relative">
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-white rounded-t-[2rem]" />
-        <div className="inline-flex items-center justify-center w-20 h-20
-                        bg-white rounded-3xl mb-5 shadow-xl">
+      <div className="bg-[#1565C0] px-6 pt-16 pb-20 text-center relative overflow-hidden">
+        <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+        <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-[#F4F7FF] rounded-t-[2rem]" />
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl mb-5 shadow-xl">
           <span className="text-4xl">💡</span>
         </div>
         <h1 className="text-white text-3xl font-black tracking-tight">IdeaSpark</h1>
@@ -31,8 +32,7 @@ export default function Welcome() {
 
         <div className="flex flex-wrap justify-center gap-2 mb-8">
           {['💡 Share Ideas', '🔍 Discover', '⭐ Go Premium', '🛡️ Original'].map((f) => (
-            <div key={f} className="bg-[#F0F6FF] border border-[#BBDEFB]
-                                    text-[#1565C0] text-xs font-medium px-3 py-1.5 rounded-full">
+            <div key={f} className="bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] text-xs font-medium px-3 py-1.5 rounded-full">
               {f}
             </div>
           ))}
@@ -50,15 +50,11 @@ export default function Welcome() {
 
       <div className="px-6 pb-10 space-y-3 max-w-sm mx-auto w-full">
         <button onClick={() => navigate('/register')}
-                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white
-                           font-bold py-4 rounded-2xl text-sm transition-all active:scale-95
-                           shadow-lg shadow-blue-300/40">
+                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl text-sm transition-all active:scale-95 shadow-lg shadow-blue-300/40 btn-hover">
           Get Started — It's Free
         </button>
         <button onClick={() => navigate('/login')}
-                className="w-full bg-[#F0F6FF] border border-[#BBDEFB] hover:bg-[#E3F2FD]
-                           text-[#1565C0] font-semibold py-4 rounded-2xl text-sm
-                           transition-all active:scale-95">
+                className="w-full bg-[#F0F6FF] border border-[#BBDEFB] hover:bg-[#E3F2FD] text-[#1565C0] font-semibold py-4 rounded-2xl text-sm transition-all active:scale-95 btn-hover">
           I already have an account
         </button>
         <p className="text-center text-[#90A4AE] text-xs pt-1">

@@ -101,7 +101,7 @@ export default function EditProfile() {
     setSaving(false);
   };
 
-  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-xl px-4 py-3 text-black placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-[#1565C0] transition';
+  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-black placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-[#1565C0] transition';
 
   return (
     <div className="min-h-screen bg-[#F0F6FF] pb-10">
@@ -120,7 +120,7 @@ export default function EditProfile() {
       <div className="flex gap-2 px-4 pt-5 pb-2">
         {['profile', 'password'].map(s => (
           <button key={s} onClick={() => setSection(s)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium capitalize transition-all
+            className={`px-4 py-2 rounded-2xl text-sm font-medium capitalize transition-all
               ${section === s
                 ? 'bg-[#1565C0] text-white shadow-md shadow-blue-200'
                 : 'bg-white text-black border border-[#BBDEFB] hover:border-[#1565C0]'}`}>
@@ -132,8 +132,8 @@ export default function EditProfile() {
       <div className="px-4 pt-4 space-y-5">
 
         {/* Alerts */}
-        {error   && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-500 text-sm">{error}</div>}
-        {success && <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-green-600 text-sm">✓ {success}</div>}
+        {error   && <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>}
+        {success && <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 text-green-600 text-sm">✓ {success}</div>}
 
         {/* Profile Section */}
         {section === 'profile' && <>
@@ -148,7 +148,7 @@ export default function EditProfile() {
                 </div>
               )}
               <button onClick={() => fileRef.current.click()}
-                className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#1565C0] rounded-xl flex items-center justify-center text-white text-sm shadow-md">
+                className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#1565C0] rounded-2xl flex items-center justify-center text-white text-sm shadow-md">
                 📷
               </button>
             </div>

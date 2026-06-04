@@ -56,3 +56,90 @@ export const MOCK_NOTIFICATIONS = [
   { id: 'n3', type: 'comment', title: 'New comment',  message: 'Rahul commented on "Mental Wellness Journal"', read: true,  createdAt: ago(5400000),  link: '/ideas/6' },
   { id: 'n4', type: 'system',  title: 'Welcome 🎉',   message: 'Your IdeaSpark account is ready. Share your first idea!', read: true, createdAt: ago(86400000), link: '/add-idea' },
 ];
+
+// ════════════════════════════════════════════════════════════════════════
+//  Messaging (figma "Messaging System UI")
+//  Shapes are a proposed contract — add to API_CONTRACT.md before live swap.
+//    Conversation: { id, name, initial, avatarColor, lastMessage, lastType,
+//                    time, unread, online }
+//    ActiveUser:   { id, name, initial, avatarColor, online }
+//    Message:      { id, conversationId, fromMe, type:'text'|'image'|'voice'|
+//                    'typing', text?, imageUrl?, duration?, time }
+//    Request:      { id, name, initial, avatarColor, preview, time, mutuals }
+//    Contact:      { id, name, initial, avatarColor, handle, online }
+// ════════════════════════════════════════════════════════════════════════
+
+// Avatar palette mirrors the figma swatches used across the inbox rows.
+export const AVATAR_COLORS = {
+  green:  '#30933C',
+  pink:   '#FF2D55',
+  blue:   '#1565C0',
+  amber:  '#F59E0B',
+  navy:   '#0D47A1',
+  teal:   '#0E96C0',
+  purple: '#623388',
+};
+
+// People shown in the "ACTIVE NOW" story rail.
+export const MOCK_ACTIVE_USERS = [
+  { id: 'u-dev',    name: 'Dev',    initial: 'D', avatarColor: AVATAR_COLORS.green,  online: true  },
+  { id: 'u-priya',  name: 'Priya',  initial: 'P', avatarColor: AVATAR_COLORS.pink,   online: true  },
+  { id: 'u-ananya', name: 'Ananya', initial: 'A', avatarColor: AVATAR_COLORS.blue,   online: true  },
+  { id: 'u-rohan',  name: 'Rohan',  initial: 'R', avatarColor: AVATAR_COLORS.amber,  online: true  },
+];
+
+// Recent conversations (the figma "RECENT" list).
+export const MOCK_CONVERSATIONS = [
+  { id: 'c-aparna', name: 'Aparna S.',   initial: 'A', avatarColor: AVATAR_COLORS.blue,   lastMessage: 'Loved the new update!',   lastType: 'text',  time: '2m',  unread: 3, online: true  },
+  { id: 'c-krati',  name: 'Krati M.',    initial: 'K', avatarColor: AVATAR_COLORS.navy,   lastMessage: 'Can you review designs?', lastType: 'text',  time: '15m', unread: 1, online: false },
+  { id: 'c-rahul',  name: 'Rahul K.',    initial: 'R', avatarColor: AVATAR_COLORS.teal,   lastMessage: 'Voice note  0:42',        lastType: 'voice', time: '1h',  unread: 0, online: false },
+  { id: 'c-design', name: 'Design Team', initial: 'D', avatarColor: AVATAR_COLORS.green,  lastMessage: 'Sneha: Shipped!',         lastType: 'text',  time: '3h',  unread: 0, online: false },
+  { id: 'c-meera',  name: 'Meera J.',    initial: 'M', avatarColor: AVATAR_COLORS.purple, lastMessage: 'Shared a photo',          lastType: 'image', time: 'Tue', unread: 0, online: false },
+];
+
+// Message threads keyed by conversation id (figma "02 · Chat").
+export const MOCK_MESSAGES = {
+  'c-aparna': [
+    { id: 'm1', conversationId: 'c-aparna', fromMe: false, type: 'text',  text: 'Check this out below', time: '10:24' },
+    { id: 'm2', conversationId: 'c-aparna', fromMe: false, type: 'image', imageUrl: 'https://picsum.photos/seed/aparna/600/400', time: '10:24' },
+    { id: 'm3', conversationId: 'c-aparna', fromMe: true,  type: 'text',  text: 'Wow, looks amazing!', time: '10:26' },
+    { id: 'm4', conversationId: 'c-aparna', fromMe: false, type: 'typing', time: '10:27' },
+  ],
+  'c-krati': [
+    { id: 'm1', conversationId: 'c-krati', fromMe: false, type: 'text', text: 'Can you review designs?', time: '09:10' },
+    { id: 'm2', conversationId: 'c-krati', fromMe: true,  type: 'text', text: 'Sure, sending feedback shortly.', time: '09:12' },
+  ],
+  'c-rahul': [
+    { id: 'm1', conversationId: 'c-rahul', fromMe: false, type: 'voice', duration: '0:42', time: '08:30' },
+  ],
+};
+
+// Pending message requests (figma "03 · Requests").
+export const MOCK_REQUESTS = [
+  { id: 'r-neha',   name: 'Neha Verma',    initial: 'N', avatarColor: AVATAR_COLORS.pink,   preview: 'Hi! Loved your idea on the Food Rescue Network — would love to collaborate.', time: '5m',  mutuals: 3 },
+  { id: 'r-karan',  name: 'Karan Mehta',   initial: 'K', avatarColor: AVATAR_COLORS.amber,  preview: 'Hey, are you open to feedback on my new prototype?',                          time: '1h',  mutuals: 1 },
+  { id: 'r-isha',   name: 'Isha Kapoor',   initial: 'I', avatarColor: AVATAR_COLORS.teal,   preview: 'Following your work for a while — can we connect?',                           time: '2h',  mutuals: 5 },
+  { id: 'r-arnav',  name: 'Arnav Singh',   initial: 'A', avatarColor: AVATAR_COLORS.purple, preview: 'Quick question about your mentorship program.',                              time: 'Mon', mutuals: 0 },
+];
+
+// People you can share a post with (figma "06 · Share Post").
+// IDs match conversation ids where a thread already exists, so a shared post
+// can be delivered into that chat.
+export const MOCK_SHARE_TARGETS = [
+  { id: 'c-aparna', name: 'Aparna S.', initial: 'A', avatarColor: AVATAR_COLORS.blue,   subtitle: 'Close friend' },
+  { id: 'c-krati',  name: 'Krati M.',  initial: 'K', avatarColor: AVATAR_COLORS.navy,   subtitle: 'Design Team' },
+  { id: 'c-rahul',  name: 'Rahul K.',  initial: 'R', avatarColor: AVATAR_COLORS.teal,   subtitle: 'Colleague' },
+  { id: 'c-meera',  name: 'Meera J.',  initial: 'M', avatarColor: AVATAR_COLORS.purple, subtitle: 'Friend' },
+  { id: 'c-arjun',  name: 'Arjun M.',  initial: 'A', avatarColor: AVATAR_COLORS.green,  subtitle: 'Followed you' },
+];
+
+// People you can start a new chat with (figma "09 · New Chat").
+export const MOCK_CONTACTS = [
+  { id: 'u-ananya', name: 'Ananya Rao',    initial: 'A', avatarColor: AVATAR_COLORS.blue,   handle: '@ananya',    online: true  },
+  { id: 'u-rohan',  name: 'Rohan Das',     initial: 'R', avatarColor: AVATAR_COLORS.amber,  handle: '@rohan_d',   online: true  },
+  { id: 'u-priya',  name: 'Priya Nair',    initial: 'P', avatarColor: AVATAR_COLORS.pink,   handle: '@priyanair', online: true  },
+  { id: 'u-vikram', name: 'Vikram Patel',  initial: 'V', avatarColor: AVATAR_COLORS.green,  handle: '@vikramp',   online: false },
+  { id: 'u-sneha',  name: 'Sneha Reddy',   initial: 'S', avatarColor: AVATAR_COLORS.purple, handle: '@sneha',     online: false },
+  { id: 'u-deepika',name: 'Deepika Menon', initial: 'D', avatarColor: AVATAR_COLORS.teal,   handle: '@deepika',   online: false },
+  { id: 'u-arjun',  name: 'Arjun Sharma',  initial: 'A', avatarColor: AVATAR_COLORS.navy,   handle: '@arjun_s',   online: false },
+];

@@ -51,56 +51,21 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div className="min-h-screen bg-[#F4F7FF] pb-24 overflow-x-hidden">
+
       {/* Header */}
       <header className="px-4 py-4 flex items-center justify-between bg-[#1565C0]">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-blue-200 hover:text-white transition"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
+        <button onClick={() => navigate(-1)} className="text-blue-200 hover:text-white transition">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
         <h1 className="text-white font-bold text-lg">Profile</h1>
-        <button
-          onClick={() => navigate("/settings")}
-          className="text-blue-200 hover:text-white transition"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
+        <button onClick={() => navigate('/settings')} className="text-blue-200 hover:text-white transition">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         </button>
       </header>
 
       {/* Profile info */}
       <div className="bg-[#1565C0] px-4 pb-6 text-center">
-        {/* Avatar */}
         <div className="mx-auto mb-4 relative w-24 h-24">
           {user?.profileImage ? (
             <img
@@ -119,7 +84,6 @@ export default function Profile() {
             </div>
           )}
         </div>
-
         <h2 className="text-white text-xl font-bold">{user?.name}</h2>
         <p className="text-blue-200 text-sm">@{user?.email?.split("@")[0]}</p>
         {user?.bio && (
@@ -130,7 +94,8 @@ export default function Profile() {
       </div>
 
       <div className="bg-[#1565C0]">
-        <div className="bg-white rounded-t-3xl px-4 pt-4">
+        <div className="bg-white rounded-t-[32px] px-4 pt-4">
+
           {/* Stats */}
           <div className="flex justify-center gap-8 py-4 border-b border-[#BBDEFB]">
             {[
@@ -149,22 +114,17 @@ export default function Profile() {
           </div>
 
           {/* Edit button */}
-          <button
-            onClick={() => navigate("/edit-profile")}
-            className="mt-4 w-full bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] font-medium text-sm py-3 rounded-xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all active:scale-95"
-          >
+          <button onClick={() => navigate('/edit-profile')}
+            className="mt-4 w-full bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] font-medium text-sm py-3 rounded-xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all active:scale-95">
             ✏️ Edit Profile
           </button>
 
           {/* Tabs */}
           <div className="flex gap-2 mt-4 mb-4">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
+            {TABS.map(t => (
+              <button key={t} onClick={() => setTab(t)}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all
-                  ${tab === t ? "bg-[#1565C0] text-white shadow-md shadow-blue-300/40" : "bg-[#F0F6FF] text-[#1565C0] border border-[#BBDEFB]"}`}
-              >
+                  ${tab === t ? 'bg-[#1565C0] text-white shadow-md shadow-blue-300/40' : 'bg-[#F0F6FF] text-[#1565C0] border border-[#BBDEFB]'}`}>
                 {t}
               </button>
             ))}
@@ -216,11 +176,8 @@ export default function Profile() {
                     ? "No ideas published yet"
                     : "No saved ideas yet"}
                 </p>
-                {tab === "My Ideas" && (
-                  <button
-                    onClick={() => navigate("/add-idea")}
-                    className="mt-3 text-[#1565C0] text-xs hover:text-[#BBDEFB] transition"
-                  >
+                {tab === 'My Ideas' && (
+                  <button onClick={() => navigate('/add-idea')} className="mt-3 text-[#1565C0] text-xs hover:text-[#BBDEFB] transition">
                     + Share your first idea
                   </button>
                 )}

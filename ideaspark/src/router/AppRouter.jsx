@@ -16,6 +16,11 @@ import VerifyOtp       from '../pages/VerifyOtp';
 import SelectInterests from '../pages/SelectInterests';
 import FollowCreators  from '../pages/FollowCreators';
 import Home            from '../pages/Home';
+import Inbox           from '../pages/Inbox';
+import Chat            from '../pages/Chat';
+import ChatProfile     from '../pages/ChatProfile';
+import Requests        from '../pages/Requests';
+import NewChat         from '../pages/NewChat';
 import AddIdea         from '../pages/AddIdea';
 import Premium         from '../pages/Premium';
 import Membership      from '../pages/Membership';
@@ -55,6 +60,14 @@ export default function AppRouter() {
 
         {/* Protected routes */}
         <Route path="/home"             element={<PrivateRoute><Home /></PrivateRoute>} />
+
+        {/* Messaging (figma "Messaging System UI") — static paths before :id */}
+        <Route path="/messages"          element={<PrivateRoute><Inbox /></PrivateRoute>} />
+        <Route path="/messages/requests" element={<PrivateRoute><Requests /></PrivateRoute>} />
+        <Route path="/messages/new"      element={<PrivateRoute><NewChat /></PrivateRoute>} />
+        <Route path="/messages/:id/profile" element={<PrivateRoute><ChatProfile /></PrivateRoute>} />
+        <Route path="/messages/:id"      element={<PrivateRoute><Chat /></PrivateRoute>} />
+
         <Route path="/add-idea"         element={<PrivateRoute><AddIdea /></PrivateRoute>} />
         <Route path="/premium"          element={<PrivateRoute><Premium /></PrivateRoute>} />
         <Route path="/membership"       element={<PrivateRoute><Membership /></PrivateRoute>} />

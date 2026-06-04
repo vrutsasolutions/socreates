@@ -12,6 +12,7 @@ target/
 *.war
 !.mvn/wrapper/maven-wrapper.jar
 *.log
+.lst
 
 # ───────── Node / Vite (Frontend) ─────────
 node_modules/

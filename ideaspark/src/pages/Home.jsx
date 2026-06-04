@@ -45,12 +45,16 @@ export default function Home() {
   useEffect(() => { fetchIdeas(); }, [fetchIdeas]);
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div className="min-h-screen bg-[#F4F7FF] pb-24">
 
       <DrawerMenu open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 py-4 flex items-center gap-4 relative  fade-up">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+        </div>
         <button onClick={() => setDrawerOpen(true)}
                 className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 text-white">
           <span className="w-5 h-0.5 bg-white rounded-full" />
@@ -67,11 +71,18 @@ export default function Home() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </button>
+        <button onClick={() => navigate('/messages')}
+                aria-label="Messages"
+                className="w-9 h-9 flex items-center justify-center text-white">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.83L3 20l1.17-3.5A7.86 7.86 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </button>
         <NotificationBell />
       </header>
 
       {/* Greeting */}
-      <div className="bg-[#1565C0] px-4 pb-5">
+      <div className="bg-[#1565C0] px-4 pb-5 fade-up">
         <h2 className="text-white text-xl font-bold">
           Hey, {user?.name?.split(' ')[0] ?? 'there'} 👋
         </h2>
@@ -80,14 +91,14 @@ export default function Home() {
 
       {/* White curve */}
       <div className="bg-[#1565C0]">
-        <div className="bg-white rounded-t-3xl pt-4">
+        <div className="bg-white rounded-t-[32px] pt-6">
           {/* Tabs */}
-          <div className="flex gap-2 px-4 mb-4 overflow-x-auto">
+          <div className="flex gap-3 px-4 mb-4 overflow-x-auto fade-up-d1">
             {TABS.map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                      className={`shrink-0 px-5 py-2 rounded-xl text-sm font-semibold transition-all
+                      className={`shrink-0 px-5 py-2 rounded-2xl text-sm font-semibold transition-all
                         ${activeTab === tab
-                          ? 'bg-[#1565C0] text-white shadow-md shadow-blue-300/40'
+                          ? 'bg-[#1565C0] text-white shadow-lg shadow-blue-300/40'
                           : 'bg-[#F0F6FF] text-[#1565C0] border border-[#BBDEFB]'}`}>
                 {tab}
               </button>
@@ -96,7 +107,7 @@ export default function Home() {
           <AIOnboardingPrompt onDismiss={() => {}} onTryAI={() => navigate('/add-idea')} />
 
           {/* Feed */}
-          <div className="px-4">
+          <div className="px-4 fade-up-d3">
             {loading ? (
               // <div className="grid grid-cols-2 gap-3">
               //   {Array(6).fill(0).map((_, i) => (
