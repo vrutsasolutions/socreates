@@ -5,7 +5,6 @@ import { searchIdeas } from '../api/searchApi';
 import { SearchSkeleton, SearchResultsSkeleton } from '../components/common/LoadingStates.premium';
 import { EmptySearch } from '../components/common/EmptyStates.premium';
 
-
 const CATEGORIES = ['All','Technology','Design','Business','Science','Art','Health','Education','Finance'];
 const TRENDING   = ['AI Tools','Startup Ideas','Passive Income','Design System','No-Code Apps','Mental Health'];
 
@@ -37,10 +36,12 @@ export default function Search() {
   const handleTrending = (term) => { setQuery(term); inputRef.current?.focus(); };
 
   return (
-    <div className="min-h-screen bg-[#F0F6FF] pb-24">
+    <div className="min-h-screen bg-[#F4F7FF] pb-24">
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-3">
+      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-3 relative overflow-hidden">
+        <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+        <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
 
         {/* Search Bar */}
         <div className="flex items-center gap-3 bg-white border border-[#BBDEFB] rounded-2xl px-4 py-3 focus-within:border-[#1565C0] transition">
@@ -52,11 +53,11 @@ export default function Search() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search ideas, categories, creators..."
-            className="flex-1 bg-transparent text-black text-sm placeholder-[#90A4AE] outline-none"
+            className="flex-1 bg-transparent text-[#0D2137] text-sm placeholder-[#90A4AE] outline-none"
             autoFocus
           />
           {query && (
-            <button onClick={() => setQuery('')} className="text-[#90A4AE] hover:text-black transition text-sm">✕</button>
+            <button onClick={() => setQuery('')} className="text-[#90A4AE] hover:text-[#0D2137] transition text-sm">✕</button>
           )}
         </div>
 
@@ -64,7 +65,7 @@ export default function Search() {
         <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-hide pb-1">
           {CATEGORIES.map((cat) => (
             <button key={cat} onClick={() => setCategory(cat)}
-              className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all
+              className={`shrink-0 px-3 py-1.5 rounded-2xl text-xs font-medium transition-all
                 ${category === cat
                   ? 'bg-white text-[#1565C0] font-bold'
                   : 'bg-[#1565C0]/30 text-white border border-white/30 hover:bg-white/20'}`}>
@@ -79,25 +80,25 @@ export default function Search() {
         {/* Trending — shown when no search active */}
         {!searched && (
           <>
-            <h2 className="text-black text-xs font-semibold uppercase tracking-widest mb-3">
+            <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3">
               🔥 Trending Searches
             </h2>
             <div className="flex flex-wrap gap-2 mb-6">
               {TRENDING.map(term => (
                 <button key={term} onClick={() => handleTrending(term)}
-                  className="bg-white border border-[#BBDEFB] text-black text-sm px-4 py-2 rounded-xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all">
+                  className="bg-white border border-[#BBDEFB] text-[#0D2137] text-sm px-4 py-2 rounded-2xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all btn-hover">
                   {term}
                 </button>
               ))}
             </div>
 
-            <h2 className="text-black text-xs font-semibold uppercase tracking-widest mb-3">
+            <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3">
               💡 Browse by Category
             </h2>
             <div className="grid grid-cols-2 gap-2">
               {CATEGORIES.slice(1).map(cat => (
                 <button key={cat} onClick={() => setCategory(cat)}
-                  className="bg-white border border-[#BBDEFB] text-black text-sm py-3 rounded-xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all text-left px-4">
+                  className="bg-white border border-[#BBDEFB] text-[#0D2137] text-sm py-3 rounded-2xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all text-left px-4 btn-hover">
                   {cat}
                 </button>
               ))}
@@ -126,7 +127,7 @@ export default function Search() {
             <p className="text-[#546E7A] text-sm mb-4">
               {results.length > 0 ? `${results.length} results` : 'No results found'}
               {query && (
-                <span className="text-[#90A4AE]"> for "<span className="text-black font-medium">{query}</span>"</span>
+                <span className="text-[#90A4AE]"> for "<span className="text-[#0D2137] font-medium">{query}</span>"</span>
               )}
             </p>
 
@@ -137,7 +138,7 @@ export default function Search() {
             ) : (
               <div className="text-center py-16">
                 <div className="text-5xl mb-4">🔍</div>
-                <p className="text-black font-medium">No ideas found</p>
+                <p className="text-[#0D2137] font-medium">No ideas found</p>
                 <p className="text-[#90A4AE] text-xs mt-1">Try different keywords or category</p>
               </div>
             )}

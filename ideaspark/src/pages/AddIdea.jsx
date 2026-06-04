@@ -22,7 +22,7 @@ export default function AddIdea() {
   const navigate = useNavigate();
   const fileRef  = useRef();
   const [step, setStep]               = useState(0);
-  const [form, setForm]               = useState({ title: '', description: '', category: '', isPremium: false });
+  const [form, setForm]               = useState({ title: '', description: '', category: '', Premium: false });
   const [image, setImage]             = useState(null);
   const [preview, setPreview]         = useState(null);
   const [checking, setChecking]       = useState(false);
@@ -64,7 +64,7 @@ export default function AddIdea() {
     }
   };
 
-  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-xl px-4 py-3 text-black placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-[#1565C0] transition';
+  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-black placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-[#1565C0] transition';
 
   return (
     <div className="min-h-screen bg-[#F0F6FF] pb-28">
@@ -111,7 +111,7 @@ export default function AddIdea() {
             <div className="grid grid-cols-3 gap-2">
               {CATEGORIES.map((cat) => (
                 <button key={cat} onClick={() => setForm({ ...form, category: cat })}
-                  className={`py-2.5 rounded-xl text-xs font-medium border transition-all
+                  className={`py-2.5 rounded-2xl text-xs font-medium border transition-all
                     ${form.category === cat
                       ? 'bg-[#1565C0] border-[#1565C0] text-white'
                       : 'bg-white border-[#BBDEFB] text-black hover:border-[#1565C0]'}`}>
@@ -135,7 +135,7 @@ export default function AddIdea() {
             ) : (
               <div onClick={() => fileRef.current.click()}
                 className="border-2 border-dashed border-[#BBDEFB] rounded-2xl h-44 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-[#1565C0] transition-colors bg-white">
-                <div className="w-12 h-12 bg-[#F0F6FF] border border-[#BBDEFB] rounded-xl flex items-center justify-center text-2xl">📷</div>
+                <div className="w-12 h-12 bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl flex items-center justify-center text-2xl">📷</div>
                 <div className="text-center">
                   <p className="text-black text-sm font-medium">Tap to upload image</p>
                   <p className="text-[#90A4AE] text-xs mt-1">Max 10MB</p>
@@ -152,13 +152,13 @@ export default function AddIdea() {
                 <div className="text-black font-semibold text-sm">⭐ Premium Content</div>
                 <div className="text-[#90A4AE] text-xs mt-0.5">Only paid members can view this</div>
               </div>
-              <button onClick={() => setForm({ ...form, isPremium: !form.isPremium })}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${form.isPremium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}>
-                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow ${form.isPremium ? 'translate-x-7' : 'translate-x-1'}`}/>
+              <button onClick={() => setForm({ ...form, Premium: !form.Premium })}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${form.Premium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}>
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow ${form.Premium ? 'translate-x-7' : 'translate-x-1'}`}/>
               </button>
             </div>
             {form.isPremium && (
-              <div className="mt-3 bg-[#FFF8E1] border border-[#FFE082] rounded-xl p-3 text-[#F9A825] text-xs">
+              <div className="mt-3 bg-[#FFF8E1] border border-[#FFE082] rounded-2xl p-3 text-[#F9A825] text-xs">
                 💰 Premium ideas earn revenue when members view them.
               </div>
             )}
@@ -176,7 +176,7 @@ export default function AddIdea() {
             )}
             <div className="p-4">
               <div className="flex gap-2 flex-wrap mb-2">
-                {form.isPremium && (
+                {form.Premium && (
                   <span className="bg-[#FFF8E1] text-[#F9A825] text-xs font-bold px-2.5 py-1 rounded-full">⭐ Premium</span>
                 )}
                 <span className="bg-[#E3F2FD] text-[#1565C0] text-xs px-2.5 py-1 rounded-full">{form.category}</span>
@@ -209,13 +209,13 @@ export default function AddIdea() {
           </div>
 
           {checkResult === 'flagged' && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-500 text-sm">⚠️ {error}</div>
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-500 text-sm">⚠️ {error}</div>
           )}
         </div>}
 
         {/* Inline error for steps 0 & 1 */}
         {error && step < 2 && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-500 text-sm">{error}</div>
+          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>
         )}
 
         {/* Action Button */}

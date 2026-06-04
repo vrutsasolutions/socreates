@@ -11,7 +11,6 @@ export default function VerifyOtp() {
   const location = useLocation();
   const { user } = useAuth();
 
-  // Email comes from the Register redirect; fall back to the logged-in user.
   const email = location.state?.email || user?.email || '';
 
   const [digits, setDigits]     = useState(Array(OTP_LENGTH).fill(''));
@@ -22,7 +21,6 @@ export default function VerifyOtp() {
 
   useEffect(() => { inputsRef.current[0]?.focus(); }, []);
 
-  // Resend cooldown timer.
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
@@ -37,7 +35,6 @@ export default function VerifyOtp() {
     if (!v) { setDigits((d) => d.map((x, idx) => (idx === i ? '' : x))); return; }
     setDigits((d) => {
       const next = [...d];
-      // Support paste of the whole code into one box.
       if (v.length > 1) {
         v.slice(0, OTP_LENGTH).split('').forEach((ch, k) => { next[k] = ch; });
         inputsRef.current[Math.min(v.length, OTP_LENGTH) - 1]?.focus();
@@ -82,10 +79,12 @@ export default function VerifyOtp() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-[#F4F7FF] flex flex-col">
 
-      <div className="bg-[#1565C0] px-6 pt-14 pb-16 text-center relative">
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-white rounded-t-[2rem]" />
+      <div className="bg-[#1565C0] px-6 pt-14 pb-16 text-center relative overflow-hidden">
+        <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+        <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-[#F4F7FF] rounded-t-[2rem]" />
         <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl mb-4 shadow-lg">
           <span className="text-3xl">📩</span>
         </div>
@@ -127,7 +126,7 @@ export default function VerifyOtp() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-300/40 text-sm">
+            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-300/40 text-sm btn-hover">
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />

@@ -41,7 +41,7 @@ export default function SelectInterests() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F6FF] px-5 py-10 flex flex-col">
+    <div className="min-h-screen bg-[#F4F7FF] px-5 py-10 flex flex-col">
 
       <div className="max-w-md mx-auto w-full flex flex-col flex-1">
 
@@ -54,7 +54,7 @@ export default function SelectInterests() {
             <div className="flex-1 h-1 bg-[#1565C0] rounded-full" />
             <div className="flex-1 h-1 bg-[#BBDEFB] rounded-full" />
           </div>
-          <h1 className="text-black text-2xl font-bold tracking-tight mb-2">
+          <h1 className="text-[#0D2137] text-2xl font-bold tracking-tight mb-2">
             What sparks your interest?
           </h1>
           <p className="text-[#546E7A] text-sm leading-relaxed">
@@ -73,13 +73,12 @@ export default function SelectInterests() {
                 className={`
                   relative flex flex-col items-center justify-center
                   gap-2 py-4 px-2 rounded-2xl border
-                  transition-all duration-200 active:scale-95 cursor-pointer
+                  transition-all duration-200 active:scale-95 cursor-pointer card-hover
                   ${active
                     ? 'bg-[#E3F2FD] border-[#1565C0] shadow-md shadow-blue-100'
                     : 'bg-white border-[#BBDEFB] hover:border-[#1565C0]'}
                 `}
               >
-                {/* Checkmark Badge */}
                 {active && (
                   <div className="absolute top-2 right-2 w-4 h-4 bg-[#1565C0] rounded-full flex items-center justify-center">
                     <svg className="w-2.5 h-2.5 text-white" fill="none"
@@ -90,7 +89,7 @@ export default function SelectInterests() {
                 )}
                 <span className="text-2xl">{emoji}</span>
                 <span className={`text-xs font-medium text-center leading-tight
-                  ${active ? 'text-[#1565C0]' : 'text-black'}`}>
+                  ${active ? 'text-[#1565C0]' : 'text-[#0D2137]'}`}>
                   {label}
                 </span>
               </button>
@@ -117,7 +116,7 @@ export default function SelectInterests() {
           <button
             onClick={handleContinue}
             disabled={selected.length < 3 || loading}
-            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-4 rounded-2xl transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-blue-200">
+            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-4 rounded-2xl transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-blue-200 btn-hover">
             {loading ? 'Saving…' : 'Continue →'}
           </button>
         </div>
