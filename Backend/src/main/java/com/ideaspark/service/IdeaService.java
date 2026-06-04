@@ -22,9 +22,12 @@ public class IdeaService {
     // ── Get all ideas ────────────────────────────────────────
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
         List<Idea> ideas = switch (sort != null ? sort : "latest") {
-            case "trending"     -> ideaRepository.findAllByOrderByLikeCountDesc();
-            case "recommended"  -> ideaRepository.findAllByOrderByCreatedAtDesc();
-            default             -> ideaRepository.findAllByOrderByCreatedAtDesc();
+            case "trending" ->
+                ideaRepository.findAllByOrderByLikeCountDesc();
+            case "recommended" ->
+                ideaRepository.findAllByOrderByCreatedAtDesc();
+            default ->
+                ideaRepository.findAllByOrderByCreatedAtDesc();
         };
         return ideas.stream().map(i -> toDTO(i, currentUserEmail)).toList();
     }
@@ -63,15 +66,8 @@ public class IdeaService {
                 .isPremium(req.isPremium())
                 .build();
 
-        Idea savedIdea=ideaRepository.save(idea);
-        Notification notification=Notification.builder()
-            .message(creator.getName()+"published a new idea!")
-            .readStatus(false)
-            .createdAt(java.time.LocalDateTime.now())
-            .user(creator)
-            .build();
-
-        notificationService.sendNotification(notification);
+        Idea savedIdea = ideaRepository.save(idea);
+        
 
         return toDTO(savedIdea, creatorEmail);
     }
@@ -96,14 +92,17 @@ public class IdeaService {
 
             savedIdeaRepository.save(SavedIdea.builder().user(user).idea(idea).build());
 
-            Notification notification=Notification.builder()
-            .message(user.getName()+"bookmarked your idea!")
-            .readStatus(false)
-            .createdAt(java.time.LocalDateTime.now())
-            .user(idea.getCreator())
-            .build();
+            Notification notification = Notification.builder()
+                    .message(user.getName() + "bookmarked your idea!")
+                    .readStatus(false)
+                    .createdAt(java.time.LocalDateTime.now())
+                    .user(idea.getCreator())
+                    .build();
 
-            notificationService.sendNotification(notification);
+                    if (!user.getId().equals(idea.getCreator().getId())) {
+    notificationService.sendNotification(notification);
+}
+            
         }
     }
 
@@ -145,24 +144,30 @@ public class IdeaService {
 
     // ── Like / Unlike ────────────────────────────────────────
     @Transactional
-public void likeIdea(UUID ideaId, String userEmail) {
+    public void likeIdea(UUID ideaId, String userEmail) {
 
-    User liker = userRepository.findByEmail(userEmail)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+        User liker = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    Idea idea = ideaRepository.findById(ideaId)
-            .orElseThrow(() -> new RuntimeException("Idea not found"));
+        Idea idea = ideaRepository.findById(ideaId)
+                .orElseThrow(() -> new RuntimeException("Idea not found"));
 
-    Notification notification = Notification.builder()
-            .message(liker.getUsername() + " liked your idea!")
-            .readStatus(false)
-            .createdAt(java.time.LocalDateTime.now())
-            .user(idea.getCreator())
-            .build();
+        Notification notification = Notification.builder()
+                .message(
+                        (liker.getUsername() != null && !liker.getUsername().isBlank()
+                        ? liker.getUsername()
+                        : liker.getName()) + " liked your idea!"
+                )
+                .readStatus(false)
+                .createdAt(java.time.LocalDateTime.now())
+                .user(idea.getCreator())
+                .build();
 
+        if (!liker.getId().equals(idea.getCreator().getId())) {
     notificationService.sendNotification(notification);
-    ideaRepository.incrementLikeCount(ideaId);
 }
+        ideaRepository.incrementLikeCount(ideaId);
+    }
 
     @Transactional
     public void unlikeIdea(UUID ideaId) {
@@ -188,10 +193,10 @@ public void likeIdea(UUID ideaId, String userEmail) {
         }
 
         if (currentUserEmail != null) {
-            userRepository.findByEmail(currentUserEmail).ifPresent(user ->
-                dto.setSavedByCurrentUser(
-                    savedIdeaRepository.existsByUserIdAndIdeaId(user.getId(), idea.getId())
-                )
+            userRepository.findByEmail(currentUserEmail).ifPresent(user
+                    -> dto.setSavedByCurrentUser(
+                            savedIdeaRepository.existsByUserIdAndIdeaId(user.getId(), idea.getId())
+                    )
             );
         }
         return dto;

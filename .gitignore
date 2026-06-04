@@ -32,3 +32,9 @@ pnpm-debug.log*
 # ───────── OS ─────────
 .DS_Store
 Thumbs.db
+
+# ───────── Custom ─────────
+
+Backend/target/
+Backend/uploads/
+*.class

@@ -3,7 +3,6 @@ package com.ideaspark.config;
 import com.ideaspark.security.JwtFilter;
 import com.ideaspark.security.JwtUtil;
 import com.ideaspark.security.UserDetailsServiceImpl;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
 import org.springframework.security.authentication.*;
@@ -53,6 +52,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/ideas").permitAll()
                 .requestMatchers("/api/ideas/{id}").permitAll()
                 .requestMatchers("/api/search").permitAll()
+                .requestMatchers("/api/plagiarism/**").permitAll()
                 .requestMatchers("/api/notifications/**").authenticated()
                 .requestMatchers("/ws/**").permitAll()
                 // All other endpoints require authentication
