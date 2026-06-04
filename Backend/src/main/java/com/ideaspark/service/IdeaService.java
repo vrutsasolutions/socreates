@@ -67,7 +67,6 @@ public class IdeaService {
                 .build();
 
         Idea savedIdea = ideaRepository.save(idea);
-        
 
         return toDTO(savedIdea, creatorEmail);
     }
@@ -99,10 +98,10 @@ public class IdeaService {
                     .user(idea.getCreator())
                     .build();
 
-                    if (!user.getId().equals(idea.getCreator().getId())) {
-    notificationService.sendNotification(notification);
-}
-            
+            if (!user.getId().equals(idea.getCreator().getId())) {
+                notificationService.sendNotification(notification);
+            }
+
         }
     }
 
@@ -164,8 +163,8 @@ public class IdeaService {
                 .build();
 
         if (!liker.getId().equals(idea.getCreator().getId())) {
-    notificationService.sendNotification(notification);
-}
+            notificationService.sendNotification(notification);
+        }
         ideaRepository.incrementLikeCount(ideaId);
     }
 
