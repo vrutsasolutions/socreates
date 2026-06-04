@@ -127,7 +127,7 @@ export default function Membership() {
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-500 text-sm">{error}</div>
+            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>
           )}
 
           {/* Payment buttons */}

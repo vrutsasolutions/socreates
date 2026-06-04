@@ -64,7 +64,7 @@ export default function AddIdea() {
     }
   };
 
-  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-xl px-4 py-3 text-black placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-[#1565C0] transition';
+  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-black placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-[#1565C0] transition';
 
   return (
     <div className="min-h-screen bg-[#F0F6FF] pb-28">
@@ -111,7 +111,7 @@ export default function AddIdea() {
             <div className="grid grid-cols-3 gap-2">
               {CATEGORIES.map((cat) => (
                 <button key={cat} onClick={() => setForm({ ...form, category: cat })}
-                  className={`py-2.5 rounded-xl text-xs font-medium border transition-all
+                  className={`py-2.5 rounded-2xl text-xs font-medium border transition-all
                     ${form.category === cat
                       ? 'bg-[#1565C0] border-[#1565C0] text-white'
                       : 'bg-white border-[#BBDEFB] text-black hover:border-[#1565C0]'}`}>
@@ -135,7 +135,7 @@ export default function AddIdea() {
             ) : (
               <div onClick={() => fileRef.current.click()}
                 className="border-2 border-dashed border-[#BBDEFB] rounded-2xl h-44 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-[#1565C0] transition-colors bg-white">
-                <div className="w-12 h-12 bg-[#F0F6FF] border border-[#BBDEFB] rounded-xl flex items-center justify-center text-2xl">📷</div>
+                <div className="w-12 h-12 bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl flex items-center justify-center text-2xl">📷</div>
                 <div className="text-center">
                   <p className="text-black text-sm font-medium">Tap to upload image</p>
                   <p className="text-[#90A4AE] text-xs mt-1">Max 10MB</p>
@@ -158,7 +158,7 @@ export default function AddIdea() {
               </button>
             </div>
             {form.isPremium && (
-              <div className="mt-3 bg-[#FFF8E1] border border-[#FFE082] rounded-xl p-3 text-[#F9A825] text-xs">
+              <div className="mt-3 bg-[#FFF8E1] border border-[#FFE082] rounded-2xl p-3 text-[#F9A825] text-xs">
                 💰 Premium ideas earn revenue when members view them.
               </div>
             )}
@@ -209,13 +209,13 @@ export default function AddIdea() {
           </div>
 
           {checkResult === 'flagged' && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-500 text-sm">⚠️ {error}</div>
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-500 text-sm">⚠️ {error}</div>
           )}
         </div>}
 
         {/* Inline error for steps 0 & 1 */}
         {error && step < 2 && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-500 text-sm">{error}</div>
+          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>
         )}
 
         {/* Action Button */}

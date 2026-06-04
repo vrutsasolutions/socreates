@@ -72,7 +72,7 @@ export default function FollowCreators() {
                     <div className="h-3.5 bg-[#E3F2FD] rounded w-32" />
                     <div className="h-3 bg-[#E3F2FD] rounded w-48" />
                   </div>
-                  <div className="w-20 h-8 bg-[#E3F2FD] rounded-xl shrink-0" />
+                  <div className="w-20 h-8 bg-[#E3F2FD] rounded-2xl shrink-0" />
                 </div>
               ))
             : creators.map((creator) => {
@@ -110,7 +110,7 @@ export default function FollowCreators() {
 
                     {/* Follow Button */}
                     <button onClick={() => toggleFollow(creator.id)}
-                      className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95
+                      className={`shrink-0 px-4 py-2 rounded-2xl text-xs font-semibold transition-all duration-200 active:scale-95
                         ${isFollowed
                           ? 'bg-[#E3F2FD] text-[#1565C0] border border-[#1565C0]'
                           : 'bg-[#1565C0] text-white hover:bg-[#0D47A1]'}`}>
