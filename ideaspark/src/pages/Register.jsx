@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { registerUser, sendOtp, checkUsername } from '../api/authApi';
 import { ValidationError, FormError } from '../components/common/ErrorStates.premium';
+import Icon from '../components/common/Icon';
 
 const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 
@@ -68,7 +69,7 @@ export default function Register() {
         <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-[#F4F7FF] rounded-t-[2rem]" />
         <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl mb-4 shadow-lg">
-          <span className="text-3xl">💡</span>
+          <Icon name="lightbulb" className="w-8 h-8 text-[#1565C0]" />
         </div>
         <h1 className="text-white text-2xl font-bold">Join IdeaSpark</h1>
         <p className="text-blue-200 text-sm mt-1">Start sharing your ideas today</p>

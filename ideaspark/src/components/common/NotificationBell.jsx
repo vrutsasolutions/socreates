@@ -7,10 +7,11 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
+import Icon from './Icon';
 
 const TYPE_ICON = {
-  like: '❤️', bookmark: '🔖', idea: '💡',
-  follow: '👤', comment: '💬', system: '🔔',
+  like: 'heart', bookmark: 'bookmark', idea: 'lightbulb',
+  follow: 'user', comment: 'message-square', system: 'bell',
 };
 
 function timeAgo(iso) {
@@ -98,7 +99,7 @@ export default function NotificationBell() {
               <div className="px-4 py-8 text-center text-sm text-[#90A4AE]">Loading…</div>
             ) : items.length === 0 ? (
               <div className="px-4 py-10 text-center">
-                <div className="text-3xl mb-2">🔔</div>
+                <div className="mb-2 flex justify-center text-[#BBDEFB]"><Icon name="bell" className="w-8 h-8" /></div>
                 <p className="text-sm text-[#546E7A]">You're all caught up</p>
               </div>
             ) : (
@@ -109,7 +110,7 @@ export default function NotificationBell() {
                   className={`w-full flex gap-3 px-4 py-3 text-left transition-colors border-b border-[#F0F6FF]
                               hover:bg-[#F0F6FF] ${n.read ? 'bg-white' : 'bg-[#F0F6FF]'}`}
                 >
-                  <span className="text-lg leading-none mt-0.5">{TYPE_ICON[n.type] ?? '🔔'}</span>
+                  <span className="mt-0.5 text-[#1565C0]"><Icon name={TYPE_ICON[n.type] ?? 'bell'} className="w-5 h-5" /></span>
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm font-semibold text-[#0D2137] truncate">{n.title}</span>
                     <span className="block text-xs text-[#546E7A] line-clamp-2">{n.message}</span>

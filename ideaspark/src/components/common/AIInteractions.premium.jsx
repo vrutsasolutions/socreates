@@ -794,7 +794,7 @@ export function AIPlagiarismResult({ status = 'checking', steps = [], errorMessa
           fontFamily: 'var(--sc-font-body)',
           lineHeight: 1.5,
         }}>
-          ⚠️ {errorMessage}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: '-2px', marginRight: 5 }}><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h16.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg>{errorMessage}
         </div>
       )}
     </div>

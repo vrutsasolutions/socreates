@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Icon from '../components/common/Icon';
 
 const Toggle = ({ value, onChange }) => (
-  <button onClick={() => onChange(!value)}
-    className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0
-      ${value ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}>
-    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow
-      ${value ? 'translate-x-6' : 'translate-x-1'}`}/>
+  <button
+    type="button"
+    role="switch"
+    aria-checked={value}
+    onClick={() => onChange(!value)}
+    className={`relative inline-flex items-center w-11 h-6 rounded-full transition-colors duration-200 shrink-0
+      ${value ? 'bg-[#1565C0]' : 'bg-[#CBD5E1]'}`}
+  >
+    <span
+      className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200
+        ${value ? 'translate-x-[22px]' : 'translate-x-0.5'}`}
+    />
   </button>
 );
 
@@ -30,7 +38,7 @@ export default function Settings() {
   const Row = ({ icon, label, sublabel, right, onClick, danger }) => (
     <div onClick={onClick} className={`flex items-center gap-3 px-4 py-4 border-b border-[#BBDEFB] last:border-0 drawer-item-hover
       ${onClick && !right ? 'cursor-pointer active:bg-[#BBDEFB]/50' : ''}`}>
-      <span className="text-lg w-7 text-center shrink-0">{icon}</span>
+      <span className="w-7 flex items-center justify-center shrink-0">{icon}</span>
       <div className="flex-1 min-w-0">
         <div className={`text-sm font-medium ${danger ? 'text-red-500' : 'text-[#1565C0]'}`}>{label}</div>
         {sublabel && <div className="text-xs text-[#90A4AE] mt-0.5">{sublabel}</div>}
@@ -69,34 +77,34 @@ export default function Settings() {
 
         <div className="bg-white rounded-t-[32px] pt-5 px-0">
           <Section title="Account">
-            <Row icon="👤" label="Edit Profile"    onClick={() => navigate('/edit-profile')}/>
-            <Row icon="💎" label="Membership"      sublabel={user?.isPremium ? 'Active Premium' : 'Free plan'} onClick={() => navigate('/membership')}/>
-            <Row icon="🔖" label="Saved Ideas"     onClick={() => navigate('/saved-ideas')}/>
+            <Row icon={<Icon name="user"      className="w-5 h-5 text-[#1565C0]" />} label="Edit Profile" onClick={() => navigate('/edit-profile')}/>
+            <Row icon={<Icon name="gem"       className="w-5 h-5 text-[#7C3AED]" />} label="Membership"   sublabel={user?.isPremium ? 'Active Premium' : 'Free plan'} onClick={() => navigate('/membership')}/>
+            <Row icon={<Icon name="bookmark"  className="w-5 h-5 text-[#10B981]" />} label="Saved Ideas"  onClick={() => navigate('/saved-ideas')}/>
           </Section>
 
           <Section title="Notifications">
-            <Row icon="💡" label="New Idea Alerts"  sublabel="When creators you follow post"  right={<Toggle value={notifs.newIdeas}    onChange={v => setNotifs({...notifs, newIdeas: v})}/>}/>
-            <Row icon="❤️" label="Likes"            sublabel="When someone likes your idea"   right={<Toggle value={notifs.likes}      onChange={v => setNotifs({...notifs, likes: v})}/>}/>
-            <Row icon="💬" label="Comments"         sublabel="When someone comments"          right={<Toggle value={notifs.comments}   onChange={v => setNotifs({...notifs, comments: v})}/>}/>
-            <Row icon="📧" label="Newsletter"       sublabel="Weekly top ideas digest"        right={<Toggle value={notifs.newsletter} onChange={v => setNotifs({...notifs, newsletter: v})}/>}/>
+            <Row icon={<Icon name="lightbulb"      className="w-5 h-5 text-[#F59E0B]" />} label="New Idea Alerts" sublabel="When creators you follow post" right={<Toggle value={notifs.newIdeas}    onChange={v => setNotifs({...notifs, newIdeas: v})}/>}/>
+            <Row icon={<Icon name="heart"          className="w-5 h-5 text-[#EF4444]" />} label="Likes"           sublabel="When someone likes your idea"  right={<Toggle value={notifs.likes}      onChange={v => setNotifs({...notifs, likes: v})}/>}/>
+            <Row icon={<Icon name="message-square" className="w-5 h-5 text-[#3B82F6]" />} label="Comments"        sublabel="When someone comments"         right={<Toggle value={notifs.comments}   onChange={v => setNotifs({...notifs, comments: v})}/>}/>
+            <Row icon={<Icon name="mail"           className="w-5 h-5 text-[#7C3AED]" />} label="Newsletter"      sublabel="Weekly top ideas digest"       right={<Toggle value={notifs.newsletter} onChange={v => setNotifs({...notifs, newsletter: v})}/>}/>
           </Section>
 
           <Section title="Privacy">
-            <Row icon="🌐" label="Public Profile"   sublabel="Others can find your profile"   right={<Toggle value={privacy.publicProfile} onChange={v => setPrivacy({...privacy, publicProfile: v})}/>}/>
-            <Row icon="🔖" label="Show Saved Ideas" sublabel="Visible on your profile"        right={<Toggle value={privacy.showSaved}     onChange={v => setPrivacy({...privacy, showSaved: v})}/>}/>
-            <Row icon="📊" label="Activity Status"  sublabel="Show when you're active"        right={<Toggle value={privacy.showActivity}  onChange={v => setPrivacy({...privacy, showActivity: v})}/>}/>
+            <Row icon={<Icon name="globe"    className="w-5 h-5 text-[#3B82F6]" />} label="Public Profile"   sublabel="Others can find your profile" right={<Toggle value={privacy.publicProfile} onChange={v => setPrivacy({...privacy, publicProfile: v})}/>}/>
+            <Row icon={<Icon name="bookmark" className="w-5 h-5 text-[#10B981]" />} label="Show Saved Ideas" sublabel="Visible on your profile"      right={<Toggle value={privacy.showSaved}     onChange={v => setPrivacy({...privacy, showSaved: v})}/>}/>
+            <Row icon={<Icon name="activity" className="w-5 h-5 text-[#3347E8]" />} label="Activity Status"  sublabel="Show when you're active"      right={<Toggle value={privacy.showActivity}  onChange={v => setPrivacy({...privacy, showActivity: v})}/>}/>
           </Section>
 
           <Section title="Support">
-            <Row icon="📋" label="Terms of Service" onClick={() => {}}/>
-            <Row icon="🔐" label="Privacy Policy"   onClick={() => {}}/>
-            <Row icon="💬" label="Contact Support"  onClick={() => {}}/>
-            <Row icon="⭐" label="Rate the App"     onClick={() => {}}/>
+            <Row icon={<Icon name="file-text"  className="w-5 h-5 text-[#546E7A]" />} label="Terms of Service" onClick={() => {}}/>
+            <Row icon={<Icon name="lock"       className="w-5 h-5 text-[#546E7A]" />} label="Privacy Policy"   onClick={() => {}}/>
+            <Row icon={<Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />} label="Contact Support"  onClick={() => {}}/>
+            <Row icon={<Icon name="star"       className="w-5 h-5 text-[#F59E0B]" />} label="Rate the App"     onClick={() => {}}/>
           </Section>
 
           <Section title="Danger Zone">
-            <Row icon="🚪" label="Logout" danger onClick={handleLogout}/>
-            <Row icon="🗑️" label="Delete Account" sublabel="Permanently delete your account and data" danger onClick={() => {}}/>
+            <Row icon={<Icon name="log-out" className="w-5 h-5 text-red-500" />} label="Logout" danger onClick={handleLogout}/>
+            <Row icon={<Icon name="trash"   className="w-5 h-5 text-red-500" />} label="Delete Account" sublabel="Permanently delete your account and data" danger onClick={() => {}}/>
           </Section>
 
           <p className="text-center text-[#90A4AE] text-xs pb-6">IdeaSpark v1.0.0</p>

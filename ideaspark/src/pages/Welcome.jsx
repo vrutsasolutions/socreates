@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Icon from '../components/common/Icon';
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function Welcome() {
         <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-[#F4F7FF] rounded-t-[2rem]" />
         <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl mb-5 shadow-xl">
-          <span className="text-4xl">💡</span>
+          <Icon name="lightbulb" className="w-10 h-10 text-[#1565C0]" />
         </div>
         <h1 className="text-white text-3xl font-black tracking-tight">IdeaSpark</h1>
         <p className="text-blue-200 text-sm mt-2">Where ideas come alive</p>
@@ -31,9 +32,14 @@ export default function Welcome() {
         </p>
 
         <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {['💡 Share Ideas', '🔍 Discover', '⭐ Go Premium', '🛡️ Original'].map((f) => (
-            <div key={f} className="bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] text-xs font-medium px-3 py-1.5 rounded-full">
-              {f}
+          {[
+            { icon: 'lightbulb', label: 'Share Ideas' },
+            { icon: 'search',    label: 'Discover' },
+            { icon: 'star',      label: 'Go Premium' },
+            { icon: 'shield',    label: 'Original' },
+          ].map((f) => (
+            <div key={f.label} className="bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] text-xs font-medium px-3 py-1.5 rounded-full inline-flex items-center gap-1.5">
+              <Icon name={f.icon} className="w-3.5 h-3.5" />{f.label}
             </div>
           ))}
         </div>

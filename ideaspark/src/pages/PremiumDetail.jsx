@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
 import { NotFoundError } from '../components/common/ErrorStates.premium';
+import Icon from '../components/common/Icon';
 
 const MOCK = {
   id: 'p1',
@@ -49,8 +50,8 @@ export default function PremiumDetail() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div className="bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-full">
-          ⭐ Premium Idea
+        <div className="bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1">
+          <Icon name="star" className="w-3.5 h-3.5" /> Premium Idea
         </div>
       </div>
 
@@ -77,7 +78,7 @@ export default function PremiumDetail() {
               {idea?.description}
             </p>
             <div className="mt-6 bg-white border border-[#BBDEFB] rounded-3xl p-6 text-center shadow-sm card-hover">
-              <div className="text-4xl mb-3">🔐</div>
+              <div className="mb-3 flex justify-center text-[#1565C0]"><Icon name="lock" className="w-10 h-10" /></div>
               <h3 className="text-[#0D2137] font-bold text-lg mb-2">Unlock Premium Ideas</h3>
               <p className="text-[#546E7A] text-sm mb-5">
                 Get unlimited access to all premium ideas.

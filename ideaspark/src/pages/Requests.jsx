@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
 import { fetchRequests, acceptRequest, declineRequest } from '../api/messagingApi';
+import Icon from '../components/common/Icon';
 
 export default function Requests() {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ export default function Requests() {
         <div className="px-4 py-10 text-center text-sm text-[#90A4AE]">Loading…</div>
       ) : requests.length === 0 ? (
         <div className="flex flex-col items-center text-center px-8 pt-20">
-          <div className="w-20 h-20 rounded-full bg-[#DBEAFE] flex items-center justify-center text-3xl">📭</div>
+          <div className="w-20 h-20 rounded-full bg-[#DBEAFE] flex items-center justify-center text-[#1565C0]"><Icon name="inbox" className="w-9 h-9" /></div>
           <h2 className="mt-5 text-lg font-bold text-[#0D2137]">No pending requests</h2>
           <p className="mt-1 text-[13px] text-[#90A4AE]">You're all caught up.</p>
         </div>

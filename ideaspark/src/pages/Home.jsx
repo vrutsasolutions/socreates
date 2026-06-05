@@ -7,7 +7,7 @@ import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premiu
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
 import { EmptyFeed, EmptyForYou } from '../components/common/EmptyStates.premium';
-import { AIOnboardingPrompt } from '../components/common/AIInteractions.premium';
+import Icon from '../components/common/Icon';
 
 const TABS = ['Trending', 'Latest', 'For You'];
 
@@ -68,7 +68,7 @@ export default function Home() {
           </button>
 
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-xl">💡</span>
+            <Icon name="lightbulb" className="w-6 h-6 text-amber-300" />
             <span className="text-white font-bold text-lg">IdeaSpark</span>
           </div>
 
@@ -96,8 +96,9 @@ export default function Home() {
         {/* floating greeting card */}
         <div className="relative z-10 mt-6">
           <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-4 shadow-md">
-            <h2 className="text-white text-2xl font-bold">
-              Hey, {user?.name?.split(' ')[0] ?? 'there'} 👋
+            <h2 className="text-white text-2xl font-bold flex items-center gap-2">
+              Hey, {user?.name?.split(' ')[0] ?? 'there'}
+              <Icon name="hand" className="w-6 h-6 text-amber-300" />
             </h2>
             <p className="text-blue-200 text-[15px] mt-1">
               Discover ideas, connect with creators, and build something meaningful
@@ -126,21 +127,16 @@ export default function Home() {
             ))}
           </div>
 
-          {/* AI BANNER */}
-          <div className="px-4">
-            <AIOnboardingPrompt onDismiss={() => {}} onTryAI={() => navigate('/add-idea')} />
-          </div>
-
           {/* FEED */}
           <div className="px-4 pt-6">
             {loading ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {Array(6).fill(0).map((_, i) => (
                   <IdeaCardSkeleton key={i} />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {ideas.map((idea) => (
                   <div
                     key={idea.id}
@@ -159,6 +155,22 @@ export default function Home() {
 
         </div>
       </div>
+
+      {/* Floating AI assistant — sits above the bottom nav, opens the AI-assisted create flow */}
+      <button
+        onClick={() => navigate('/add-idea')}
+        aria-label="IdeaSpark AI"
+        className="fixed right-4 bottom-24 z-40 w-14 h-14 rounded-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
+        style={{
+          background: 'linear-gradient(135deg, #4F62F5, #2435C9)',
+          boxShadow: '0 8px 24px rgba(36,53,201,0.40)',
+        }}
+      >
+        <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <path d="M12 2l1.6 4.6L18 8.2l-4.4 1.6L12 14l-1.6-4.2L6 8.2l4.4-1.6L12 2z" />
+          <path d="M19 13l.8 2.2L22 16l-2.2.8L19 19l-.8-2.2L16 16l2.2-.8L19 13z" />
+        </svg>
+      </button>
 
       <BottomNav />
     </div>

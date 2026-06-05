@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
+import Icon from '../components/common/Icon';
 
 const PLANS = [
   {
@@ -83,7 +84,7 @@ export default function Membership() {
         <div className="bg-white rounded-t-3xl px-4 pt-6 space-y-6">
           {/* Hero */}
           <div className="text-center">
-            <div className="text-5xl mb-3">💎</div>
+            <div className="mb-3 flex justify-center text-[#7C3AED]"><Icon name="gem" className="w-12 h-12" /></div>
             <h2 className="text-[#1565C0] text-2xl font-bold mb-2">Go Premium</h2>
             <p className="text-[#90A4AE] text-sm leading-relaxed max-w-xs mx-auto">
               Unlock exclusive ideas from the best creators. Cancel anytime.
@@ -147,8 +148,8 @@ export default function Membership() {
             </button>
           </div>
 
-          <p className="text-[#BBDEFB] text-xs text-center pb-4">
-            🔒 Secure payment · Cancel anytime · No hidden fees
+          <p className="text-[#BBDEFB] text-xs text-center pb-4 inline-flex items-center justify-center gap-1 w-full">
+            <Icon name="lock" className="w-3.5 h-3.5" /> Secure payment · Cancel anytime · No hidden fees
           </p>
         </div>
       </div>

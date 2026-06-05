@@ -4,6 +4,7 @@ import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premiu
 import { searchIdeas } from '../api/searchApi';
 import { SearchSkeleton, SearchResultsSkeleton } from '../components/common/LoadingStates.premium';
 import { EmptySearch } from '../components/common/EmptyStates.premium';
+import Icon from '../components/common/Icon';
 
 const CATEGORIES = ['All','Technology','Design','Business','Science','Art','Health','Education','Finance'];
 const TRENDING   = ['AI Tools','Startup Ideas','Passive Income','Design System','No-Code Apps','Mental Health'];
@@ -80,8 +81,8 @@ export default function Search() {
         {/* Trending — shown when no search active */}
         {!searched && (
           <>
-            <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3">
-              🔥 Trending Searches
+            <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <Icon name="flame" className="w-4 h-4 text-[#EF4444]" /> Trending Searches
             </h2>
             <div className="flex flex-wrap gap-2 mb-6">
               {TRENDING.map(term => (
@@ -92,8 +93,8 @@ export default function Search() {
               ))}
             </div>
 
-            <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3">
-              💡 Browse by Category
+            <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <Icon name="lightbulb" className="w-4 h-4 text-[#F59E0B]" /> Browse by Category
             </h2>
             <div className="grid grid-cols-2 gap-2">
               {CATEGORIES.slice(1).map(cat => (
@@ -137,7 +138,7 @@ export default function Search() {
               </div>
             ) : (
               <div className="text-center py-16">
-                <div className="text-5xl mb-4">🔍</div>
+                <div className="mb-4 flex justify-center text-[#BBDEFB]"><Icon name="search" className="w-12 h-12" /></div>
                 <p className="text-[#0D2137] font-medium">No ideas found</p>
                 <p className="text-[#90A4AE] text-xs mt-1">Try different keywords or category</p>
               </div>

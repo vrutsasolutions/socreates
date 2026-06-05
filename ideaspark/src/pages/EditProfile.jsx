@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
 import { checkUsername } from '../api/authApi';
+import Icon from '../components/common/Icon';
 
 const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 
@@ -124,7 +125,9 @@ export default function EditProfile() {
               ${section === s
                 ? 'bg-[#1565C0] text-white shadow-md shadow-blue-200'
                 : 'bg-white text-black border border-[#BBDEFB] hover:border-[#1565C0]'}`}>
-            {s === 'profile' ? '👤 Profile' : '🔒 Password'}
+            {s === 'profile'
+              ? <span className="inline-flex items-center gap-1.5"><Icon name="user" className="w-4 h-4" />Profile</span>
+              : <span className="inline-flex items-center gap-1.5"><Icon name="lock" className="w-4 h-4" />Password</span>}
           </button>
         ))}
       </div>
@@ -148,8 +151,8 @@ export default function EditProfile() {
                 </div>
               )}
               <button onClick={() => fileRef.current.click()}
-                className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#1565C0] rounded-2xl flex items-center justify-center text-white text-sm shadow-md">
-                📷
+                className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#1565C0] rounded-2xl flex items-center justify-center text-white shadow-md">
+                <Icon name="camera" className="w-4 h-4" />
               </button>
             </div>
             <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden"/>

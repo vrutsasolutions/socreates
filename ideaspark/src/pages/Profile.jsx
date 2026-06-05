@@ -4,6 +4,7 @@ import BottomNav from "../components/common/BottomNav.premium";
 import IdeaCard from "../components/common/IdeaCard.premium";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosInstance";
+import Icon from "../components/common/Icon";
 
 const TABS = ["My Ideas", "Saved"];
 
@@ -128,7 +129,10 @@ export default function Profile() {
             onClick={() => navigate("/edit-profile")}
             className="mt-4 w-full bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] font-medium text-sm py-3 rounded-xl"
           >
-            ✏️ Edit Profile
+            <span className="inline-flex items-center justify-center gap-1.5">
+              <Icon name="edit" className="w-4 h-4" />
+              Edit Profile
+            </span>
           </button>
 
           {/* TABS */}
@@ -186,8 +190,10 @@ export default function Profile() {
               </div>
             ) : (
               <div className="text-center py-16">
-                <div className="text-4xl mb-3">
-                  {tab === "My Ideas" ? "💡" : "🔖"}
+                <div className="mb-3 flex justify-center text-[#BBDEFB]">
+                  {tab === "My Ideas"
+                    ? <Icon name="lightbulb" className="w-12 h-12" />
+                    : <Icon name="bookmark" className="w-12 h-12" />}
                 </div>
                 <p className="text-[#1565C0] font-medium text-sm">
                   {tab === "My Ideas"

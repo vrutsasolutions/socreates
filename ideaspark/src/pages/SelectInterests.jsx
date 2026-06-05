@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
+import Icon from '../components/common/Icon';
 
 const INTERESTS = [
-  { id: 'tech',      label: 'Technology', emoji: '💻' },
-  { id: 'design',    label: 'Design',     emoji: '🎨' },
-  { id: 'business',  label: 'Business',   emoji: '💼' },
-  { id: 'science',   label: 'Science',    emoji: '🔬' },
-  { id: 'art',       label: 'Art',        emoji: '🖼️' },
-  { id: 'health',    label: 'Health',     emoji: '🌿' },
-  { id: 'education', label: 'Education',  emoji: '📚' },
-  { id: 'finance',   label: 'Finance',    emoji: '💰' },
-  { id: 'music',     label: 'Music',      emoji: '🎵' },
-  { id: 'travel',    label: 'Travel',     emoji: '✈️' },
-  { id: 'food',      label: 'Food',       emoji: '🍳' },
-  { id: 'sports',    label: 'Sports',     emoji: '⚽' },
+  { id: 'tech',      label: 'Technology', icon: 'cpu' },
+  { id: 'design',    label: 'Design',     icon: 'palette' },
+  { id: 'business',  label: 'Business',   icon: 'briefcase' },
+  { id: 'science',   label: 'Science',    icon: 'flask' },
+  { id: 'art',       label: 'Art',        icon: 'image' },
+  { id: 'health',    label: 'Health',     icon: 'heart-pulse' },
+  { id: 'education', label: 'Education',  icon: 'graduation-cap' },
+  { id: 'finance',   label: 'Finance',    icon: 'dollar-sign' },
+  { id: 'music',     label: 'Music',      icon: 'music' },
+  { id: 'travel',    label: 'Travel',     icon: 'plane' },
+  { id: 'food',      label: 'Food',       icon: 'utensils' },
+  { id: 'sports',    label: 'Sports',     icon: 'dumbbell' },
 ];
 
 export default function SelectInterests() {
@@ -64,7 +65,7 @@ export default function SelectInterests() {
 
         {/* Category Grid */}
         <div className="grid grid-cols-3 gap-3 mb-8">
-          {INTERESTS.map(({ id, label, emoji }) => {
+          {INTERESTS.map(({ id, label, icon }) => {
             const active = selected.includes(id);
             return (
               <button
@@ -87,7 +88,7 @@ export default function SelectInterests() {
                     </svg>
                   </div>
                 )}
-                <span className="text-2xl">{emoji}</span>
+                <Icon name={icon} className={`w-7 h-7 ${active ? 'text-[#1565C0]' : 'text-[#546E7A]'}`} />
                 <span className={`text-xs font-medium text-center leading-tight
                   ${active ? 'text-[#1565C0]' : 'text-[#0D2137]'}`}>
                   {label}

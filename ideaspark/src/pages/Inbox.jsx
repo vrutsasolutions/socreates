@@ -9,8 +9,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
 import { fetchConversations, fetchActiveUsers } from '../api/messagingApi';
+import Icon from '../components/common/Icon';
 
-const PREVIEW_ICON = { voice: '🎙️', image: '📷' };
+const PREVIEW_ICON = { voice: 'mic', image: 'camera' };
 
 function ConversationRow({ c, onClick }) {
   const muted = c.unread === 0 || c.lastType !== 'text';
@@ -23,7 +24,7 @@ function ConversationRow({ c, onClick }) {
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold text-[#0D2137] truncate">{c.name}</p>
         <p className={`text-[13px] truncate ${muted ? 'text-[#90A4AE]' : 'text-[#0D2137]'}`}>
-          {PREVIEW_ICON[c.lastType] ? `${PREVIEW_ICON[c.lastType]} ` : ''}{c.lastMessage}
+          {PREVIEW_ICON[c.lastType] && <Icon name={PREVIEW_ICON[c.lastType]} className="inline w-3.5 h-3.5 mr-1 align-text-bottom" />}{c.lastMessage}
         </p>
       </div>
       <div className="flex flex-col items-end gap-1.5 shrink-0">

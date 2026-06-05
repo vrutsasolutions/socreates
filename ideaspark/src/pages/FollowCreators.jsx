@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
+import Icon from '../components/common/Icon';
 
 const MOCK_CREATORS = [
   { id: '1', name: 'Arjun Sharma',  category: 'Technology', ideaCount: 42, isPremium: true  },
@@ -92,8 +93,8 @@ export default function FollowCreators() {
                         </div>
                       )}
                       {creator.isPremium && (
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center text-xs shadow">
-                          ⭐
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center text-amber-900 shadow">
+                          <Icon name="star" className="w-3 h-3" />
                         </div>
                       )}
                     </div>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginUser } from '../api/authApi';
 import { ValidationError, FormError } from '../components/common/ErrorStates.premium';
+import Icon from '../components/common/Icon';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -105,7 +106,7 @@ export default function Login() {
       <div className="bg-[#1565C0] px-6 pt-14 pb-16 text-center relative">
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-white rounded-t-[2rem]" />
         <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl mb-4 shadow-lg">
-          <span className="text-3xl">💡</span>
+          <Icon name="lightbulb" className="w-8 h-8 text-[#1565C0]" />
         </div>
         <h1 className="text-white text-2xl font-bold">Welcome Back</h1>
         <p className="text-blue-200 text-sm mt-1">Sign in to continue to IdeaSpark</p>
@@ -115,7 +116,7 @@ export default function Login() {
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-2xl px-4 py-3 mb-5 flex items-start gap-2.5">
-            <span className="text-base leading-none mt-0.5">⚠️</span>
+            <Icon name="alert-triangle" className="w-4 h-4 shrink-0 mt-0.5" />
             <div className="flex-1">
               <div className="font-semibold">{error}</div>
               {error.includes('No account') && (
@@ -185,8 +186,8 @@ export default function Login() {
                 type="button"
                 onClick={() => setShowPwd(v => !v)}
                 aria-label={showPwd ? 'Hide password' : 'Show password'}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#90A4AE] text-sm">
-                {showPwd ? '🙈' : '👁️'}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#90A4AE]">
+                <Icon name={showPwd ? 'eye-off' : 'eye'} className="w-5 h-5" />
               </button>
             </div>
             {pwdEmpty    && <p className="text-xs text-red-400 mt-1.5 pl-1">Password is required</p>}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { sendOtp, verifyOtp } from '../api/authApi';
+import Icon from '../components/common/Icon';
 
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 30;
@@ -86,7 +87,7 @@ export default function VerifyOtp() {
         <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-[#F4F7FF] rounded-t-[2rem]" />
         <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl mb-4 shadow-lg">
-          <span className="text-3xl">📩</span>
+          <Icon name="mail" className="w-8 h-8 text-[#1565C0]" />
         </div>
         <h1 className="text-white text-2xl font-bold">Verify your email</h1>
         <p className="text-blue-200 text-sm mt-1">
@@ -99,7 +100,7 @@ export default function VerifyOtp() {
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-2xl px-4 py-3 mb-5 flex items-start gap-2.5">
-            <span className="text-base leading-none mt-0.5">⚠️</span>
+            <Icon name="alert-triangle" className="w-4 h-4 shrink-0 mt-0.5" />
             <span className="flex-1 font-medium">{error}</span>
           </div>
         )}

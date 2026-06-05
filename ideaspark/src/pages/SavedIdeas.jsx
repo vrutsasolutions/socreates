@@ -6,6 +6,7 @@ import api from '../api/axiosInstance';
 import { SavedIdeasSkeleton } from '../components/common/LoadingStates.premium';
 import { EmptySaved } from '../components/common/EmptyStates.premium';
 import { IdeaLoadError } from '../components/common/ErrorStates.premium';
+import Icon from '../components/common/Icon';
 
 export default function SavedIdeas() {
   const navigate = useNavigate();
@@ -72,8 +73,8 @@ export default function SavedIdeas() {
 
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 bg-white border border-[#BBDEFB] rounded-3xl flex items-center justify-center text-4xl mb-5 shadow-sm">
-              🔖
+            <div className="w-20 h-20 bg-white border border-[#BBDEFB] rounded-3xl flex items-center justify-center mb-5 shadow-sm">
+              <Icon name="bookmark" className="w-9 h-9 text-[#1565C0]" />
             </div>
             <h2 className="text-[#0D2137] font-bold text-base mb-2">No saved ideas yet</h2>
             <p className="text-[#546E7A] text-sm mb-5 max-w-xs">

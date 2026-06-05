@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
 import IdeaCard from '../components/common/IdeaCard.premium';
 import BottomNav from '../components/common/BottomNav.premium';
+import Icon from '../components/common/Icon';
 
 const MOCK = [
   { id:'p1', title:'Quantum Computing for Startups', description:'How early-stage companies can leverage quantum algorithms today.', category:'Technology', isPremium:true, likeCount:312, creatorName:'Arjun Sharma' },
@@ -100,7 +101,7 @@ export default function Premium() {
           ) : (
             <div className="mb-4 bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl p-4 flex items-center gap-3">
               <div className="w-10 h-10 bg-[#BBDEFB] rounded-2xl flex items-center justify-center">
-                💎
+                <Icon name="gem" className="w-5 h-5 text-[#7C3AED]" />
               </div>
               <div>
                 <div className="text-[#1565C0] font-semibold text-sm">
@@ -142,7 +143,7 @@ export default function Premium() {
                       className="absolute inset-0 bg-white/80 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer"
                     >
                       <div className="w-10 h-10 bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl flex items-center justify-center">
-                        🔒
+                        <Icon name="lock" className="w-5 h-5 text-[#1565C0]" />
                       </div>
                       <span className="text-xs text-[#1565C0] font-medium">
                         Premium only
