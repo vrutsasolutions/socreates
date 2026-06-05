@@ -48,28 +48,24 @@ public class IdeaService {
     // ── Create idea ──────────────────────────────────────────
     @Transactional
     public IdeaDTO createIdea(CreateIdeaRequest req, String imageUrl, String creatorEmail) {
-        // Run plagiarism check
-        PlagiarismResult result = plagiarismService.check(req.getDescription());
-        if (result.isPlagiarized()) {
-            throw new RuntimeException(result.getMessage());
-        }
 
-        User creator = userRepository.findByEmail(creatorEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    User creator = userRepository.findByEmail(creatorEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Idea idea = Idea.builder()
-                .title(req.getTitle())
-                .description(req.getDescription())
-                .imageUrl(imageUrl)
-                .creator(creator)
-                .category(req.getCategory())
-                .isPremium(req.isPremium())
-                .build();
+    Idea idea = Idea.builder()
+            .title(req.getTitle())
+            .description(req.getDescription())
+            .imageUrl(imageUrl)
+            .creator(creator)
+            .category(req.getCategory())
+            .isPremium(req.isPremium())
+            .likeCount(0)
+            .build();
 
-        Idea savedIdea = ideaRepository.save(idea);
+    Idea savedIdea = ideaRepository.save(idea);
 
-        return toDTO(savedIdea, creatorEmail);
-    }
+    return toDTO(savedIdea, creatorEmail);
+}
 
     // ── Delete idea ──────────────────────────────────────────
     @Transactional

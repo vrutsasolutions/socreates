@@ -42,19 +42,25 @@ public class IdeaController {
 
     @GetMapping("/premium")
     public ResponseEntity<?> getPremium(@AuthenticationPrincipal UserDetails user) {
-        if (user == null) return unauthenticated();
+        if (user == null) {
+            return unauthenticated();
+        }
         return ResponseEntity.ok(ideaService.getPremiumIdeas(user.getUsername()));
     }
 
     @GetMapping("/mine")
     public ResponseEntity<?> getMyIdeas(@AuthenticationPrincipal UserDetails user) {
-        if (user == null) return unauthenticated();
+        if (user == null) {
+            return unauthenticated();
+        }
         return ResponseEntity.ok(ideaService.getMyIdeas(user.getUsername()));
     }
 
     @GetMapping("/saved")
     public ResponseEntity<?> getSaved(@AuthenticationPrincipal UserDetails user) {
-        if (user == null) return unauthenticated();
+        if (user == null) {
+            return unauthenticated();
+        }
         return ResponseEntity.ok(ideaService.getSavedIdeas(user.getUsername()));
     }
 
@@ -73,14 +79,18 @@ public class IdeaController {
             @RequestPart(value = "image", required = false) MultipartFile image,
             @AuthenticationPrincipal UserDetails user) throws Exception {
 
-        if (user == null) return unauthenticated();
+        if (user == null) {
+            return unauthenticated();
+        }
+
+        System.out.println("ideaJson = " + ideaJson);
 
         CreateIdeaRequest req = objectMapper.readValue(ideaJson, CreateIdeaRequest.class);
 
-        String imageUrl = fileStorageService.upload(image);
+        String imageUrl = null;
 
         if (image != null && !image.isEmpty()) {
-            imageUrl = "/uploads/" + image.getOriginalFilename();
+            imageUrl = fileStorageService.upload(image);
         }
 
         return ResponseEntity.ok(
@@ -93,7 +103,9 @@ public class IdeaController {
             @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails user) {
 
-        if (user == null) return unauthenticated();
+        if (user == null) {
+            return unauthenticated();
+        }
 
         ideaService.deleteIdea(id, user.getUsername());
         return ResponseEntity.ok(new ApiResponse(true, "Idea deleted"));
@@ -104,7 +116,9 @@ public class IdeaController {
             @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails user) {
 
-        if (user == null) return unauthenticated();
+        if (user == null) {
+            return unauthenticated();
+        }
 
         ideaService.saveIdea(id, user.getUsername());
         return ResponseEntity.ok(new ApiResponse(true, "Idea saved"));
@@ -115,23 +129,12 @@ public class IdeaController {
             @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails user) {
 
-        if (user == null) return unauthenticated();
-
-        ideaService.unsaveIdea(id, user.getUsername());
-        return ResponseEntity.ok(new ApiResponse(true, "Idea unsaved"));
-    }
-
-    @PostMapping("/{id}/like")
-    public ResponseEntity<ApiResponse> likeIdea(
-            @PathVariable UUID id,
-            Authentication authentication) {
-
-        if (authentication == null) {
+        if (user == null) {
             return unauthenticated();
         }
 
-        ideaService.likeIdea(id, authentication.getName());
-        return ResponseEntity.ok(new ApiResponse(true, "Liked"));
+        ideaService.unsaveIdea(id, user.getUsername());
+        return ResponseEntity.ok(new ApiResponse(true, "Idea unsaved"));
     }
 
     @DeleteMapping("/{id}/like")
@@ -143,7 +146,10 @@ public class IdeaController {
             return unauthenticated();
         }
 
-        ideaService.unlikeIdea(id);
+        ideaService.unlikeIdea(id, authentication.getName());
         return ResponseEntity.ok(new ApiResponse(true, "Unliked"));
     }
-}
+
+    
+    }
+
