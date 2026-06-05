@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/plagiarism/**").permitAll()
                 .requestMatchers("/api/notifications/**").authenticated()
                 .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/api/ideas/*/comments").permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )

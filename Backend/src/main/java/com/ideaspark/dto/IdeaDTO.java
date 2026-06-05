@@ -19,5 +19,6 @@ public class IdeaDTO {
     private boolean savedByCurrentUser;
     private boolean likedByCurrentUser;
     private LocalDateTime createdAt;
+    private long commentCount;
     
 }
