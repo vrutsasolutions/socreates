@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Toggle = ({ value, onChange }) => (
-  <button onClick={() => onChange(!value)}
-    className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0
-      ${value ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}>
+  <button
+    onClick={() => onChange(!value)}
+    className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 active:scale-95
+      ${value ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}
+  >
     <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow
-      ${value ? 'translate-x-6' : 'translate-x-1'}`}/>
+      ${value ? 'translate-x-6' : 'translate-x-1'}`}
+    />
   </button>
 );
 
@@ -15,7 +18,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const [notifs, setNotifs] = useState({ newIdeas: true, likes: true, comments: false, newsletter: false });
+  const [notifs, setNotifs]   = useState({ newIdeas: true, likes: true, comments: false, newsletter: false });
   const [privacy, setPrivacy] = useState({ publicProfile: true, showSaved: false, showActivity: true });
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -23,55 +26,88 @@ export default function Settings() {
   const Section = ({ title, children }) => (
     <div className="mb-6">
       <h2 className="text-[#90A4AE] text-xs font-semibold uppercase tracking-widest px-4 mb-2">{title}</h2>
-      <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl overflow-hidden card-hover">{children}</div>
+      <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl overflow-hidden">{children}</div>
     </div>
   );
 
   const Row = ({ icon, label, sublabel, right, onClick, danger }) => (
-    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-4 border-b border-[#BBDEFB] last:border-0 drawer-item-hover
-      ${onClick && !right ? 'cursor-pointer active:bg-[#BBDEFB]/50' : ''}`}>
+    <div
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-4 border-b border-[#BBDEFB] last:border-0 transition-colors
+        ${onClick && !right
+          ? danger
+            ? 'cursor-pointer hover:bg-red-50 active:bg-red-100'
+            : 'cursor-pointer hover:bg-[#E3F2FD] active:bg-[#DBEAFE]'
+          : ''}`}
+    >
       <span className="text-lg w-7 text-center shrink-0">{icon}</span>
       <div className="flex-1 min-w-0">
-        <div className={`text-sm font-medium ${danger ? 'text-red-500' : 'text-[#1565C0]'}`}>{label}</div>
-        {sublabel && <div className="text-xs text-[#90A4AE] mt-0.5">{sublabel}</div>}
+        <div className={`text-[15px] font-medium ${danger ? 'text-red-500' : 'text-[#1565C0]'}`}>{label}</div>
+        {sublabel && <div className="text-sm text-[#90A4AE] mt-0.5">{sublabel}</div>}
       </div>
       {right || (onClick && !right
-        ? <svg className="w-4 h-4 text-[#BBDEFB]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+        ? <svg className="w-4 h-4 text-[#BBDEFB] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
         : null
       )}
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF] pb-24">
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 py-4 flex items-center gap-3 relative overflow-hidden">
-        <div className="pointer-events-none absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
-        <div className="pointer-events-none absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
-        <button onClick={() => navigate(-1)} className="text-blue-200 hover:text-white transition btn-hover">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-        </button>
-        <h1 className="text-white font-bold text-lg">Settings</h1>
-      </header>
+    <div className="min-h-screen bg-[#F4F7FF] pb-10">
 
-      <div className="bg-[#1565C0]">
-        <div className="flex items-center gap-4 px-4 py-5 bg-[#1565C0]">
-          <div className="w-14 h-14 rounded-2xl bg-[#BBDEFB] flex items-center justify-center text-[#1565C0] text-2xl font-bold shrink-0">
-            {user?.name?.[0]?.toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-white font-semibold truncate">{user?.name}</div>
-            <div className="text-blue-200 text-xs truncate">{user?.email}</div>
-          </div>
-          <button onClick={() => navigate('/edit-profile')} className="text-white text-xs font-medium border border-blue-300/40 px-3 py-1.5 rounded-2xl hover:bg-white/10 transition btn-hover">
-            Edit
-          </button>
+      {/* HEADER — matches Home */}
+      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
+
+        {/* decorative circles */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         </div>
 
-        <div className="bg-white rounded-t-[32px] pt-5 px-0">
+        {/* top bar */}
+        <div className="flex items-center gap-3 relative z-10">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
+            aria-label="Go back"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <span className="text-white font-bold text-lg flex-1">Settings</span>
+        </div>
+
+        {/* floating user card */}
+        <div className="relative z-10 mt-6">
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-4 shadow-md flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/20 flex items-center justify-center text-white text-2xl font-bold shrink-0">
+              {user?.name?.[0]?.toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-semibold text-base truncate">{user?.name}</div>
+              <div className="text-blue-200 text-sm truncate">{user?.email}</div>
+            </div>
+            <button
+              onClick={() => navigate('/edit-profile')}
+              className="text-white text-sm font-semibold border border-white/30 px-4 py-2 rounded-xl hover:bg-white/20 active:scale-95 transition-all"
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* CONTENT WRAPPER — matches Home */}
+      <div className="bg-[#1565C0]">
+        <div className="bg-white rounded-t-[32px] pt-6 px-4">
+
           <Section title="Account">
-            <Row icon="👤" label="Edit Profile"    onClick={() => navigate('/edit-profile')}/>
-            <Row icon="💎" label="Membership"      sublabel={user?.isPremium ? 'Active Premium' : 'Free plan'} onClick={() => navigate('/membership')}/>
-            <Row icon="🔖" label="Saved Ideas"     onClick={() => navigate('/saved-ideas')}/>
+            <Row icon="👤" label="Edit Profile"   onClick={() => navigate('/edit-profile')}/>
+            <Row icon="💎" label="Membership"     sublabel={user?.isPremium ? 'Active Premium' : 'Free plan'} onClick={() => navigate('/membership')}/>
+            <Row icon="🔖" label="Saved Ideas"    onClick={() => navigate('/saved')}/>
           </Section>
 
           <Section title="Notifications">
@@ -95,11 +131,12 @@ export default function Settings() {
           </Section>
 
           <Section title="Danger Zone">
-            <Row icon="🚪" label="Logout" danger onClick={handleLogout}/>
-            <Row icon="🗑️" label="Delete Account" sublabel="Permanently delete your account and data" danger onClick={() => {}}/>
+            <Row icon="🚪" label="Logout"          danger onClick={handleLogout}/>
+            <Row icon="🗑️" label="Delete Account"  sublabel="Permanently delete your account and data" danger onClick={() => {}}/>
           </Section>
 
-          <p className="text-center text-[#90A4AE] text-xs pb-6">IdeaSpark v1.0.0</p>
+          <p className="text-center text-[#90A4AE] text-xs pb-8">IdeaSpark v1.0.0</p>
+
         </div>
       </div>
     </div>
