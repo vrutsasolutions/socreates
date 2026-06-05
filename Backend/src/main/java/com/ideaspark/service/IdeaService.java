@@ -19,6 +19,7 @@ public class IdeaService {
     private final PlagiarismService plagiarismService;
     private final NotificationService notificationService;
     private final IdeaLikeRepository ideaLikeRepository;
+    private final CommentRepository commentRepository;
 
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
         List<Idea> ideas = switch (sort != null ? sort : "latest") {
@@ -91,7 +92,8 @@ public class IdeaService {
                     SavedIdea.builder()
                             .user(user)
                             .idea(idea)
-                            .build());
+                            .build()
+            );
 
             if (!user.getId().equals(idea.getCreator().getId())) {
                 Notification notification = Notification.builder()
@@ -151,49 +153,49 @@ public class IdeaService {
     }
 
     @Transactional
-public void likeIdea(UUID ideaId, String userEmail) {
+    public void likeIdea(UUID ideaId, String userEmail) {
 
-    User liker = userRepository.findByEmail(userEmail)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+        User liker = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    Idea idea = ideaRepository.findById(ideaId)
-            .orElseThrow(() -> new RuntimeException("Idea not found"));
+        Idea idea = ideaRepository.findById(ideaId)
+                .orElseThrow(() -> new RuntimeException("Idea not found"));
 
-    if (!ideaLikeRepository.existsByUserAndIdea(liker, idea)) {
+        if (!ideaLikeRepository.existsByUserAndIdea(liker, idea)) {
 
-        ideaLikeRepository.save(
-                IdeaLike.builder()
-                        .user(liker)
-                        .idea(idea)
-                        .build()
-        );
+            ideaLikeRepository.save(
+                    IdeaLike.builder()
+                            .user(liker)
+                            .idea(idea)
+                            .build()
+            );
 
-        int currentCount = idea.getLikeCount();
-        idea.setLikeCount(currentCount + 1);
-        ideaRepository.save(idea);
+            int currentCount = idea.getLikeCount();
+            idea.setLikeCount(currentCount + 1);
+            ideaRepository.save(idea);
 
-        try {
-            if (idea.getCreator() != null &&
-                    !liker.getId().equals(idea.getCreator().getId())) {
+            try {
+                if (idea.getCreator() != null &&
+                        !liker.getId().equals(idea.getCreator().getId())) {
 
-                Notification notification = Notification.builder()
-                        .message(
-                                (liker.getUsername() != null && !liker.getUsername().isBlank()
-                                        ? liker.getUsername()
-                                        : liker.getName()) + " liked your idea!"
-                        )
-                        .readStatus(false)
-                        .createdAt(java.time.LocalDateTime.now())
-                        .user(idea.getCreator())
-                        .build();
+                    Notification notification = Notification.builder()
+                            .message(
+                                    (liker.getUsername() != null && !liker.getUsername().isBlank()
+                                            ? liker.getUsername()
+                                            : liker.getName()) + " liked your idea!"
+                            )
+                            .readStatus(false)
+                            .createdAt(java.time.LocalDateTime.now())
+                            .user(idea.getCreator())
+                            .build();
 
-                notificationService.sendNotification(notification);
+                    notificationService.sendNotification(notification);
+                }
+            } catch (Exception e) {
+                System.out.println("Notification failed: " + e.getMessage());
             }
-        } catch (Exception e) {
-            System.out.println("Notification failed: " + e.getMessage());
         }
     }
-}
 
     @Transactional
     public void unlikeIdea(UUID ideaId, String userEmail) {
@@ -214,6 +216,88 @@ public void likeIdea(UUID ideaId, String userEmail) {
         });
     }
 
+    @Transactional
+    public CommentDTO addComment(UUID ideaId, CreateCommentRequest req, String userEmail) {
+
+        if (req.getContent() == null || req.getContent().trim().isEmpty()) {
+            throw new RuntimeException("Comment cannot be empty");
+        }
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Idea idea = ideaRepository.findById(ideaId)
+                .orElseThrow(() -> new RuntimeException("Idea not found"));
+
+        Comment comment = Comment.builder()
+                .content(req.getContent().trim())
+                .user(user)
+                .idea(idea)
+                .build();
+
+        Comment savedComment = commentRepository.save(comment);
+
+        try {
+            if (idea.getCreator() != null &&
+                    !user.getId().equals(idea.getCreator().getId())) {
+
+                Notification notification = Notification.builder()
+                        .message(
+                                (user.getUsername() != null && !user.getUsername().isBlank()
+                                        ? user.getUsername()
+                                        : user.getName()) + " commented on your idea!"
+                        )
+                        .readStatus(false)
+                        .createdAt(java.time.LocalDateTime.now())
+                        .user(idea.getCreator())
+                        .build();
+
+                notificationService.sendNotification(notification);
+            }
+        } catch (Exception e) {
+            System.out.println("Comment notification failed: " + e.getMessage());
+        }
+
+        return toCommentDTO(savedComment);
+    }
+
+    public List<CommentDTO> getComments(UUID ideaId) {
+        return commentRepository.findByIdeaIdOrderByCreatedAtDesc(ideaId)
+                .stream()
+                .map(this::toCommentDTO)
+                .toList();
+    }
+
+    @Transactional
+    public void deleteComment(UUID commentId, String userEmail) {
+
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        if (comment.getUser() == null ||
+                !comment.getUser().getEmail().equals(userEmail)) {
+            throw new RuntimeException("Not authorized to delete this comment");
+        }
+
+        commentRepository.delete(comment);
+    }
+
+    private CommentDTO toCommentDTO(Comment comment) {
+        CommentDTO dto = new CommentDTO();
+
+        dto.setId(comment.getId());
+        dto.setContent(comment.getContent());
+        dto.setCreatedAt(comment.getCreatedAt());
+
+        if (comment.getUser() != null) {
+            dto.setUserId(comment.getUser().getId());
+            dto.setUserName(comment.getUser().getName());
+            dto.setUserImage(comment.getUser().getProfileImage());
+        }
+
+        return dto;
+    }
+
     private IdeaDTO toDTO(Idea idea, String currentUserEmail) {
         IdeaDTO dto = new IdeaDTO();
 
@@ -224,6 +308,7 @@ public void likeIdea(UUID ideaId, String userEmail) {
         dto.setCategory(idea.getCategory());
         dto.setPremium(idea.isPremium());
         dto.setLikeCount(idea.getLikeCount());
+        dto.setCommentCount(commentRepository.countByIdeaId(idea.getId()));
         dto.setCreatedAt(idea.getCreatedAt());
 
         if (idea.getCreator() != null) {
@@ -235,10 +320,12 @@ public void likeIdea(UUID ideaId, String userEmail) {
         if (currentUserEmail != null) {
             userRepository.findByEmail(currentUserEmail).ifPresent(user -> {
                 dto.setSavedByCurrentUser(
-                        savedIdeaRepository.existsByUserIdAndIdeaId(user.getId(), idea.getId()));
+                        savedIdeaRepository.existsByUserIdAndIdeaId(user.getId(), idea.getId())
+                );
 
                 dto.setLikedByCurrentUser(
-                        ideaLikeRepository.existsByUserAndIdea(user, idea));
+                        ideaLikeRepository.existsByUserAndIdea(user, idea)
+                );
             });
         }
 

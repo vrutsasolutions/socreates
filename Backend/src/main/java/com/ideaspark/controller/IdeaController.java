@@ -161,4 +161,51 @@ public class IdeaController {
         ideaService.unlikeIdea(id, user.getUsername());
         return ResponseEntity.ok(new ApiResponse(true, "Unliked"));
     }
+    
+    @PostMapping("/{id}/comments")
+public ResponseEntity<?> addComment(
+        @PathVariable UUID id,
+        @RequestBody CreateCommentRequest request,
+        @AuthenticationPrincipal UserDetails user) {
+
+    if (user == null) {
+        return unauthenticated();
+    }
+
+    CommentDTO comment = ideaService.addComment(
+            id,
+            request,
+            user.getUsername()
+    );
+
+    return ResponseEntity.ok(comment);
+}
+
+@GetMapping("/{id}/comments")
+public ResponseEntity<List<CommentDTO>> getComments(
+        @PathVariable UUID id) {
+
+    return ResponseEntity.ok(
+            ideaService.getComments(id)
+    );
+}
+
+@DeleteMapping("/comments/{commentId}")
+public ResponseEntity<ApiResponse> deleteComment(
+        @PathVariable UUID commentId,
+        @AuthenticationPrincipal UserDetails user) {
+
+    if (user == null) {
+        return unauthenticated();
+    }
+
+    ideaService.deleteComment(
+            commentId,
+            user.getUsername()
+    );
+
+    return ResponseEntity.ok(
+            new ApiResponse(true, "Comment deleted")
+    );
+}
 }
