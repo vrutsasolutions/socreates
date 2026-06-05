@@ -59,3 +59,91 @@ html, body {
   background: #F0F6FF;
   color: #1565C0;
 }
+
+/* ============================================================
+   GLOBAL UI BEHAVIOR LAYER (APP-WIDE CONSISTENCY FIX)
+   Additive only — does NOT modify design-tokens.css
+   ============================================================ */
+
+/* ── 1. GLOBAL SMOOTHNESS ── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── 2. DEFAULT TRANSITION FOR ALL INTERACTIVE ELEMENTS ── */
+button,
+a,
+input,
+textarea,
+select {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+/* ── 3. GLOBAL HOVER FEEL (VERY IMPORTANT FOR “PREMIUM UI”) ── */
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* ── 4. LINK INTERACTION FEEL ── */
+a {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+a:hover {
+  transform: translateY(-1px);
+}
+
+/* ── 5. GLOBAL INPUT FOCUS IMPROVEMENT ── */
+input:focus,
+textarea:focus {
+  transform: translateY(-1px);
+}
+
+/* ── 6. CARD DEFAULT INTERACTION (FALLBACK IF .sc-card NOT USED) ── */
+.card,
+[class*="card"] {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover,
+[class*="card"]:hover {
+  transform: translateY(-4px);
+}
+
+/* ── 7. GLOBAL LOADING FADE-IN FEEL ── */
+body {
+  animation: sc-fade-in 0.4s ease;
+}
+
+/* ── 8. HEADER RINGS SYSTEM (GLOBAL FIX YOU ASKED) ── */
+.header-ring {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+}
+
+.header-ring.left {
+  left: -40px;
+  top: -30px;
+}
+
+.header-ring.right {
+  right: -40px;
+  top: -30px;
+}
+
+/* ── 9. PREMIUM PAGE ENTER ANIMATION ── */
+.page-enter {
+  animation: sc-slide-up 0.4s ease both;
+}

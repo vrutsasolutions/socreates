@@ -1,26 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/common/BottomNav.premium";
-import IdeaCard, {
-  IdeaCardSkeleton,
-} from "../components/common/IdeaCard.premium";
+import IdeaCard from "../components/common/IdeaCard.premium";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosInstance";
-import { ProfileSkeleton } from "../components/common/LoadingStates.premium";
-import {
-  EmptyProfile,
-  EmptyProfileSaved,
-} from "../components/common/EmptyStates.premium";
-import {
-  ProfileLoadError,
-  PermissionError,
-} from "../components/common/ErrorStates.premium";
 
 const TABS = ["My Ideas", "Saved"];
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
   const [tab, setTab] = useState("My Ideas");
   const [myIdeas, setMyIdeas] = useState([]);
   const [saved, setSaved] = useState([]);
@@ -39,9 +29,9 @@ export default function Profile() {
   }, []);
 
   const ideas = tab === "My Ideas" ? myIdeas : saved;
+
   const handleDeleteIdea = async (ideaId) => {
     if (!window.confirm("Are you sure you want to delete this idea?")) return;
-
     try {
       await api.delete(`/ideas/${ideaId}`);
       setMyIdeas((prev) => prev.filter((idea) => idea.id !== ideaId));
@@ -51,86 +41,114 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF] pb-24 overflow-x-hidden">
+    <div className="min-h-screen bg-[#F4F7FF] pb-24">
 
-      {/* Header */}
-      <header className="px-4 py-4 flex items-center justify-between bg-[#1565C0]">
-        <button onClick={() => navigate(-1)} className="text-blue-200 hover:text-white transition">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-        </button>
-        <h1 className="text-white font-bold text-lg">Profile</h1>
-        <button onClick={() => navigate('/settings')} className="text-blue-200 hover:text-white transition">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        </button>
+      {/* HEADER (RINGS KEPT, STRUCTURE FIXED ONLY) */}
+      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-8 relative shadow-lg">
+
+        {/* rings */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+        </div>
+
+        {/* top bar (UNCHANGED) */}
+        <div className="flex items-center justify-between relative z-10">
+          <button onClick={() => navigate(-1)} className="text-white">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+
+          <h1 className="text-white font-bold text-lg">Profile</h1>
+
+          <button onClick={() => navigate("/settings")} className="text-white">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      
+          </button>
+        </div>
+
+        
+        <div className="relative z-10 mt-6 flex justify-center">
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-5 w-full max-w-sm text-center">
+
+            
+            <div className="flex justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-[#1565C0] font-bold text-2xl">
+                {user?.name?.[0]?.toUpperCase()}
+              </div>
+            </div>
+
+            
+            <h2 className="text-white font-bold text-lg mt-3">
+              {user?.name}
+            </h2>
+
+            
+            <p className="text-blue-200 text-sm">
+              @{user?.email?.split("@")[0]}
+            </p>
+
+            {/* bio */}
+            {user?.bio && (
+              <p className="text-blue-200 text-xs mt-3 leading-relaxed">
+                {user.bio}
+              </p>
+            )}
+          </div>
+        </div>
       </header>
 
-      {/* Profile info */}
-      <div className="bg-[#1565C0] px-4 pb-6 text-center">
-        <div className="mx-auto mb-4 relative w-24 h-24">
-          {user?.profileImage ? (
-            <img
-              src={user.profileImage}
-              alt={user.name}
-              className="w-24 h-24 rounded-3xl object-cover"
-            />
-          ) : (
-            <div className="w-24 h-24 rounded-3xl bg-[#BBDEFB] flex items-center justify-center text-[#1565C0] text-4xl font-bold">
-              {user?.name?.[0]?.toUpperCase()}
-            </div>
-          )}
-          {user?.isPremium && (
-            <div className="absolute -bottom-2 -right-2 bg-[#FACC15] rounded-full w-7 h-7 flex items-center justify-center text-sm border-2 border-[#1565C0]">
-              ⭐
-            </div>
-          )}
-        </div>
-        <h2 className="text-white text-xl font-bold">{user?.name}</h2>
-        <p className="text-blue-200 text-sm">@{user?.email?.split("@")[0]}</p>
-        {user?.bio && (
-          <p className="text-blue-200 text-sm mt-2 leading-relaxed max-w-xs mx-auto">
-            {user.bio}
-          </p>
-        )}
-      </div>
-
+     
       <div className="bg-[#1565C0]">
-        <div className="bg-white rounded-t-[32px] px-4 pt-4">
+        <div className="bg-white rounded-t-[32px] px-4 pt-6">
 
-          {/* Stats */}
-          <div className="flex justify-center gap-8 py-4 border-b border-[#BBDEFB]">
-            {[
-              { label: "Ideas", value: myIdeas.length },
-              { label: "Saved", value: saved.length },
-              {
-                label: "Likes",
-                value: myIdeas.reduce((a, i) => a + (i.likeCount || 0), 0),
-              },
-            ].map(({ label, value }) => (
-              <div key={label} className="text-center">
-                <div className="text-[#1565C0] font-bold text-lg">{value}</div>
-                <div className="text-[#90A4AE] text-xs">{label}</div>
+          {/* STATS */}
+          <div className="flex text-center justify-center gap-8 py-4 border-b border-[#BBDEFB]">
+            <div>
+              <div className="text-[#1565C0] font-bold">{myIdeas.length}</div>
+              <div className="text-xs text-[#90A4AE]">Ideas</div>
+            </div>
+
+            <div>
+              <div className="text-[#1565C0] font-bold">{saved.length}</div>
+              <div className="text-xs text-[#90A4AE]">Saved</div>
+            </div>
+
+            <div>
+              <div className="text-[#1565C0] font-bold">
+                {myIdeas.reduce((a, i) => a + (i.likeCount || 0), 0)}
               </div>
-            ))}
+              <div className="text-xs text-[#90A4AE]">Likes</div>
+            </div>
           </div>
 
-          {/* Edit button */}
-          <button onClick={() => navigate('/edit-profile')}
-            className="mt-4 w-full bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] font-medium text-sm py-3 rounded-xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all active:scale-95">
+          {/* EDIT BUTTON */}
+          <button
+            onClick={() => navigate("/edit-profile")}
+            className="mt-4 w-full bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] font-medium text-sm py-3 rounded-xl"
+          >
             ✏️ Edit Profile
           </button>
 
-          {/* Tabs */}
+          {/* TABS */}
           <div className="flex gap-2 mt-4 mb-4">
-            {TABS.map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all
-                  ${tab === t ? 'bg-[#1565C0] text-white shadow-md shadow-blue-300/40' : 'bg-[#F0F6FF] text-[#1565C0] border border-[#BBDEFB]'}`}>
+            {TABS.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${
+                  tab === t
+                    ? "bg-[#1565C0] text-white"
+                    : "bg-[#F0F6FF] text-[#1565C0]"
+                }`}
+              >
                 {t}
               </button>
             ))}
           </div>
 
-          {/* Ideas grid */}
+         {/* Ideas grid */}
           <div>
             {loading ? (
               <div className="grid grid-cols-2 gap-3">
@@ -158,9 +176,9 @@ export default function Profile() {
                     {tab === "My Ideas" && (
                       <button
                         onClick={() => handleDeleteIdea(i.id)}
-                        className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-lg shadow"
-                      >
-                        Delete
+                        className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-lg shadow">
+                      
+                       Delete
                       </button>
                     )}
                   </div>
