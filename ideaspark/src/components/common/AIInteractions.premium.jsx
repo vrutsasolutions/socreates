@@ -811,6 +811,7 @@ export function AIOnboardingPrompt({ onTryAI, onDismiss }) {
   return (
     <div style={{
       position: 'relative',
+      marginBottom:'20px',
       borderRadius: 'var(--sc-radius-2xl)',
       '--sc-ai': 'var(--sc-primary-700)',
       '--sc-ai-glow': 'var(--sc-primary-500)',

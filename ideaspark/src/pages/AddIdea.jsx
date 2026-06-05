@@ -2,237 +2,284 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav.premium';
 import api from '../api/axiosInstance';
-import { AddIdeaSkeleton, PublishingSkeleton, ButtonLoadingState } from '../components/common/LoadingStates.premium';
-import { UploadError, AIError, ValidationError, FormError } from '../components/common/ErrorStates.premium';
-import {
-  AIAssistantBar,
-  AIThinkingBubble,
-  AISuggestionCard,
-  AISuggestionList,
-  AITagSuggestions,
-  AIDescriptionHelper,
-  AIResultPanel,
-  AIPlagiarismResult,
-} from '../components/common/AIInteractions.premium';
+import { AIAssistantBar } from '../components/common/AIInteractions.premium';
 
-const CATEGORIES = ['Technology','Design','Business','Science','Art','Health','Education','Finance','Music','Travel','Food','Sports'];
+const CATEGORIES = [
+  'Technology','Design','Business','Science','Art','Health',
+  'Education','Finance','Music','Travel','Food','Sports'
+];
+
 const STEPS = ['Details', 'Media', 'Publish'];
 
 export default function AddIdea() {
   const navigate = useNavigate();
-  const fileRef  = useRef();
-  const [step, setStep]               = useState(0);
-  const [form, setForm]               = useState({ title: '', description: '', category: '', isPremium: false });
-  const [image, setImage]             = useState(null);
-  const [preview, setPreview]         = useState(null);
-  const [checking, setChecking]       = useState(false);
-  const [publishing, setPublishing]   = useState(false);
-  const [checkResult, setCheckResult] = useState(null);
-  const [error, setError]             = useState('');
+  const fileRef = useRef();
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    isPremium: false
+  });
+
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null);
+
+  const [checking, setChecking] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [checkResult, setCheckResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const inputCls =
+    "w-full bg-[#F4F7FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-[#0D2137] text-sm focus:outline-none focus:border-[#1565C0]";
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setImage(file); setPreview(URL.createObjectURL(file));
+    setImage(file);
+    setPreview(URL.createObjectURL(file));
   };
 
   const nextStep = () => {
     if (step === 0) {
-      if (!form.title.trim())       return setError('Title is required');
+      if (!form.title.trim()) return setError('Title is required');
       if (!form.description.trim()) return setError('Description is required');
-      if (!form.category)           return setError('Please select a category');
+      if (!form.category) return setError('Please select a category');
       setError('');
     }
     setStep((s) => s + 1);
   };
 
   const handlePublish = async () => {
-    setChecking(true); setCheckResult(null); setError('');
+    setChecking(true);
+    setError('');
+
     try {
-      const { data: plag } = await api.post('/plagiarism/check', { description: form.description });
-      if (plag.isPlagiarized) { setCheckResult('flagged'); setError(plag.message); setChecking(false); return; }
-      setCheckResult('ok'); setChecking(false); setPublishing(true);
+      const { data: plag } = await api.post('/plagiarism/check', {
+        description: form.description
+      });
+
+      if (plag.isPlagiarized) {
+        setCheckResult('flagged');
+        setError(plag.message);
+        return;
+      }
+
+      setCheckResult('ok');
+      setPublishing(true);
+
       const fd = new FormData();
       fd.append('idea', new Blob([JSON.stringify(form)], { type: 'application/json' }));
       if (image) fd.append('image', image);
-      await api.post('/ideas', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+
+      await api.post('/ideas', fd);
+
       navigate('/home');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to publish.'); setChecking(false); setPublishing(false);
+      setError(err.response?.data?.message || 'Failed to publish.');
+    } finally {
+      setChecking(false);
+      setPublishing(false);
     }
   };
 
-  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-black placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-[#1565C0] transition';
-
   return (
-    <div className="min-h-screen bg-[#F0F6FF] pb-28">
+    <div className="min-h-screen bg-[#F4F7FF] pb-24">
 
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 py-4 flex items-center gap-3">
-        <button onClick={() => step > 0 ? setStep(s => s - 1) : navigate(-1)} className="text-white transition">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <h1 className="text-white font-bold text-lg flex-1">Add New Idea</h1>
-        <span className="text-blue-200 text-sm">{step + 1}/{STEPS.length}</span>
-      </header>
+      {/* HEADER */}
+      <div className="bg-[#1565C0] px-4 pt-5 pb-12 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute w-44 h-44 rounded-full border-[28px] border-white/5 -top-16 -right-12" />
+          <div className="absolute w-36 h-36 rounded-full border-[22px] border-white/5 -bottom-14 -left-10" />
+        </div>
 
-      {/* Step Progress */}
-      <div className="flex gap-1.5 px-4 pt-4 pb-1">
-        {STEPS.map((s, i) => (
-          <div key={s} className="flex-1 text-center">
-            <div className={`h-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}/>
-            <span className={`text-[10px] mt-1 block font-medium ${i === step ? 'text-[#1565C0]' : 'text-[#90A4AE]'}`}>{s}</span>
-          </div>
-        ))}
+        <div className="flex items-center gap-3 relative z-10">
+          <button
+            onClick={() => (step > 0 ? setStep(s => s - 1) : navigate(-1))}
+            className="text-white text-xl"
+          >
+            ←
+          </button>
+
+          <h1 className="text-white font-bold text-lg flex-1">
+            Add New Idea
+          </h1>
+
+          <span className="text-blue-100 text-sm">
+            {step + 1}/{STEPS.length}
+          </span>
+        </div>
+
+        {/* STEP BAR */}
+        <div className="mt-4 flex gap-2 relative z-10">
+          {STEPS.map((_, i) => (
+            <div key={i} className="flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
+              <div
+                className="h-full bg-white transition-all"
+                style={{ width: i <= step ? '100%' : '0%' }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="px-4 pt-4 space-y-5">
+      {/* CONTENT */}
+      <div className="bg-white rounded-t-[28px] -mt-6 relative z-10 px-4 pt-6">
 
-        {/* Step 0 — Details */}
-        {step === 0 && <>
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Idea Title *</label>
-            <AIAssistantBar onAsk={() => { /* your AI logic */ }} />
-            <input name="title" value={form.title} onChange={handleChange} placeholder="What's your big idea?" className={inputCls}/>
-          </div>
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Description *</label>
-            <textarea name="description" value={form.description} onChange={handleChange} rows={5}
-              placeholder="Describe your idea. Include the problem it solves and how it works."
-              className={`${inputCls} resize-none`}/>
-            <div className="text-right text-[#90A4AE] text-xs mt-1">{form.description.length}/1000</div>
-          </div>
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Category *</label>
-            <div className="grid grid-cols-3 gap-2">
-              {CATEGORIES.map((cat) => (
-                <button key={cat} onClick={() => setForm({ ...form, category: cat })}
-                  className={`py-2.5 rounded-2xl text-xs font-medium border transition-all
-                    ${form.category === cat
-                      ? 'bg-[#1565C0] border-[#1565C0] text-white'
-                      : 'bg-white border-[#BBDEFB] text-black hover:border-[#1565C0]'}`}>
-                  {cat}
-                </button>
-              ))}
+        {step === 0 && (
+          <div className="space-y-4">
+            <AIAssistantBar onAsk={() => {}} />
+
+            <div>
+              <label className="text-xs font-bold text-[#0D2137]">Idea Title</label>
+              <input
+                name="title"
+                value={form.title}
+                onChange={handleChange}
+                className={inputCls}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#0D2137]">Description</label>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                rows={5}
+                className={inputCls}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#0D2137]">Category</label>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setForm({ ...form, category: cat })}
+                    className={`text-xs py-2 rounded-xl border transition ${
+                      form.category === cat
+                        ? 'bg-[#1565C0] text-white border-[#1565C0]'
+                        : 'bg-[#F4F7FF] border-[#BBDEFB] text-[#0D2137]'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </>}
+        )}
 
-        {/* Step 1 — Media */}
-        {step === 1 && <>
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Cover Image (optional)</label>
-            {preview ? (
-              <div className="relative rounded-2xl overflow-hidden">
-                <img src={preview} alt="preview" className="w-full h-48 object-cover"/>
-                <button onClick={() => { setImage(null); setPreview(null); }}
-                  className="absolute top-3 right-3 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white text-sm">✕</button>
-              </div>
-            ) : (
-              <div onClick={() => fileRef.current.click()}
-                className="border-2 border-dashed border-[#BBDEFB] rounded-2xl h-44 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-[#1565C0] transition-colors bg-white">
-                <div className="w-12 h-12 bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl flex items-center justify-center text-2xl">📷</div>
-                <div className="text-center">
-                  <p className="text-black text-sm font-medium">Tap to upload image</p>
-                  <p className="text-[#90A4AE] text-xs mt-1">Max 10MB</p>
+        {step === 1 && (
+          <div className="space-y-4">
+
+            <div>
+              <label className="text-xs font-bold text-[#0D2137]">Cover Image</label>
+
+              {preview ? (
+                <img
+                  src={preview}
+                  className="w-full h-44 object-cover rounded-2xl mt-2"
+                />
+              ) : (
+                <div
+                  onClick={() => fileRef.current.click()}
+                  className="h-44 border-dashed border-2 border-[#BBDEFB] rounded-2xl flex items-center justify-center bg-[#F4F7FF] text-[#90A4AE]"
+                >
+                  Upload Image
                 </div>
-              </div>
-            )}
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden"/>
-          </div>
+              )}
 
-          {/* Premium Toggle */}
-          <div className="bg-white border border-[#BBDEFB] rounded-2xl p-4">
-            <div className="flex items-center justify-between">
+              <input ref={fileRef} type="file" hidden onChange={handleImage} />
+            </div>
+
+            <div className="border border-[#BBDEFB] rounded-2xl p-4 bg-[#F4F7FF] flex justify-between items-center">
               <div>
-                <div className="text-black font-semibold text-sm">⭐ Premium Content</div>
-                <div className="text-[#90A4AE] text-xs mt-0.5">Only paid members can view this</div>
+                <p className="font-semibold text-sm text-[#0D2137]">Premium Content</p>
+                <p className="text-xs text-[#90A4AE]">Paid users only</p>
               </div>
-              <button onClick={() => setForm({ ...form, isPremium: !form.isPremium })}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${form.isPremium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}>
-                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow ${form.isPremium ? 'translate-x-7' : 'translate-x-1'}`}/>
+
+              <button
+                onClick={() =>
+                  setForm({ ...form, isPremium: !form.isPremium })
+                }
+                className={`w-12 h-6 rounded-full transition ${
+                  form.isPremium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full ml-1 transition-transform ${
+                    form.isPremium ? 'translate-x-6' : ''
+                  }`}
+                />
               </button>
             </div>
-            {form.Premium && (
-              <div className="mt-3 bg-[#FFF8E1] border border-[#FFE082] rounded-xl p-3 text-[#F9A825] text-xs">
-                💰 Premium ideas earn revenue when members view them.
-              </div>
-            )}
-          </div>
-        </>}
 
-        {/* Step 2 — Publish Preview */}
-        {step === 2 && <div className="space-y-4">
-          <div className="bg-white border border-[#BBDEFB] rounded-2xl overflow-hidden">
-            {preview && <img src={preview} alt="cover" className="w-full h-40 object-cover"/>}
-            {!preview && (
-              <div className="h-24 bg-[#E3F2FD] flex items-center justify-center">
-                <span className="text-4xl opacity-40">💡</span>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-4">
+
+            <div className="border rounded-2xl overflow-hidden border-[#BBDEFB] bg-white">
+              {preview && (
+                <img src={preview} className="h-40 w-full object-cover" />
+              )}
+
+              <div className="p-4">
+                <p className="text-xs text-[#1565C0]">{form.category}</p>
+                <h2 className="font-bold text-[#0D2137]">{form.title}</h2>
+                <p className="text-sm text-[#546E7A] line-clamp-3">
+                  {form.description}
+                </p>
               </div>
-            )}
-            <div className="p-4">
-              <div className="flex gap-2 flex-wrap mb-2">
-                {form.isPremium && (
-                  <span className="bg-[#FFF8E1] text-[#F9A825] text-xs font-bold px-2.5 py-1 rounded-full">⭐ Premium</span>
-                )}
-                <span className="bg-[#E3F2FD] text-[#1565C0] text-xs px-2.5 py-1 rounded-full">{form.category}</span>
-              </div>
-              <h3 className="text-black font-bold text-base mb-2">{form.title}</h3>
-              <p className="text-[#546E7A] text-sm leading-relaxed line-clamp-3">{form.description}</p>
             </div>
-          </div>
 
-          {/* Security Check */}
-          <div className="bg-white border border-[#BBDEFB] rounded-2xl p-4">
-            <p className="text-black text-xs font-semibold uppercase tracking-widest mb-3">Security Check</p>
-            {[
-              { label: 'Cosine Similarity Check', done: checkResult !== null && checkResult !== 'flagged' },
-              { label: 'Plagiarism Detection',    done: checkResult === 'ok' },
-              { label: 'Publish to Feed',         done: publishing && checkResult === 'ok' },
-            ].map(({ label, done }, idx) => (
-              <div key={label} className="flex items-center gap-3 mb-2.5 last:mb-0">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-xs transition-colors
-                  ${done
-                    ? 'bg-green-100 text-green-600'
-                    : checking && idx === 0
-                      ? 'border-2 border-[#1565C0] border-t-transparent animate-spin'
-                      : 'bg-[#F0F6FF] text-[#90A4AE]'}`}>
-                  {done && '✓'}
-                </div>
-                <span className={`text-sm ${done ? 'text-green-600' : 'text-black'}`}>{label}</span>
+            <div className="border border-[#BBDEFB] rounded-2xl p-4 bg-[#F4F7FF]">
+              <p className="text-xs font-bold text-[#0D2137]">Security Check</p>
+              <p className="text-sm text-[#546E7A]">
+                AI + plagiarism + validation checks
+              </p>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm">
+                {error}
               </div>
-            ))}
+            )}
           </div>
+        )}
 
-          {checkResult === 'flagged' && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-500 text-sm">⚠️ {error}</div>
+        <div className="mt-6 pb-6">
+          {step < 2 ? (
+            <button
+              onClick={nextStep}
+              className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold"
+            >
+              Continue →
+            </button>
+          ) : (
+            <button
+              onClick={handlePublish}
+              className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold"
+            >
+              {checking
+                ? 'Checking...'
+                : publishing
+                ? 'Publishing...'
+                : 'Publish'}
+            </button>
           )}
-        </div>}
-
-        {/* Inline error for steps 0 & 1 */}
-        {error && step < 2 && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>
-        )}
-
-        {/* Action Button */}
-        {step < 2 ? (
-          <button onClick={nextStep}
-            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-3.5 rounded-2xl active:scale-95 transition-all shadow-md shadow-blue-200">
-            Continue →
-          </button>
-        ) : (
-          <button onClick={handlePublish} disabled={checking || publishing || checkResult === 'flagged'}
-            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-3.5 rounded-2xl active:scale-95 transition-all shadow-md shadow-blue-200 disabled:opacity-50">
-            {checking ? '🔍 Checking...' : publishing ? '🚀 Publishing...' : checkResult === 'flagged' ? '⚠️ Cannot publish' : '🚀 Publish Idea'}
-          </button>
-        )}
+        </div>
       </div>
 
-      <BottomNav/>
+      <BottomNav />
     </div>
   );
 }

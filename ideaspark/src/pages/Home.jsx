@@ -6,9 +6,7 @@ import DrawerMenu from '../components/common/DrawerMenu.premium';
 import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
-import { FeedSkeleton } from '../components/common/LoadingStates.premium';
 import { EmptyFeed, EmptyForYou } from '../components/common/EmptyStates.premium';
-import { NetworkError, IdeaLoadError, ServerError } from '../components/common/ErrorStates.premium';
 import { AIOnboardingPrompt } from '../components/common/AIInteractions.premium';
 
 const TABS = ['Trending', 'Latest', 'For You'];
@@ -26,9 +24,9 @@ export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab]   = useState('Trending');
-  const [ideas, setIdeas]           = useState([]);
-  const [loading, setLoading]       = useState(true);
+  const [activeTab, setActiveTab] = useState('Trending');
+  const [ideas, setIdeas] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchIdeas = useCallback(async () => {
     setLoading(true);
@@ -49,85 +47,108 @@ export default function Home() {
 
       <DrawerMenu open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 py-4 flex items-center gap-4 relative  fade-up">
+      {/* HEADER */}
+      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
+
+        {/* decorative background */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
           <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         </div>
-        <button onClick={() => setDrawerOpen(true)}
-                className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 text-white">
-          <span className="w-5 h-0.5 bg-white rounded-full" />
-          <span className="w-4 h-0.5 bg-white rounded-full self-start ml-[2px]" />
-          <span className="w-5 h-0.5 bg-white rounded-full" />
-        </button>
-        <div className="flex items-center gap-2 flex-1">
-          <span className="text-xl">💡</span>
-          <span className="text-white font-bold text-lg tracking-tight">IdeaSpark</span>
+
+        {/* top bar */}
+        <div className="flex items-center gap-5 relative z-10">
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 text-white hover:opacity-80 active:scale-90 transition-all"
+          >
+            <span className="w-5 h-0.5 bg-white rounded-full" />
+            <span className="w-4 h-0.5 bg-white rounded-full self-start ml-[2px]" />
+            <span className="w-5 h-0.5 bg-white rounded-full" />
+          </button>
+
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-xl">💡</span>
+            <span className="text-white font-bold text-lg">IdeaSpark</span>
+          </div>
+
+          <button
+            onClick={() => navigate('/search')}
+            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => navigate('/messages')}
+            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.83L3 20l1.17-3.5A7.86 7.86 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </button>
+
+          <NotificationBell />
         </div>
-        <button onClick={() => navigate('/search')}
-                className="w-9 h-9 flex items-center justify-center text-white">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </button>
-        <NotificationBell />
-        <button onClick={() => navigate('/messages')}
-                aria-label="Messages"
-                className="w-9 h-9 flex items-center justify-center text-white">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.83L3 20l1.17-3.5A7.86 7.86 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-        </button>
+
+        {/* floating greeting card */}
+        <div className="relative z-10 mt-6">
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-4 shadow-md">
+            <h2 className="text-white text-2xl font-bold">
+              Hey, {user?.name?.split(' ')[0] ?? 'there'} 👋
+            </h2>
+            <p className="text-blue-200 text-[15px] mt-1">
+              Discover ideas, connect with creators, and build something meaningful
+            </p>
+          </div>
+        </div>
       </header>
 
-      {/* Greeting */}
-      <div className="bg-[#1565C0] px-4 pb-5 fade-up">
-        <h2 className="text-white text-xl font-bold">
-          Hey, {user?.name?.split(' ')[0] ?? 'there'} 👋
-        </h2>
-        <p className="text-blue-200 text-sm mt-0.5">Discover ideas that inspire you</p>
-      </div>
-
-      {/* White curve */}
+      {/* CONTENT WRAPPER */}
       <div className="bg-[#1565C0]">
         <div className="bg-white rounded-t-[32px] pt-6">
-          {/* Tabs */}
-          <div className="flex gap-3 px-4 mb-4 overflow-x-auto fade-up-d1">
+
+          {/* TABS */}
+          <div className="flex gap-3 px-4 mb-5 overflow-x-auto">
             {TABS.map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
-                      className={`shrink-0 px-5 py-2 rounded-2xl text-sm font-semibold transition-all
-                        ${activeTab === tab
-                          ? 'bg-[#1565C0] text-white shadow-lg shadow-blue-300/40'
-                          : 'bg-[#F0F6FF] text-[#1565C0] border border-[#BBDEFB]'}`}>
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`shrink-0 px-5 py-3 rounded-2xl text-[15px] font-semibold transition-all active:scale-95
+                  ${activeTab === tab
+                    ? 'bg-[#1565C0] text-white shadow-lg shadow-blue-300/40'
+                    : 'bg-[#F0F6FF] text-[#1565C0] border border-[#BBDEFB] hover:bg-[#DBEAFE] hover:border-[#1565C0]'}`}
+              >
                 {tab}
               </button>
             ))}
           </div>
-          <AIOnboardingPrompt onDismiss={() => {}} onTryAI={() => navigate('/add-idea')} />
 
-          {/* Feed */}
-          <div className="px-4 fade-up-d3">
+          {/* AI BANNER */}
+          <div className="px-4">
+            <AIOnboardingPrompt onDismiss={() => {}} onTryAI={() => navigate('/add-idea')} />
+          </div>
+
+          {/* FEED */}
+          <div className="px-4 pt-6">
             {loading ? (
-              // <div className="grid grid-cols-2 gap-3">
-              //   {Array(6).fill(0).map((_, i) => (
-              //     <div key={i} className="bg-[#F0F6FF] rounded-2xl overflow-hidden animate-pulse">
-              //       <div className="h-36 bg-[#BBDEFB]" />
-              //       <div className="p-3 space-y-2">
-              //         <div className="h-3 bg-[#BBDEFB] rounded w-3/4" />
-              //         <div className="h-2.5 bg-[#BBDEFB] rounded" />
-              //       </div>
-              //     </div>
-              //   ))}
-              // </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {Array(6).fill(0).map((_, i) => (
                   <IdeaCardSkeleton key={i} />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {ideas.map((idea) => <IdeaCard key={idea.id} idea={idea} />)}
+              <div className="grid grid-cols-2 gap-4">
+                {ideas.map((idea) => (
+                  <div
+                    key={idea.id}
+                    className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+                  >
+                    <IdeaCard idea={idea} />
+                  </div>
+                ))}
               </div>
             )}
 
@@ -135,6 +156,7 @@ export default function Home() {
               activeTab === 'For You' ? <EmptyForYou /> : <EmptyFeed />
             )}
           </div>
+
         </div>
       </div>
 
