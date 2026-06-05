@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -137,18 +136,29 @@ public class IdeaController {
         return ResponseEntity.ok(new ApiResponse(true, "Idea unsaved"));
     }
 
-    @DeleteMapping("/{id}/like")
-    public ResponseEntity<ApiResponse> unlike(
+    @PostMapping("/{id}/like")
+    public ResponseEntity<ApiResponse> likeIdea(
             @PathVariable UUID id,
-            Authentication authentication) {
+            @AuthenticationPrincipal UserDetails user) {
 
-        if (authentication == null) {
+        if (user == null) {
             return unauthenticated();
         }
 
-        ideaService.unlikeIdea(id);
-        return ResponseEntity.ok(new ApiResponse(true, "Unliked"));
+        ideaService.likeIdea(id, user.getUsername());
+        return ResponseEntity.ok(new ApiResponse(true, "Liked"));
     }
 
-    
+    @DeleteMapping("/{id}/like")
+    public ResponseEntity<ApiResponse> unlike(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails user) {
+
+        if (user == null) {
+            return unauthenticated();
+        }
+
+        ideaService.unlikeIdea(id, user.getUsername());
+        return ResponseEntity.ok(new ApiResponse(true, "Unliked"));
     }
+}

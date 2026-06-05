@@ -4,6 +4,7 @@
 //  Reads everything from NotificationContext (useNotifications).
 // ════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 
@@ -28,19 +29,24 @@ export default function NotificationBell() {
   const navigate = useNavigate();
   const { items, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, right: 16 });
   const wrapRef = useRef(null);
 
-  // Close on outside click / Escape
+  // Anchor the portaled panel just under the bell, aligned to its right edge.
+  const toggle = () => {
+    if (!open && wrapRef.current) {
+      const r = wrapRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+    }
+    setOpen((o) => !o);
+  };
+
+  // Close on Escape — outside clicks are handled by the scrim.
   useEffect(() => {
     if (!open) return;
-    const onClick = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onClick);
     document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onClick);
-      document.removeEventListener('keydown', onKey);
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
   const handleItemClick = (n) => {
@@ -52,7 +58,7 @@ export default function NotificationBell() {
   return (
     <div ref={wrapRef} className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         className="w-9 h-9 flex items-center justify-center text-white relative"
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
       >
@@ -67,9 +73,14 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-xl
-                        ring-1 ring-black/5 z-50  text-left">
+      {open && createPortal(
+        <>
+          {/* Scrim — dims page content so the panel reads as a clean floating layer; tap to close. */}
+          <div className="fixed inset-0 z-[60] bg-black/20" onClick={() => setOpen(false)} aria-hidden />
+          <div
+            style={{ top: pos.top, right: pos.right }}
+            className="fixed w-80 max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-xl
+                       ring-1 ring-black/5 z-[61] text-left">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#E3F2FD]">
             <span className="font-bold text-[#0D2137]">Notifications</span>
@@ -110,6 +121,8 @@ export default function NotificationBell() {
             )}
           </div>
         </div>
+        </>,
+        document.body
       )}
     </div>
   );
