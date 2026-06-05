@@ -295,20 +295,17 @@ export default function Chat() {
           </svg>
         </button>
         {convo && <Avatar initial={convo.initial} color={convo.avatarColor} size={40} online={convo.online} />}
-        <div className="flex-1 min-w-0">
+        <button onClick={() => navigate(`/messages/${id}/profile`)} aria-label="View profile" className="flex-1 min-w-0 text-left">
           <p className="text-[16px] font-semibold text-[#0D2137] truncate">{convo?.name ?? 'Chat'}</p>
           <p className="text-[12px] text-[#2ECC70]">{convo?.online ? 'Online' : 'Offline'}</p>
-        </div>
-        {/* call / video / more */}
+        </button>
+        {/* call / video */}
         <div className="flex items-center gap-1 text-[#1565C0]">
           <button aria-label="Call" className="w-9 h-9 flex items-center justify-center">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h2.28a1 1 0 01.95.68l1 3a1 1 0 01-.27 1.05L7.6 9.79a14 14 0 006.6 6.6l1.06-1.36a1 1 0 011.05-.27l3 1a1 1 0 01.68.95V19a2 2 0 01-2 2A16 16 0 013 5z" /></svg>
           </button>
           <button aria-label="Video" className="w-9 h-9 flex items-center justify-center">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55-2.28A1 1 0 0121 8.62v6.76a1 1 0 01-1.45.9L15 14M4 6h9a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" /></svg>
-          </button>
-          <button aria-label="More" onClick={() => setActionView('menu')} className="w-9 h-9 flex items-center justify-center">
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="12" cy="19" r="1.6" /></svg>
           </button>
         </div>
       </header>

@@ -6,7 +6,6 @@ com\ideaspark\repository\NotificationRepository.class
 com\ideaspark\controller\MembershipController.class
 com\ideaspark\service\MembershipService.class
 com\ideaspark\model\Membership$MembershipBuilder.class
-com\ideaspark\controller\IdeaController.class
 com\ideaspark\dto\LoginRequest.class
 com\ideaspark\config\WebSocketConfig.class
 com\ideaspark\service\IdeaService.class

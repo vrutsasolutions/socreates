@@ -146,7 +146,7 @@ public class IdeaController {
             return unauthenticated();
         }
 
-        ideaService.unlikeIdea(id, authentication.getName());
+        ideaService.unlikeIdea(id);
         return ResponseEntity.ok(new ApiResponse(true, "Unliked"));
     }
 
