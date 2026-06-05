@@ -1,10 +1,10 @@
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\config\WebSocketConfig.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\AuthResponse.java
-D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\config\userDetailsService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\UserController.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\Membership.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\repository\NotificationRepository.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\Notification.java
+D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\config\StaticResourceConfig.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\IdeaController.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\SavedIdea.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\PlagiarismController.java
@@ -16,6 +16,7 @@ D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\repository\SavedIdeaR
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\UserDTO.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\Idea.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\repository\MembershipRepository.java
+D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\LocalFileStorageService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\MembershipController.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\NotificationController.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\PlagiarismResult.java
@@ -23,6 +24,7 @@ D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\UpdateProfileRequ
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\LoginRequest.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\PlagiarismService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\SearchController.java
+D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\repository\IdeaLikeRepository.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\config\WebSocketAuthConfig.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\NotificationService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\config\SecurityConfig.java
@@ -34,9 +36,11 @@ D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\IdeasparkApplication.
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\ApiResponse.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\RegisterRequest.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\repository\IdeaRepository.java
+D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\IdeaLike.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\User.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\IdeaService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\MembershipDTO.java
+D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\CloudflareImageService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\IdeaDTO.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\AuthService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\MembershipService.java

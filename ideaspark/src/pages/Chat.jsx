@@ -385,11 +385,13 @@ export default function Chat() {
                 placeholder="Message..."
                 className="flex-1 bg-transparent text-[14px] text-[#0D2137] placeholder-[#90A4AE] focus:outline-none"
               />
-              <button onClick={startRecording} aria-label="Record voice" className="text-[#1565C0] text-sm font-medium shrink-0">mic</button>
+              <button onClick={startRecording} aria-label="Record voice" className="text-[#1565C0] shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3z" /><path strokeLinecap="round" strokeLinejoin="round" d="M5 11a7 7 0 0014 0M12 18v3M8.5 21h7" /></svg>
+              </button>
             </div>
             <button onClick={handleSendText} aria-label="Send"
                     className="w-10 h-10 rounded-full bg-[#1565C0] text-white flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}><path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" /></svg>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z" /></svg>
             </button>
           </div>
           {/* Camera: capture opens the device camera on mobile. */}

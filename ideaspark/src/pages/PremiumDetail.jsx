@@ -40,8 +40,8 @@ export default function PremiumDetail() {
 
       {/* Header */}
       <div className="sticky top-0 z-30 bg-[#1565C0] px-4 py-4 flex items-center gap-3 relative overflow-hidden">
-        <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
-        <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+        <div className="pointer-events-none absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+        <div className="pointer-events-none absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 flex items-center justify-center text-blue-200 hover:text-white transition btn-hover">
