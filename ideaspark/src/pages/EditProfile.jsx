@@ -13,7 +13,7 @@ export default function EditProfile() {
   const fileRef         = useRef();
 
   const originalUsername = user?.username || '';
-  const originalUsernameRef = useRef(originalUsername); // stable read for the effect
+  const originalUsernameRef = useRef(originalUsername);
   const [form, setForm]         = useState({ name: user?.name || '', username: originalUsername, bio: user?.bio || '', email: user?.email || '' });
   const [passwords, setPasswords] = useState({ current: '', newPass: '', confirm: '' });
   const [avatar, setAvatar]     = useState(null);
@@ -22,24 +22,18 @@ export default function EditProfile() {
   const [error, setError]       = useState('');
   const [success, setSuccess]   = useState('');
   const [section, setSection]   = useState('profile');
-  // Username availability: 'idle' | 'invalid' | 'checking' | 'available' | 'taken'
   const [uname, setUname]       = useState({ state: 'idle', message: '' });
   const reqId = useRef(0);
 
   const handleUsernameChange = (e) => {
     const next = e.target.value.toLowerCase().trim();
     setForm({ ...form, username: next });
-    // Reset status immediately for the unchanged/empty cases; the effect
-    // handles validation + the debounced availability check for the rest.
     if (!next || next === originalUsernameRef.current) setUname({ state: 'idle', message: '' });
   };
 
-  // Debounced availability check — only runs for a changed, non-empty handle.
-  // All status updates happen inside the timeout callback (never synchronously
-  // in the effect body) so a keystroke doesn't trigger a cascading render.
   useEffect(() => {
     const u = form.username;
-    if (!u || u === originalUsernameRef.current) return; // idle handled in the change handler
+    if (!u || u === originalUsernameRef.current) return;
     const id = ++reqId.current;
     const t = setTimeout(async () => {
       if (!USERNAME_RE.test(u)) {
@@ -72,7 +66,6 @@ export default function EditProfile() {
     if (usernameChanged && uname.state === 'taken') { setError('That username is already taken'); return; }
     setError(''); setSuccess(''); setSaving(true);
     try {
-      // Only send username when it actually changed.
       const profile = { name: form.name, bio: form.bio };
       if (usernameChanged) profile.username = form.username;
       const fd = new FormData();
@@ -102,142 +95,175 @@ export default function EditProfile() {
     setSaving(false);
   };
 
-  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-black placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-[#1565C0] transition';
+  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition';
 
   return (
-    <div className="min-h-screen bg-[#F0F6FF] pb-10">
+    <div className="min-h-screen bg-[#F4F7FF] pb-10">
 
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-white transition">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <h1 className="text-white font-bold text-lg flex-1">Edit Profile</h1>
+      {/* Header — matches Home/Inbox */}
+      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-4 relative shadow-lg border-b border-white/10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+        </div>
+        <div className="flex items-center gap-3 relative z-10">
+          <button onClick={() => navigate(-1)}
+            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <h1 className="text-white font-bold text-lg flex-1">Edit Profile</h1>
+        </div>
       </header>
 
-      {/* Section Tabs */}
-      <div className="flex gap-2 px-4 pt-5 pb-2">
-        {['profile', 'password'].map(s => (
-          <button key={s} onClick={() => setSection(s)}
-            className={`px-4 py-2 rounded-2xl text-sm font-medium capitalize transition-all
-              ${section === s
-                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-200'
-                : 'bg-white text-black border border-[#BBDEFB] hover:border-[#1565C0]'}`}>
-            {s === 'profile'
-              ? <span className="inline-flex items-center gap-1.5"><Icon name="user" className="w-4 h-4" />Profile</span>
-              : <span className="inline-flex items-center gap-1.5"><Icon name="lock" className="w-4 h-4" />Password</span>}
-          </button>
-        ))}
-      </div>
+      {/* Content wrapper — matches Home's rounded-t-[32px] white card */}
+      <div className="bg-[#1565C0]">
+        <div className="bg-white rounded-t-[32px] pt-6">
 
-      <div className="px-4 pt-4 space-y-5">
-
-        {/* Alerts */}
-        {error   && <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>}
-        {success && <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 text-green-600 text-sm">✓ {success}</div>}
-
-        {/* Profile Section */}
-        {section === 'profile' && <>
-          {/* Avatar */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="relative w-24 h-24">
-              {preview ? (
-                <img src={preview} alt="avatar" className="w-24 h-24 rounded-3xl object-cover border-2 border-[#BBDEFB]"/>
-              ) : (
-                <div className="w-24 h-24 rounded-3xl bg-[#1565C0] flex items-center justify-center text-white text-4xl font-bold">
-                  {user?.name?.[0]?.toUpperCase()}
-                </div>
-              )}
-              <button onClick={() => fileRef.current.click()}
-                className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#1565C0] rounded-2xl flex items-center justify-center text-white shadow-md">
-                <Icon name="camera" className="w-4 h-4" />
+          {/* Section Tabs — matches Home's tab style */}
+          <div className="flex gap-3 px-4 pb-4 border-b border-[#F0F6FF]">
+            {['profile', 'password'].map(s => (
+              <button key={s} onClick={() => setSection(s)}
+                className={`px-5 py-2.5 rounded-2xl text-sm font-semibold capitalize transition-all active:scale-95
+                  ${section === s
+                    ? 'bg-[#1565C0] text-white shadow-lg shadow-blue-300/40'
+                    : 'bg-[#F0F6FF] text-[#1565C0] border border-[#BBDEFB] hover:bg-[#DBEAFE] hover:border-[#1565C0]'}`}>
+                {s === 'profile'
+                  ? <span className="inline-flex items-center gap-1.5"><Icon name="user" className="w-4 h-4" />Profile</span>
+                  : <span className="inline-flex items-center gap-1.5"><Icon name="lock" className="w-4 h-4" />Password</span>}
               </button>
-            </div>
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden"/>
-            <p className="text-[#90A4AE] text-xs">Tap the camera to change photo</p>
+            ))}
           </div>
 
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Display Name</label>
-            <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-              placeholder="Your name" className={inputCls}/>
-          </div>
+          <div className="px-4 pt-5 space-y-5">
 
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Username</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#90A4AE] text-sm">@</span>
-              <input value={form.username} onChange={handleUsernameChange}
-                placeholder="yourname" autoCapitalize="none" autoCorrect="off" spellCheck={false}
-                className={`${inputCls} pl-7 ${
-                  uname.state === 'available' ? 'border-green-400 focus:border-green-500 focus:ring-green-500'
-                  : uname.state === 'taken' || uname.state === 'invalid' ? 'border-red-300 focus:border-red-400 focus:ring-red-400'
-                  : ''}`}/>
-            </div>
-            {!originalUsername && (
-              <p className="text-[#90A4AE] text-xs mt-1">You don't have a username yet — pick one.</p>
+            {/* Alerts */}
+            {error   && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-500 text-sm flex items-center gap-2.5">
+                <Icon name="alert-triangle" className="w-4 h-4 shrink-0" />{error}
+              </div>
             )}
-            {uname.message && (
-              <p className={`text-xs mt-1 ${
-                uname.state === 'available' ? 'text-green-600'
-                : uname.state === 'checking' ? 'text-[#90A4AE]'
-                : 'text-red-500'}`}>
-                {uname.state === 'available' ? '✓ ' : uname.state === 'taken' ? '✕ ' : ''}{uname.message}
-              </p>
+            {success && (
+              <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 text-green-600 text-sm flex items-center gap-2">
+                <Icon name="check" className="w-4 h-4 shrink-0" />{success}
+              </div>
             )}
+
+            {/* Profile Section */}
+            {section === 'profile' && <>
+              {/* Avatar */}
+              <div className="flex flex-col items-center gap-3 py-2">
+                <div className="relative w-24 h-24">
+                  {preview ? (
+                    <img src={preview} alt="avatar" className="w-24 h-24 rounded-3xl object-cover border-2 border-[#BBDEFB]"/>
+                  ) : (
+                    <div className="w-24 h-24 rounded-3xl bg-[#1565C0] flex items-center justify-center text-white text-4xl font-bold">
+                      {user?.name?.[0]?.toUpperCase()}
+                    </div>
+                  )}
+                  <button onClick={() => fileRef.current.click()}
+                    className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#1565C0] rounded-2xl flex items-center justify-center text-white shadow-md active:scale-90 transition-all">
+                    <Icon name="camera" className="w-4 h-4" />
+                  </button>
+                </div>
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden"/>
+                <p className="text-[#90A4AE] text-xs">Tap the camera to change photo</p>
+              </div>
+
+              <div>
+                <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">Display Name</label>
+                <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+                  placeholder="Your name" className={inputCls}/>
+              </div>
+
+              <div>
+                <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">Username</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#90A4AE] text-sm">@</span>
+                  <input value={form.username} onChange={handleUsernameChange}
+                    placeholder="yourname" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                    className={`${inputCls} pl-8 ${
+                      uname.state === 'available' ? 'border-green-400 focus:border-green-500 focus:ring-green-500/20'
+                      : uname.state === 'taken' || uname.state === 'invalid' ? 'border-red-300 focus:border-red-400 focus:ring-red-400/20'
+                      : ''}`}/>
+                </div>
+                {!originalUsername && (
+                  <p className="text-[#90A4AE] text-xs mt-1.5 pl-1">You don't have a username yet — pick one.</p>
+                )}
+                {uname.message && (
+                  <p className={`text-xs mt-1.5 pl-1 ${
+                    uname.state === 'available' ? 'text-green-600'
+                    : uname.state === 'checking' ? 'text-[#90A4AE]'
+                    : 'text-red-500'}`}>
+                    {uname.state === 'available' ? '✓ ' : uname.state === 'taken' ? '✕ ' : ''}{uname.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">Bio</label>
+                <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})}
+                  rows={3} placeholder="Tell people about yourself..."
+                  className={`${inputCls} resize-none`}/>
+              </div>
+
+              <div>
+                <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">Email</label>
+                <input value={form.email} disabled className={`${inputCls} opacity-50 cursor-not-allowed`}/>
+                <p className="text-[#90A4AE] text-xs mt-1.5 pl-1">Email cannot be changed</p>
+              </div>
+
+              <button onClick={handleSave}
+                disabled={saving || uname.state === 'checking' || uname.state === 'taken' || uname.state === 'invalid'}
+                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blue-300/40 disabled:opacity-50 text-sm pb-6">
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                    Saving...
+                  </span>
+                ) : 'Save Changes'}
+              </button>
+            </>}
+
+            {/* Password Section */}
+            {section === 'password' && <>
+              <div>
+                <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">Current Password</label>
+                <input type="password" value={passwords.current}
+                  onChange={e => setPasswords({...passwords, current: e.target.value})}
+                  placeholder="••••••••" className={inputCls}/>
+              </div>
+
+              <div>
+                <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">New Password</label>
+                <input type="password" value={passwords.newPass}
+                  onChange={e => setPasswords({...passwords, newPass: e.target.value})}
+                  placeholder="Min. 6 characters" className={inputCls}/>
+              </div>
+
+              <div>
+                <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">Confirm New Password</label>
+                <input type="password" value={passwords.confirm}
+                  onChange={e => setPasswords({...passwords, confirm: e.target.value})}
+                  placeholder="Repeat new password" className={inputCls}/>
+              </div>
+
+              <button onClick={handlePasswordChange} disabled={saving}
+                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blue-300/40 disabled:opacity-50 text-sm mb-6">
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                    Updating...
+                  </span>
+                ) : 'Change Password'}
+              </button>
+            </>}
+
           </div>
-
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Bio</label>
-            <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})}
-              rows={3} placeholder="Tell people about yourself..."
-              className={`${inputCls} resize-none`}/>
-          </div>
-
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Email</label>
-            <input value={form.email} disabled className={`${inputCls} opacity-50 cursor-not-allowed`}/>
-            <p className="text-[#90A4AE] text-xs mt-1">Email cannot be changed</p>
-          </div>
-
-          <button onClick={handleSave}
-            disabled={saving || uname.state === 'checking' || uname.state === 'taken' || uname.state === 'invalid'}
-            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-3.5 rounded-2xl active:scale-95 transition-all shadow-md shadow-blue-200 disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </>}
-
-        {/* Password Section */}
-        {section === 'password' && <>
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Current Password</label>
-            <input type="password" value={passwords.current}
-              onChange={e => setPasswords({...passwords, current: e.target.value})}
-              placeholder="••••••••" className={inputCls}/>
-          </div>
-
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">New Password</label>
-            <input type="password" value={passwords.newPass}
-              onChange={e => setPasswords({...passwords, newPass: e.target.value})}
-              placeholder="Min. 6 characters" className={inputCls}/>
-          </div>
-
-          <div>
-            <label className="block text-black text-xs font-semibold uppercase tracking-widest mb-2">Confirm New Password</label>
-            <input type="password" value={passwords.confirm}
-              onChange={e => setPasswords({...passwords, confirm: e.target.value})}
-              placeholder="Repeat new password" className={inputCls}/>
-          </div>
-
-          <button onClick={handlePasswordChange} disabled={saving}
-            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-3.5 rounded-2xl active:scale-95 transition-all shadow-md shadow-blue-200 disabled:opacity-50">
-            {saving ? 'Updating...' : 'Change Password'}
-          </button>
-        </>}
+        </div>
       </div>
+
     </div>
   );
 }

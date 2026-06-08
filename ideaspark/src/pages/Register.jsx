@@ -64,88 +64,107 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-[#F4F7FF] flex flex-col">
 
-      <div className="bg-[#1565C0] px-6 pt-14 pb-16 text-center relative overflow-hidden">
-        <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
-        <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-[#F4F7FF] rounded-t-[2rem]" />
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl mb-4 shadow-lg">
-          <Icon name="lightbulb" className="w-8 h-8 text-[#1565C0]" />
+      {/* Blue header — matches Home/Login/Welcome */}
+      <div className="bg-[#1565C0] px-6 pt-14 pb-24 text-center relative overflow-hidden shadow-lg border-b border-white/10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         </div>
-        <h1 className="text-white text-2xl font-bold">Join IdeaSpark</h1>
-        <p className="text-blue-200 text-sm mt-1">Start sharing your ideas today</p>
-      </div>
-
-      <div className="flex-1 px-6 py-6 max-w-sm mx-auto w-full">
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-2xl px-4 py-3 mb-5">{error}</div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {[{ name: 'name', type: 'text', label: 'Full Name', placeholder: 'John Doe' }]
-            .map(({ name, type, label, placeholder }) => (
-            <div key={name}>
-              <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">{label}</label>
-              <input type={type} name={name} value={form[name]}
-                     onChange={handleChange} placeholder={placeholder} required
-                     className="w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition" />
-            </div>
-          ))}
-
-          <div>
-            <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">Username</label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#90A4AE] text-sm">@</span>
-              <input type="text" name="username" value={form.username}
-                     onChange={handleUsernameChange} placeholder="yourname" required
-                     autoCapitalize="none" autoCorrect="off" spellCheck={false}
-                     className={`w-full bg-[#F0F6FF] border rounded-2xl pl-8 pr-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:ring-2 transition
-                                ${uname.state === 'available' ? 'border-green-400 focus:border-green-500 focus:ring-green-500/20'
-                                  : uname.state === 'taken' || uname.state === 'invalid' ? 'border-red-300 focus:border-red-400 focus:ring-red-400/20'
-                                  : 'border-[#BBDEFB] focus:border-[#1565C0] focus:ring-[#1565C0]/20'}`} />
-            </div>
-            {uname.message && (
-              <p className={`text-xs mt-1.5 ${
-                uname.state === 'available' ? 'text-green-600'
-                : uname.state === 'checking' ? 'text-[#90A4AE]'
-                : 'text-red-500'}`}>
-                {uname.state === 'available' ? '✓ ' : uname.state === 'taken' ? '✕ ' : ''}{uname.message}
-              </p>
-            )}
+        <div className="relative z-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl mb-4 shadow-lg">
+            <Icon name="lightbulb" className="w-8 h-8 text-amber-300" />
           </div>
-
-          {[
-            { name: 'email',    type: 'email',    label: 'Email',    placeholder: 'you@example.com' },
-            { name: 'password', type: 'password', label: 'Password', placeholder: 'Min. 6 characters' },
-          ].map(({ name, type, label, placeholder }) => (
-            <div key={name}>
-              <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">{label}</label>
-              <input type={type} name={name} value={form[name]}
-                     onChange={handleChange} placeholder={placeholder} required
-                     className="w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition" />
-            </div>
-          ))}
-
-          <button type="submit"
-                  disabled={loading || uname.state === 'checking' || uname.state === 'taken' || uname.state === 'invalid'}
-                  className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-blue-300/40 text-sm mt-2 btn-hover">
-            {loading ? 'Creating account...' : 'Create Account'}
-          </button>
-        </form>
-
-        <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-px bg-[#E3F2FD]" />
-          <span className="text-[#90A4AE] text-xs">or</span>
-          <div className="flex-1 h-px bg-[#E3F2FD]" />
+          <h1 className="text-white text-2xl font-bold">Join IdeaSpark</h1>
+          <p className="text-blue-200 text-sm mt-1">Start sharing your ideas today</p>
         </div>
-
-        <p className="text-center text-[#546E7A] text-sm">
-          Already have an account?{' '}
-          <Link to="/login" className="text-[#1565C0] font-semibold hover:underline">
-            Sign in
-          </Link>
-        </p>
       </div>
+
+      {/* Content wrapper — matches Home's rounded-t-[32px] white card */}
+      <div className="bg-[#1565C0]">
+        <div className="bg-white rounded-t-[32px] pt-6">
+          <div className="flex-1 px-6 pb-10 max-w-sm mx-auto w-full">
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-2xl px-4 py-3 mb-5 flex items-center gap-2.5">
+                <Icon name="alert-triangle" className="w-4 h-4 shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {[{ name: 'name', type: 'text', label: 'Full Name', placeholder: 'John Doe' }]
+                .map(({ name, type, label, placeholder }) => (
+                <div key={name}>
+                  <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">{label}</label>
+                  <input type={type} name={name} value={form[name]}
+                         onChange={handleChange} placeholder={placeholder} required
+                         className="w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition" />
+                </div>
+              ))}
+
+              <div>
+                <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">Username</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#90A4AE] text-sm">@</span>
+                  <input type="text" name="username" value={form.username}
+                         onChange={handleUsernameChange} placeholder="yourname" required
+                         autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                         className={`w-full bg-[#F0F6FF] border rounded-2xl pl-8 pr-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:ring-2 transition
+                                    ${uname.state === 'available' ? 'border-green-400 focus:border-green-500 focus:ring-green-500/20'
+                                      : uname.state === 'taken' || uname.state === 'invalid' ? 'border-red-300 focus:border-red-400 focus:ring-red-400/20'
+                                      : 'border-[#BBDEFB] focus:border-[#1565C0] focus:ring-[#1565C0]/20'}`} />
+                </div>
+                {uname.message && (
+                  <p className={`text-xs mt-1.5 pl-1 ${
+                    uname.state === 'available' ? 'text-green-600'
+                    : uname.state === 'checking' ? 'text-[#90A4AE]'
+                    : 'text-red-500'}`}>
+                    {uname.state === 'available' ? '✓ ' : uname.state === 'taken' ? '✕ ' : ''}{uname.message}
+                  </p>
+                )}
+              </div>
+
+              {[
+                { name: 'email',    type: 'email',    label: 'Email',    placeholder: 'you@example.com' },
+                { name: 'password', type: 'password', label: 'Password', placeholder: 'Min. 6 characters' },
+              ].map(({ name, type, label, placeholder }) => (
+                <div key={name}>
+                  <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">{label}</label>
+                  <input type={type} name={name} value={form[name]}
+                         onChange={handleChange} placeholder={placeholder} required
+                         className="w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition" />
+                </div>
+              ))}
+
+              <button type="submit"
+                      disabled={loading || uname.state === 'checking' || uname.state === 'taken' || uname.state === 'invalid'}
+                      className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-blue-300/40 text-sm mt-2 btn-hover">
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                    Creating account...
+                  </span>
+                ) : 'Create Account'}
+              </button>
+            </form>
+
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-[#E3F2FD]" />
+              <span className="text-[#90A4AE] text-xs uppercase tracking-widest">or</span>
+              <div className="flex-1 h-px bg-[#E3F2FD]" />
+            </div>
+
+            <p className="text-center text-[#546E7A] text-sm mb-2">
+              Already have an account?{' '}
+              <Link to="/login" className="text-[#1565C0] font-semibold hover:underline">
+                Sign in
+              </Link>
+            </p>
+
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

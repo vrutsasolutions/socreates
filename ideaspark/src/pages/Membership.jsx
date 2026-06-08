@@ -60,7 +60,6 @@ export default function Membership() {
         const rzp = new window.Razorpay(options);
         rzp.open();
       } else {
-        // Stripe
         const { data } = await api.post('/payment/stripe/checkout', { plan: selected });
         window.location.href = data.checkoutUrl;
       }
@@ -71,21 +70,37 @@ export default function Membership() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-10">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] border-b border-[#BBDEFB] px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-blue-200 hover:text-white transition">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-        </button>
-        <h1 className="text-white font-bold text-lg flex-1">Membership</h1>
+    <div className="min-h-screen bg-[#F4F7FF] pb-10">
+
+      {/* Header — matches Home/Inbox */}
+      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-4 relative shadow-lg border-b border-white/10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+        </div>
+        <div className="flex items-center gap-3 relative z-10">
+          <button onClick={() => navigate(-1)}
+            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <h1 className="text-white font-bold text-lg flex-1">Membership</h1>
+        </div>
       </header>
 
+      {/* Content wrapper — matches Home's rounded-t-[32px] white card */}
       <div className="bg-[#1565C0]">
-        <div className="bg-white rounded-t-3xl px-4 pt-6 space-y-6">
+        <div className="bg-white rounded-t-[32px] px-4 pt-8 space-y-6">
+
           {/* Hero */}
           <div className="text-center">
-            <div className="mb-3 flex justify-center text-[#7C3AED]"><Icon name="gem" className="w-12 h-12" /></div>
-            <h2 className="text-[#1565C0] text-2xl font-bold mb-2">Go Premium</h2>
+            <div className="mb-3 flex justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#F0F6FF] border border-[#BBDEFB] flex items-center justify-center">
+                <Icon name="gem" className="w-8 h-8 text-[#1565C0]" />
+              </div>
+            </div>
+            <h2 className="text-[#0D2137] text-2xl font-bold mb-2">Go Premium</h2>
             <p className="text-[#90A4AE] text-sm leading-relaxed max-w-xs mx-auto">
               Unlock exclusive ideas from the best creators. Cancel anytime.
             </p>
@@ -96,13 +111,15 @@ export default function Membership() {
             {PLANS.map((plan) => (
               <button key={plan.id} onClick={() => setSelected(plan.id)}
                 className={`w-full text-left bg-[#F0F6FF] border rounded-2xl p-5 transition-all active:scale-[0.98]
-                  ${selected === plan.id ? 'border-[#1565C0] shadow-lg shadow-blue-300/40' : 'border-[#BBDEFB]'}`}>
+                  ${selected === plan.id
+                    ? 'border-[#1565C0] shadow-lg shadow-blue-300/40'
+                    : 'border-[#BBDEFB] hover:border-[#1565C0] hover:bg-[#DBEAFE]'}`}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[#1565C0] font-bold">{plan.label}</span>
+                      <span className="text-[#0D2137] font-bold">{plan.label}</span>
                       {plan.badge && (
-                        <span className="bg-[#FACC15]/20 text-[#78350F] text-xs font-bold px-2 py-0.5 rounded-full">
+                        <span className="bg-[#DBEAFE] text-[#1565C0] text-xs font-bold px-2 py-0.5 rounded-2xl">
                           {plan.badge}
                         </span>
                       )}
@@ -116,19 +133,18 @@ export default function Membership() {
                 </div>
                 <div className="space-y-1.5">
                   {plan.features.map(f => (
-                    <div key={f} className="flex items-center gap-2 text-xs text-[#90A4AE]">
-                      <span className="text-[#1565C0] shrink-0">✓</span>{f}
+                    <div key={f} className="flex items-center gap-2 text-xs text-[#546E7A]">
+                      <span className="text-[#1565C0] font-bold shrink-0">✓</span>{f}
                     </div>
                   ))}
                 </div>
-                {/* Selection indicator */}
-                <div className={`mt-3 h-0.5 rounded-full transition-all ${selected === plan.id ? 'bg-[#1565C0]' : 'bg-transparent'}`}/>
+                <div className={`mt-3 h-0.5 rounded-full transition-all ${selected === plan.id ? 'bg-[#1565C0]' : 'bg-transparent'}`} />
               </button>
             ))}
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>
           )}
 
           {/* Payment buttons */}
@@ -136,23 +152,25 @@ export default function Membership() {
             <p className="text-[#90A4AE] text-xs text-center uppercase tracking-widest">Choose payment method</p>
 
             <button onClick={() => handlePayment('razorpay')} disabled={loading}
-              className="w-full bg-[#528FF0] hover:bg-[#4070D0] text-white font-bold py-3.5 rounded-2xl active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-              {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : null}
+              className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2 text-sm">
+              {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
               Pay with Razorpay
             </button>
 
             <button onClick={() => handlePayment('stripe')} disabled={loading}
-              className="w-full bg-[#635BFF] hover:bg-[#5248D9] text-white font-bold py-3.5 rounded-2xl active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-              {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : null}
+              className="w-full bg-[#F0F6FF] hover:bg-[#DBEAFE] border border-[#BBDEFB] hover:border-[#1565C0] text-[#1565C0] font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm">
+              {loading ? <span className="w-4 h-4 border-2 border-[#1565C0] border-t-transparent rounded-full animate-spin" /> : null}
               Pay with Stripe
             </button>
           </div>
 
-          <p className="text-[#BBDEFB] text-xs text-center pb-4 inline-flex items-center justify-center gap-1 w-full">
+          <p className="text-[#90A4AE] text-xs text-center pb-8 inline-flex items-center justify-center gap-1 w-full">
             <Icon name="lock" className="w-3.5 h-3.5" /> Secure payment · Cancel anytime · No hidden fees
           </p>
+
         </div>
       </div>
+
     </div>
   );
 }

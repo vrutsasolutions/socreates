@@ -82,31 +82,36 @@ export default function VerifyOtp() {
   return (
     <div className="min-h-screen bg-[#F4F7FF] flex flex-col">
 
+      {/* HEADER — matches Home style for auth screens */}
       <div className="bg-[#1565C0] px-6 pt-14 pb-16 text-center relative overflow-hidden">
         <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
         <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-[#F4F7FF] rounded-t-[2rem]" />
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl mb-4 shadow-lg">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl mb-5 shadow-lg">
           <Icon name="mail" className="w-8 h-8 text-[#1565C0]" />
         </div>
         <h1 className="text-white text-2xl font-bold">Verify your email</h1>
-        <p className="text-blue-200 text-sm mt-1">
+        <p className="text-blue-200 text-[15px] mt-2">
           Enter the 6-digit code we sent{email ? ' to' : ''}
         </p>
-        {email && <p className="text-white text-sm font-semibold mt-0.5 break-all">{email}</p>}
+        {email && (
+          <p className="text-white text-sm font-semibold mt-1 break-all">{email}</p>
+        )}
       </div>
 
-      <div className="flex-1 px-6 py-6 max-w-sm md:max-w-md mx-auto w-full">
+      <div className="flex-1 px-6 py-8 max-w-sm md:max-w-md mx-auto w-full">
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-2xl px-4 py-3 mb-5 flex items-start gap-2.5">
+          <div className="bg-red-50 border border-red-200 text-red-600 text-[15px] rounded-2xl px-4 py-3.5 mb-6 flex items-start gap-2.5">
             <Icon name="alert-triangle" className="w-4 h-4 shrink-0 mt-0.5" />
             <span className="flex-1 font-medium">{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleVerify} className="space-y-6" noValidate>
-          <div className="flex justify-center gap-2.5">
+        <form onSubmit={handleVerify} className="space-y-8" noValidate>
+
+          {/* OTP inputs */}
+          <div className="flex justify-center gap-3">
             {digits.map((d, i) => (
               <input
                 key={i}
@@ -119,7 +124,9 @@ export default function VerifyOtp() {
                 onChange={(e) => handleChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
                 aria-label={`Digit ${i + 1}`}
-                className="w-12 h-14 text-center text-xl font-bold bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl text-[#0D2137] focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition"
+                className={`w-[52px] h-[64px] text-center text-2xl font-bold bg-[#F0F6FF] border rounded-2xl text-[#0D2137]
+                  focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition-all
+                  ${d ? 'border-[#1565C0] bg-[#E3F2FD]' : 'border-[#BBDEFB]'}`}
               />
             ))}
           </div>
@@ -127,26 +134,29 @@ export default function VerifyOtp() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-300/40 text-sm btn-hover">
+            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-300/40 text-[15px]"
+          >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Verifying...
               </span>
             ) : 'Verify & Continue'}
           </button>
         </form>
 
-        <div className="text-center mt-6">
-          <span className="text-[#546E7A] text-sm">Didn't get the code? </span>
+        <div className="text-center mt-8">
+          <span className="text-[#546E7A] text-[15px]">Didn't get the code? </span>
           <button
             type="button"
             onClick={handleResend}
             disabled={cooldown > 0}
-            className="text-[#1565C0] font-semibold text-sm disabled:text-[#90A4AE] disabled:cursor-not-allowed hover:underline disabled:no-underline">
+            className="text-[#1565C0] font-semibold text-[15px] disabled:text-[#90A4AE] disabled:cursor-not-allowed hover:text-[#0D47A1] hover:underline disabled:no-underline transition-colors"
+          >
             {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
           </button>
         </div>
+
       </div>
     </div>
   );
