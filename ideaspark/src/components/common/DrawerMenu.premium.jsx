@@ -14,6 +14,7 @@
 import { useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { hasCreatorPro } from '../../api/paymentApi';
 
 /* ── Menu sections & items ───────────────────────────────── */
 const MENU_SECTIONS = [
@@ -95,6 +96,23 @@ const MENU_SECTIONS = [
         bg:    'var(--sc-primary-50, #EEF0FF)',
       },
       {
+        to: '/creator-dashboard',
+        label: 'Creator Dashboard',
+        sublabel: 'Your stats & performance',
+        badge: 'NEW',
+        Icon: () => (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3"  y="3"  width="7" height="7" rx="1.5" />
+            <rect x="14" y="3"  width="7" height="7" rx="1.5" />
+            <rect x="3"  y="14" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          </svg>
+        ),
+        color: 'var(--sc-ai, #7C3AED)',
+        bg:    'var(--sc-ai-light, #F5F0FF)',
+      },
+      {
         to: '/membership',
         label: 'Membership',
         sublabel: 'Plans & billing',
@@ -152,6 +170,7 @@ export default function DrawerMenu({ open, onClose }) {
   const { user, logout } = useAuth();
   const drawerRef = useRef(null);
   const av        = avPalette(user?.name || '');
+  const creatorPro = hasCreatorPro(user);
 
   /* Keyboard + scroll lock */
   useEffect(() => {
@@ -331,13 +350,15 @@ export default function DrawerMenu({ open, onClose }) {
                 {section.label}
               </div>
 
-              {section.items.map(({ to, label, sublabel, Icon, color, bg }) => {
-                const isActive = location.pathname === to ||
-                  (to !== '/' && location.pathname.startsWith(to));
+              {section.items.map(({ to, label, sublabel, badge, Icon, color, bg }) => {
+                // Creator Dashboard is gated: non-Pro users land on the upgrade page first.
+                const target = (to === '/creator-dashboard' && !creatorPro) ? '/creator-pro' : to;
+                const isActive = location.pathname === target ||
+                  (target !== '/' && location.pathname.startsWith(target));
                 return (
                   <Link
                     key={to}
-                    to={to}
+                    to={target}
                     onClick={onClose}
                     className="sc-drawer-item"
                     style={{
@@ -362,13 +383,24 @@ export default function DrawerMenu({ open, onClose }) {
                     {/* Text */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
+                        display: 'flex', alignItems: 'center', gap: 7,
                         fontSize: 13.5,
                         fontWeight: isActive ? 700 : 500,
                         color: isActive ? color : 'var(--sc-text-primary, #0F1224)',
                         fontFamily: 'var(--sc-font-body, Inter, sans-serif)',
                         transition: 'color 150ms ease',
                       }}>
-                        {label}
+                        <span>{label}</span>
+                        {badge && (
+                          <span style={{
+                            fontSize: 8.5, fontWeight: 800, letterSpacing: '0.07em',
+                            color: '#fff', background: 'var(--sc-ai, #7C3AED)',
+                            padding: '2px 6px', borderRadius: 999, lineHeight: 1,
+                            textTransform: 'uppercase', flexShrink: 0,
+                          }}>
+                            {badge}
+                          </span>
+                        )}
                       </div>
                       {sublabel && (
                         <div style={{

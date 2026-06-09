@@ -143,4 +143,60 @@ from the message text (backend sends none of those).
 
 ---
 
+## 8. Payment & Membership ⏳  `/api/payment`  — frontend: `src/api/paymentApi.jsx`
+
+Drives the Membership page (`/membership`), the success/failure result pages, and
+the Active-membership status view. Mock-backed via `USE_MOCK.payment = true` until
+these endpoints ship; flip to `false` to go live.
+
+| Method | Path | Request | Response | Status |
+|---|---|---|---|---|
+| POST | `/create-order` | `Checkout` | `{ orderId, amount, currency }` | ⏳ |
+| POST | `/subscribe` | `Checkout` + `{ paymentId, orderId, signature }` | `{ user }` | ⏳ |
+| POST | `/stripe/checkout` | `Checkout` | `{ checkoutUrl }` | ⏳ |
+| POST | `/cancel` | `{}` | `{ user }` | ⏳ |
+
+**`Checkout`** (what the frontend sends to start a purchase) =
+`{ plan, billing, gateway, planLabel, price }`
+- `plan` ∈ `reader | creator`  (Go Premium / Creators Pro)
+- `billing` ∈ `monthly | yearly`
+- `gateway` ∈ `razorpay | stripe`
+- `planLabel` — display string, e.g. `"Creators Pro"`
+- `price` — display string, e.g. `"₹999"` (server is source of truth for the real amount)
+
+**`amount`** on `/create-order` is in **paise** (₹799 → `79900`) for the Razorpay order.
+
+**`/subscribe`** is called after a successful gateway charge:
+- **Razorpay:** sent from the in-browser `handler` with `paymentId` / `orderId` /
+  `signature` — backend **must verify the signature** before granting premium.
+- **Stripe:** the live flow redirects to `checkoutUrl`; confirmation happens via the
+  Stripe **webhook**, after which the user returns premium. (`/subscribe` is the
+  mock/Razorpay path.)
+
+**`/cancel`** ends the active membership and returns the user with `isPremium: false`
+and `membership: null`.
+
+### Shapes
+
+`Membership` = `{ plan, billing, gateway, planLabel, price, status, startedAt, renewsAt, stats }`
+- `status` ∈ `active | canceled | expired`
+- `startedAt`, `renewsAt` — ISO‑8601 timestamps
+- `stats` = `{ read, saved, shared }` — counts shown on the Active view
+  (premium ideas read / saved / shared)
+
+> **User shape gain:** all four endpoints return `{ user }` where `User` now also
+> carries `isPremium: boolean` and `membership: Membership | null`. The frontend
+> persists this via `login(user, token)` — `isPremium` flips the Membership page to
+> the Active status view and unlocks premium content (§3 `/ideas/premium`).
+
+**Gaps for the backend to close:**
+1. Implement the four endpoints above; verify the Razorpay signature server-side.
+2. Add a Stripe webhook to confirm async payments and set `isPremium`/`membership`.
+3. Add `isPremium` + `membership` to the `User` returned by **all** auth/user
+   endpoints (§1, §2 `/me`), not just payment — so a returning user's premium state
+   is correct on login/refresh, not only right after purchase.
+4. Populate `membership.stats` from real engagement data (currently mock placeholders).
+
+---
+
 

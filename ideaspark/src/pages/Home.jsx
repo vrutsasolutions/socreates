@@ -60,11 +60,10 @@ export default function Home() {
         <div className="flex items-center gap-5 relative z-10">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 text-white hover:opacity-80 active:scale-90 transition-all"
+            aria-label="Open menu"
+            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
           >
-            <span className="w-5 h-0.5 bg-white rounded-full" />
-            <span className="w-4 h-0.5 bg-white rounded-full self-start ml-[2px]" />
-            <span className="w-5 h-0.5 bg-white rounded-full" />
+            <Icon name="menu" className="w-6 h-6" />
           </button>
 
           <div className="flex items-center gap-2 flex-1">

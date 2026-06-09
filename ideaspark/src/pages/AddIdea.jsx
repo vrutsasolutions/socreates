@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav.premium';
 import api from '../api/axiosInstance';
+import { useAuth } from '../context/AuthContext';
+import { hasCreatorPro } from '../api/paymentApi';
 import { AIAssistantBar } from '../components/common/AIInteractions.premium';
 
 const CATEGORIES = [
@@ -14,6 +16,8 @@ const STEPS = ['Details', 'Media', 'Publish'];
 export default function AddIdea() {
   const navigate = useNavigate();
   const fileRef = useRef();
+  const { user } = useAuth();
+  const creatorPro = hasCreatorPro(user);
 
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
@@ -72,8 +76,11 @@ export default function AddIdea() {
       setCheckResult('ok');
       setPublishing(true);
 
+      // Non-Pro creators can never publish premium content.
+      const payload = { ...form, isPremium: creatorPro ? form.isPremium : false };
+
       const fd = new FormData();
-      fd.append('idea', new Blob([JSON.stringify(form)], { type: 'application/json' }));
+      fd.append('idea', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
       if (image) fd.append('image', image);
 
       await api.post('/ideas', fd);
@@ -199,27 +206,54 @@ export default function AddIdea() {
               <input ref={fileRef} type="file" hidden onChange={handleImage} />
             </div>
 
-            <div className="border border-[#BBDEFB] rounded-2xl p-4 bg-[#F4F7FF] flex justify-between items-center">
-              <div>
-                <p className="font-semibold text-sm text-[#0D2137]">Premium Content</p>
-                <p className="text-xs text-[#90A4AE]">Paid users only</p>
-              </div>
+            {creatorPro ? (
+              /* Creator Pro — premium publishing allowed */
+              <div className="border border-[#BBDEFB] rounded-2xl p-4 bg-[#F4F7FF] flex justify-between items-center">
+                <div>
+                  <p className="font-semibold text-sm text-[#0D2137]">Premium Content</p>
+                  <p className="text-xs text-[#90A4AE]">Paid users only</p>
+                </div>
 
-              <button
-                onClick={() =>
-                  setForm({ ...form, isPremium: !form.isPremium })
-                }
-                className={`w-12 h-6 rounded-full transition ${
-                  form.isPremium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 bg-white rounded-full ml-1 transition-transform ${
-                    form.isPremium ? 'translate-x-6' : ''
+                <button
+                  onClick={() =>
+                    setForm({ ...form, isPremium: !form.isPremium })
+                  }
+                  className={`w-12 h-6 rounded-full transition ${
+                    form.isPremium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'
                   }`}
-                />
-              </button>
-            </div>
+                >
+                  <div
+                    className={`w-4 h-4 bg-white rounded-full ml-1 transition-transform ${
+                      form.isPremium ? 'translate-x-6' : ''
+                    }`}
+                  />
+                </button>
+              </div>
+            ) : (
+              /* Free creator — premium publishing locked behind Creator Pro */
+              <div className="space-y-5">
+                <div className="border border-[#E2E6F0] rounded-2xl p-4 bg-white">
+                  <p className="font-bold text-[#0D2137]">Premium Content</p>
+                  <p className="text-xs text-[#90A4AE] mt-1">
+                    Premium publishing requires Creator Pro.
+                  </p>
+
+                  <div className="flex justify-between items-center mt-5">
+                    <p className="font-bold text-sm text-[#0D2137]">Premium Toggle</p>
+                    <span className="bg-[#E2E6F0] text-[#546E7A] text-xs font-bold px-3 py-1.5 rounded-full select-none">
+                      OFF
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate('/creator-pro')}
+                  className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all"
+                >
+                  Upgrade to Creator Pro
+                </button>
+              </div>
+            )}
 
           </div>
         )}
