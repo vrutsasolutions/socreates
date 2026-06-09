@@ -95,15 +95,17 @@
       <artifactId>spring-boot-starter-websocket</artifactId>
     </dependency>
 
-  </dependencies>
-
-  <!-- Cloudflare R2 -->
+    <!-- Cloudflare R2 -->
 
   <dependency>
-  <groupId>software.amazon.awssdk</groupId>
-  <artifactId>s3</artifactId>
-  <version>2.25.60</version>
+     <groupId>software.amazon.awssdk</groupId>
+     <artifactId>s3</artifactId>
+     <version>2.25.60</version>
   </dependency>
+
+  </dependencies>
+
+  
 
   <build>
     <plugins>

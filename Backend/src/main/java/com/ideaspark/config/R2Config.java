@@ -12,19 +12,32 @@ import java.net.URI;
 
 @Configuration
 public class R2Config{
-    @Value("${Cloudflare.r2.account-id}")
+    @Value("${cloudflare.r2.account-id}")
     private String accountId;
 
-    @Value("${Cloudflare.r2.access-key}")
+    @Value("${cloudflare.r2.access-key}")
     private String accessKey;
 
-    @Value("${Cloudflare.r2.secret-key}")
+    @Value("${cloudflare.r2.secret-key}")
     private String secretKey;
 
-    
-
-
-
-public class R2Config {
-    
+    @Bean
+    public S3Client s3Client(){
+        return S3Client.builder()
+        .endpointOverride(
+            URI.create("https://" + accountId + ".r2.cloudflarestorage.com")
+        )
+        .credentialsProvider(
+            StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(accessKey, secretKey)
+            )
+        )
+        .region(Region.US_EAST_1)
+        .build();
+    }
 }
+
+    
+
+
+
