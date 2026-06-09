@@ -97,6 +97,14 @@
 
   </dependencies>
 
+  <!-- Cloudflare R2 -->
+
+  <dependency>
+  <groupId>software.amazon.awssdk</groupId>
+  <artifactId>s3</artifactId>
+  <version>2.25.60</version>
+  </dependency>
+
   <build>
     <plugins>
       <!-- Register Lombok as an explicit annotation processor.
