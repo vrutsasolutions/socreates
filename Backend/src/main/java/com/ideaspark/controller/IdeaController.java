@@ -2,9 +2,9 @@ package com.ideaspark.controller;
 
 import com.ideaspark.dto.*;
 import com.ideaspark.service.IdeaService;
-import com.ideaspark.service.LocalFileStorageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import com.ideaspark.service.CloudflareImageService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ public class IdeaController {
 
     private final IdeaService ideaService;
     private final ObjectMapper objectMapper;
-    private final LocalFileStorageService fileStorageService;
+    private final CloudflareImageService cloudflareImageService;
 
     private ResponseEntity<ApiResponse> unauthenticated() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -89,7 +89,7 @@ public class IdeaController {
         String imageUrl = null;
 
         if (image != null && !image.isEmpty()) {
-            imageUrl = fileStorageService.upload(image);
+            imageUrl = cloudflareImageService.upload(image);
         }
 
         return ResponseEntity.ok(

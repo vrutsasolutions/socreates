@@ -20,6 +20,7 @@ public class IdeaService {
     private final NotificationService notificationService;
     private final IdeaLikeRepository ideaLikeRepository;
     private final CommentRepository commentRepository;
+    private final CloudflareImageService cloudflareImageService;
 
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
         List<Idea> ideas = switch (sort != null ? sort : "latest") {
@@ -73,6 +74,11 @@ public class IdeaService {
 
         if (!idea.getCreator().getEmail().equals(userEmail)) {
             throw new RuntimeException("Not authorized to delete this idea");
+        }
+
+        if(idea.getImageUrl()!=null && !idea.getImageUrl().isBlank()){
+            System.out.println("Image URL in DB = " + idea.getImageUrl());
+            cloudflareImageService.deleteImage(idea.getImageUrl());
         }
 
         ideaRepository.delete(idea);
