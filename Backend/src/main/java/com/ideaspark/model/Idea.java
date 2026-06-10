@@ -2,7 +2,10 @@ package com.ideaspark.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -25,6 +28,15 @@ public class Idea {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "idea_images",
+            joinColumns = @JoinColumn(name = "idea_id")
+    )
+    @Column(name = "image_url")
+    @Builder.Default
+    private List<String> imageUrls = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id")

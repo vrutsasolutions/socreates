@@ -47,7 +47,11 @@ public class IdeaService {
     }
 
     @Transactional
-    public IdeaDTO createIdea(CreateIdeaRequest req, String imageUrl, String creatorEmail) {
+    public IdeaDTO createIdea(
+            CreateIdeaRequest req,
+            String imageUrl,
+            List<String> imageUrls,
+            String creatorEmail) {
 
         User creator = userRepository.findByEmail(creatorEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -56,6 +60,7 @@ public class IdeaService {
                 .title(req.getTitle())
                 .description(req.getDescription())
                 .imageUrl(imageUrl)
+                .imageUrls(imageUrls != null ? imageUrls : new ArrayList<>())
                 .creator(creator)
                 .category(req.getCategory())
                 .isPremium(req.isPremium())
@@ -76,8 +81,11 @@ public class IdeaService {
             throw new RuntimeException("Not authorized to delete this idea");
         }
 
-        if(idea.getImageUrl()!=null && !idea.getImageUrl().isBlank()){
-            System.out.println("Image URL in DB = " + idea.getImageUrl());
+        if (idea.getImageUrls() != null && !idea.getImageUrls().isEmpty()) {
+            for (String url : idea.getImageUrls()) {
+                cloudflareImageService.deleteImage(url);
+            }
+        } else if (idea.getImageUrl() != null && !idea.getImageUrl().isBlank()) {
             cloudflareImageService.deleteImage(idea.getImageUrl());
         }
 
@@ -311,6 +319,7 @@ public class IdeaService {
         dto.setTitle(idea.getTitle());
         dto.setDescription(idea.getDescription());
         dto.setImageUrl(idea.getImageUrl());
+        dto.setImageUrls(idea.getImageUrls());
         dto.setCategory(idea.getCategory());
         dto.setPremium(idea.isPremium());
         dto.setLikeCount(idea.getLikeCount());

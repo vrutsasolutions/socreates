@@ -2,6 +2,7 @@ package com.ideaspark.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -9,7 +10,10 @@ public class IdeaDTO {
     private UUID id;
     private String title;
     private String description;
-    private String imageUrl;
+
+    private String imageUrl;          
+    private List<String> imageUrls;   
+
     private UUID creatorId;
     private String creatorName;
     private String creatorImage;
@@ -20,5 +24,4 @@ public class IdeaDTO {
     private boolean likedByCurrentUser;
     private LocalDateTime createdAt;
     private long commentCount;
-    
 }

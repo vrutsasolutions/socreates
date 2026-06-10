@@ -1,10 +1,10 @@
 package com.ideaspark.controller;
 
-import com.ideaspark.dto.*;
-import com.ideaspark.service.IdeaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import com.ideaspark.dto.*;
 import com.ideaspark.service.CloudflareImageService;
+import com.ideaspark.service.IdeaService;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -75,7 +76,7 @@ public class IdeaController {
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<?> create(
             @RequestPart("idea") String ideaJson,
-            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @AuthenticationPrincipal UserDetails user) throws Exception {
 
         if (user == null) {
@@ -86,14 +87,20 @@ public class IdeaController {
 
         CreateIdeaRequest req = objectMapper.readValue(ideaJson, CreateIdeaRequest.class);
 
-        String imageUrl = null;
+        List<String> imageUrls = new ArrayList<>();
 
-        if (image != null && !image.isEmpty()) {
-            imageUrl = cloudflareImageService.upload(image);
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile img : images) {
+                if (img != null && !img.isEmpty()) {
+                    imageUrls.add(cloudflareImageService.upload(img));
+                }
+            }
         }
 
+        String firstImageUrl = imageUrls.isEmpty() ? null : imageUrls.get(0);
+
         return ResponseEntity.ok(
-                ideaService.createIdea(req, imageUrl, user.getUsername())
+                ideaService.createIdea(req, firstImageUrl, imageUrls, user.getUsername())
         );
     }
 
@@ -161,51 +168,51 @@ public class IdeaController {
         ideaService.unlikeIdea(id, user.getUsername());
         return ResponseEntity.ok(new ApiResponse(true, "Unliked"));
     }
-    
+
     @PostMapping("/{id}/comments")
-public ResponseEntity<?> addComment(
-        @PathVariable UUID id,
-        @RequestBody CreateCommentRequest request,
-        @AuthenticationPrincipal UserDetails user) {
+    public ResponseEntity<?> addComment(
+            @PathVariable UUID id,
+            @RequestBody CreateCommentRequest request,
+            @AuthenticationPrincipal UserDetails user) {
 
-    if (user == null) {
-        return unauthenticated();
+        if (user == null) {
+            return unauthenticated();
+        }
+
+        CommentDTO comment = ideaService.addComment(
+                id,
+                request,
+                user.getUsername()
+        );
+
+        return ResponseEntity.ok(comment);
     }
 
-    CommentDTO comment = ideaService.addComment(
-            id,
-            request,
-            user.getUsername()
-    );
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<List<CommentDTO>> getComments(
+            @PathVariable UUID id) {
 
-    return ResponseEntity.ok(comment);
-}
-
-@GetMapping("/{id}/comments")
-public ResponseEntity<List<CommentDTO>> getComments(
-        @PathVariable UUID id) {
-
-    return ResponseEntity.ok(
-            ideaService.getComments(id)
-    );
-}
-
-@DeleteMapping("/comments/{commentId}")
-public ResponseEntity<ApiResponse> deleteComment(
-        @PathVariable UUID commentId,
-        @AuthenticationPrincipal UserDetails user) {
-
-    if (user == null) {
-        return unauthenticated();
+        return ResponseEntity.ok(
+                ideaService.getComments(id)
+        );
     }
 
-    ideaService.deleteComment(
-            commentId,
-            user.getUsername()
-    );
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<ApiResponse> deleteComment(
+            @PathVariable UUID commentId,
+            @AuthenticationPrincipal UserDetails user) {
 
-    return ResponseEntity.ok(
-            new ApiResponse(true, "Comment deleted")
-    );
-}
+        if (user == null) {
+            return unauthenticated();
+        }
+
+        ideaService.deleteComment(
+                commentId,
+                user.getUsername()
+        );
+
+        return ResponseEntity.ok(
+                new ApiResponse(true, "Comment deleted")
+        );
+    }
 }
