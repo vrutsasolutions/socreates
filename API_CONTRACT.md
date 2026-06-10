@@ -54,15 +54,28 @@ Onboarding order: **Register → /verify-otp → /select-interests → /follow-c
 | GET | `/mine` | — | `Idea[]` |
 | GET | `/saved` | — | `Idea[]` |
 | GET | `/{id}` | — | `Idea` |
-| POST | `/` | multipart: `idea` (JSON blob) + optional `image` (file) | `Idea` |
+| POST | `/` | multipart: `idea` (JSON blob) + optional `images` (1–5 files, repeated part) | `Idea` |
 | DELETE | `/{id}` | — | 204 |
 | POST/DELETE | `/{id}/save` | — | 204 |
 | POST/DELETE | `/{id}/like` | — | 204 |
+| POST | `/{id}/comments` | `{ content }` | `Comment` |
+| GET | `/{id}/comments` | — | `Comment[]` |
+| DELETE | `/comments/{commentId}` | — | 204 |
 
 `Idea` = `{ id, title, description, category, isPremium, likeCount,
-creatorName, createdAt, imageUrl, savedByCurrentUser }`
+creatorName, createdAt, imageUrl, imageUrls, savedByCurrentUser }`
+
+`Comment` = `{ id, content, userId, userName, userImage, createdAt }`
 
 > Note: `imageUrl` is the Cloudflare delivery URL once image storage is live (§6).
+>
+> **Multi-image (⏳ pending backend):** the create form now sends every selected
+> file as a repeated `images` part (max 5). During the transition the frontend
+> *also* sends the first file as a single `image` part, so the current
+> single-image backend keeps working unchanged. When ready, the backend should
+> accept `MultipartFile[] images`, store all URLs, and return them as
+> `imageUrls` (a `string[]`); `imageUrl` should remain set to the cover
+> (`imageUrls[0]`) for backward compatibility with existing cards/detail views.
 
 ---
 

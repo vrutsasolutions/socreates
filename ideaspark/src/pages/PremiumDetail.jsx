@@ -2,8 +2,21 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
+import { fetchComments, addComment, deleteComment } from '../api/ideaApi';
 import { NotFoundError } from '../components/common/ErrorStates.premium';
+import ImageGallery, { ideaImages } from '../components/common/ImageGallery';
 import Icon from '../components/common/Icon';
+
+/* ── Helpers (mirrors IdeaDetail) ───────────────────────────── */
+function formatDate(dateString) {
+  if (!dateString) return '';
+  const diff = Math.floor((new Date() - new Date(dateString)) / 1000);
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+const initials = (name = '?') => name.trim().charAt(0).toUpperCase() || '?';
 
 const MOCK = {
   id: 'p1',
@@ -20,13 +33,56 @@ export default function PremiumDetail() {
   const { user } = useAuth();
   const [idea, setIdea]       = useState(null);
   const [loading, setLoading] = useState(true);
+  const [comments, setComments] = useState([]);
+  const [text, setText]         = useState('');
+  const [posting, setPosting]   = useState(false);
+  const [postErr, setPostErr]   = useState('');
 
   useEffect(() => {
     api.get(`/ideas/${id}`)
       .then(({ data }) => setIdea(data))
       .catch(() => setIdea(MOCK))
       .finally(() => setLoading(false));
+    fetchComments(id)
+      .then(({ data }) => setComments(data || []))
+      .catch(() => setComments([]));
   }, [id]);
+
+  const isMine = (c) =>
+    (c.userId && user?.id && c.userId === user.id) ||
+    (c.userName && c.userName === (user?.username || user?.name));
+
+  const handlePost = async (e) => {
+    e.preventDefault();
+    const content = text.trim();
+    if (!content || posting) return;
+    setPosting(true);
+    setPostErr('');
+    try {
+      const { data } = await addComment(id, content);
+      setComments((prev) => [data, ...prev]);
+      setText('');
+    } catch (err) {
+      const status = err?.response?.status;
+      setPostErr(
+        status === 401 || status === 403
+          ? 'Your session expired — please log in again to comment.'
+          : err?.response?.data?.message || 'Could not post your comment. Please try again.'
+      );
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    const prev = comments;
+    setComments((c) => c.filter((x) => x.id !== commentId));
+    try {
+      await deleteComment(commentId);
+    } catch (_) {
+      setComments(prev); // revert on failure
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-[#F4F7FF] flex items-center justify-center">
@@ -127,9 +183,61 @@ export default function PremiumDetail() {
                 </button>
               </div>
 
+              <ImageGallery images={ideaImages(idea)} title={idea?.title} />
+
               <p className="text-[#0D2137] text-[15px] leading-relaxed whitespace-pre-line">
                 {idea?.description}
               </p>
+
+              {/* ── Comments ─────────────────────────────────── */}
+              <div className="mt-7 pt-6 border-t border-[#BBDEFB]">
+                <h3 className="text-[#0D2137] font-bold text-base mb-3">
+                  Comments {comments.length > 0 && <span className="text-[#90A4AE] font-medium">({comments.length})</span>}
+                </h3>
+
+                {/* composer */}
+                <form onSubmit={handlePost} className="flex items-center gap-2 mb-5">
+                  <input
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Add a comment…"
+                    maxLength={500}
+                    className="flex-1 bg-[#F4F7FF] border border-[#E3E8F4] rounded-2xl px-4 py-2.5 text-sm text-[#0D2137] placeholder-[#90A4AE] focus:outline-none focus:border-[#1565C0]"
+                  />
+                  <button type="submit" disabled={!text.trim() || posting}
+                    className="bg-[#1565C0] disabled:opacity-40 text-white font-semibold text-sm px-4 py-2.5 rounded-2xl active:scale-95 transition-all">
+                    {posting ? '…' : 'Post'}
+                  </button>
+                </form>
+                {postErr && <p className="text-[#E53935] text-xs -mt-3 mb-4">{postErr}</p>}
+
+                {comments.length === 0 ? (
+                  <p className="text-[#90A4AE] text-sm py-4 text-center">No comments yet — be the first to share your thoughts.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {comments.map((c) => (
+                      <li key={c.id} className="flex gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-[#EEF0FF] text-[#1A28A0] font-bold flex items-center justify-center text-xs shrink-0">
+                          {initials(c.userName)}
+                        </div>
+                        <div className="flex-1 min-w-0 bg-[#F7F9FF] border border-[#ECEFF6] rounded-2xl px-3.5 py-2.5">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[#0D2137] font-semibold text-[13px] truncate">{c.userName || 'User'}</span>
+                            <span className="text-[#B0BEC5] text-[11px]">{formatDate(c.createdAt)}</span>
+                            {isMine(c) && (
+                              <button onClick={() => handleDeleteComment(c.id)}
+                                className="ml-auto text-[#E53935] text-[11px] font-medium hover:underline active:scale-95">
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[#37474F] text-sm break-words">{c.content}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </>
           )}
 

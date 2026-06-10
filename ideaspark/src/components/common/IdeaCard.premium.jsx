@@ -16,6 +16,7 @@ import { useNavigate }      from 'react-router-dom';
 import api                  from '../../api/axiosInstance';
 import { AIBadge } from './AIInteractions.premium';
 import SharePostSheet from './SharePostSheet';
+import { ideaImages } from './ImageGallery';
 
 /* ── Helpers ─────────────────────────────────────────────── */
 function formatDate(dateString) {
@@ -103,6 +104,7 @@ export default function IdeaCard({ idea, onSaveToggle }) {
 
   const catColor  = CATEGORY_COLORS[idea.category] || defaultColor;
   const avPalette = avatarPalette(idea.creatorName);
+  const images    = ideaImages(idea);
 
   /* ── handlers ── */
   const handleSave = async (e) => {
@@ -167,9 +169,10 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         overflow: 'hidden',
         flexShrink: 0,
       }}>
-        {idea.imageUrl && !imgErr ? (
+        {images.length > 0 && !imgErr ? (
+          <>
           <img
-            src={idea.imageUrl}
+            src={images[0]}
             alt={idea.title}
             onError={() => setImgErr(true)}
             style={{
@@ -178,6 +181,22 @@ export default function IdeaCard({ idea, onSaveToggle }) {
             }}
             className="sc-card-img"
           />
+          {images.length > 1 && (
+            <span style={{
+              position: 'absolute', bottom: 8, right: 8,
+              background: 'rgba(0,0,0,0.55)', color: '#fff',
+              fontSize: 10, fontWeight: 600, padding: '2px 7px',
+              borderRadius: 999, display: 'flex', alignItems: 'center', gap: 4,
+              pointerEvents: 'none',
+            }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 15l5-5 4 4 3-3 6 6" />
+              </svg>
+              {images.length}
+            </span>
+          )}
+          </>
         ) : (
           /* Premium Placeholder — subtle gradient bg + icon tile */
           <div style={{

@@ -30,6 +30,8 @@ import CreatorDashboard from '../pages/CreatorDashboard';
 import CreatorPro       from '../pages/CreatorPro';
 import Search          from '../pages/Search';
 import Profile         from '../pages/Profile';
+import IdeaDetail      from '../pages/IdeaDetail';
+import PremiumDetail    from '../pages/PremiumDetail';
 import EditProfile     from '../pages/EditProfile';
 import SavedIdeas      from '../pages/SavedIdeas';
 import Settings        from '../pages/Settings';
@@ -83,6 +85,8 @@ export default function AppRouter() {
         <Route path="/profile"          element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/edit-profile"     element={<PrivateRoute><EditProfile /></PrivateRoute>} />
         <Route path="/saved-ideas"      element={<PrivateRoute><SavedIdeas /></PrivateRoute>} />
+        <Route path="/ideas/:id"        element={<PrivateRoute><IdeaDetail /></PrivateRoute>} />
+        <Route path="/premium/:id"      element={<PrivateRoute><PremiumDetail /></PrivateRoute>} />
         <Route path="/settings"         element={<PrivateRoute><Settings /></PrivateRoute>} />
 
         {/* Catch-all */}
