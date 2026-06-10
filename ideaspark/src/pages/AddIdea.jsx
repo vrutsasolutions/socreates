@@ -27,8 +27,9 @@ export default function AddIdea() {
     isPremium: false
   });
 
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const MAX_IMAGES = 5;
+  const [images, setImages] = useState([]);     // File[]
+  const [previews, setPreviews] = useState([]); // object-URL string[] (index-aligned with images)
 
   const [checking, setChecking] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -42,10 +43,22 @@ export default function AddIdea() {
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleImage = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImage(file);
-    setPreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setImages((prev) => [...prev, ...files].slice(0, MAX_IMAGES));
+    setPreviews((prev) => {
+      const room = MAX_IMAGES - prev.length;
+      return [...prev, ...files.slice(0, room).map((f) => URL.createObjectURL(f))];
+    });
+    e.target.value = ''; // let the user re-pick the same file
+  };
+
+  const removeImage = (idx) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+    setPreviews((prev) => {
+      URL.revokeObjectURL(prev[idx]);
+      return prev.filter((_, i) => i !== idx);
+    });
   };
 
   const nextStep = () => {
@@ -81,7 +94,11 @@ export default function AddIdea() {
 
       const fd = new FormData();
       fd.append('idea', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      if (image) fd.append('image', image);
+      // Backwards-compatible: current backend stores a single cover via `image`.
+      // Also send every file as repeated `images` parts for the multi-image
+      // contract (API_CONTRACT §3) once Vishakha implements it.
+      if (images[0]) fd.append('image', images[0]);
+      images.forEach((img) => fd.append('images', img));
 
       await api.post('/ideas', fd);
 
@@ -187,23 +204,53 @@ export default function AddIdea() {
           <div className="space-y-4">
 
             <div>
-              <label className="text-xs font-bold text-[#0D2137]">Cover Image</label>
+              <label className="text-xs font-bold text-[#0D2137]">
+                Images <span className="text-[#90A4AE] font-normal">(up to {MAX_IMAGES})</span>
+              </label>
 
-              {preview ? (
-                <img
-                  src={preview}
-                  className="w-full h-44 object-cover rounded-2xl mt-2"
-                />
-              ) : (
+              {previews.length === 0 ? (
                 <div
                   onClick={() => fileRef.current.click()}
-                  className="h-44 border-dashed border-2 border-[#BBDEFB] rounded-2xl flex items-center justify-center bg-[#F4F7FF] text-[#90A4AE]"
+                  className="h-44 border-dashed border-2 border-[#BBDEFB] rounded-2xl flex items-center justify-center bg-[#F4F7FF] text-[#90A4AE] mt-2 cursor-pointer"
                 >
-                  Upload Image
+                  Upload Images
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {previews.map((src, i) => (
+                    <div key={src} className="relative aspect-square rounded-xl overflow-hidden border border-[#BBDEFB]">
+                      <img src={src} className="w-full h-full object-cover" />
+                      {i === 0 && (
+                        <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">
+                          Cover
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        aria-label="Remove image"
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/55 text-white rounded-full flex items-center justify-center text-xs leading-none active:scale-90"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {previews.length < MAX_IMAGES && (
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current.click()}
+                      className="aspect-square rounded-xl border-dashed border-2 border-[#BBDEFB] bg-[#F4F7FF] text-[#90A4AE] flex flex-col items-center justify-center text-xs active:scale-95"
+                    >
+                      <span className="text-xl leading-none">+</span>
+                      Add
+                    </button>
+                  )}
                 </div>
               )}
 
-              <input ref={fileRef} type="file" hidden onChange={handleImage} />
+              <p className="text-[11px] text-[#90A4AE] mt-2">The first image is used as the cover.</p>
+
+              <input ref={fileRef} type="file" hidden multiple accept="image/*" onChange={handleImage} />
             </div>
 
             {creatorPro ? (
@@ -262,8 +309,15 @@ export default function AddIdea() {
           <div className="space-y-4">
 
             <div className="border rounded-2xl overflow-hidden border-[#BBDEFB] bg-white">
-              {preview && (
-                <img src={preview} className="h-40 w-full object-cover" />
+              {previews[0] && (
+                <div className="relative">
+                  <img src={previews[0]} className="h-40 w-full object-cover" />
+                  {previews.length > 1 && (
+                    <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
+                      +{previews.length - 1} more
+                    </span>
+                  )}
+                </div>
               )}
 
               <div className="p-4">

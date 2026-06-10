@@ -46,3 +46,18 @@ export const saveIdea    = (id) => USE_MOCK.ideas ? mockResponse({}) : api.post(
 export const unsaveIdea  = (id) => USE_MOCK.ideas ? mockResponse({}) : api.delete(`/ideas/${id}/save`);
 export const likeIdea    = (id) => USE_MOCK.ideas ? mockResponse({}) : api.post(`/ideas/${id}/like`);
 export const unlikeIdea  = (id) => USE_MOCK.ideas ? mockResponse({}) : api.delete(`/ideas/${id}/like`);
+
+// ── Comments (Backend: ✅ ready — IdeaController) ──────────────────────────
+// GET /api/ideas/{id}/comments → CommentDTO[] { id, content, userId, userName, userImage, createdAt }
+export const fetchComments = (id) =>
+  USE_MOCK.ideas ? mockResponse([]) : api.get(`/ideas/${id}/comments`);
+
+// POST /api/ideas/{id}/comments  body: { content } → created CommentDTO
+export const addComment = (id, content) =>
+  USE_MOCK.ideas
+    ? mockResponse({ id: 'c-' + Date.now(), content, userName: 'You', createdAt: new Date().toISOString() })
+    : api.post(`/ideas/${id}/comments`, { content });
+
+// DELETE /api/ideas/comments/{commentId}
+export const deleteComment = (commentId) =>
+  USE_MOCK.ideas ? mockResponse({}) : api.delete(`/ideas/comments/${commentId}`);
