@@ -60,24 +60,28 @@ export default function CreatorDashboard() {
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-12">
 
-      {/* Header — matches Home / Membership */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-4 relative shadow-lg border-b border-white/10">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
-          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
-        </div>
-        <div className="flex items-center gap-3 relative z-10">
-          <button onClick={() => navigate(-1)}
-            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-            </svg>
-          </button>
-          <h1 className="text-white font-bold text-lg flex-1">Creator Dashboard</h1>
-        </div>
-      </header>
+    {/* HEADER — matches Home exactly */}
+<header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
 
-      <div className="px-4 pt-5 space-y-7">
+  {/* decorative circles */}
+  <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+    <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+  </div>
+
+  {/* title row */}
+  <div className="relative z-10">
+    <h1 className="text-[28px] font-bold text-white leading-none">
+      Creator Dashboard
+    </h1>
+    <p className="text-white/70 text-sm mt-1">
+      Insights, verification and creator performance
+    </p>
+  </div>
+</header>
+
+      <div className="bg-[#1565C0]">
+  <div className="bg-white rounded-t-[32px] px-4 pt-6 pb-12 space-y-7">
 
         {loading ? (
           <DashboardSkeleton />
@@ -86,18 +90,18 @@ export default function CreatorDashboard() {
             {/* ── Section 1 — Creator Status ───────────────────── */}
             <Section title="Creator Status">
               {d.status.creatorPro && d.status.verified && d.status.premiumPublishing ? (
-                <div className="bg-white rounded-2xl border border-[#E2E6F0] p-4 space-y-3 shadow-sm">
+                <div className="bg-white rounded-3xl border border-[#E3F2FD] p-4 space-y-3 shadow-sm">
                   <StatusRow ok label="Creator Pro"        value="Active"   />
                   <StatusRow ok label="Verified Pro"       value="Verified" />
                   <StatusRow ok label="Premium Publishing" value="Enabled"  />
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl border border-[#FCA5A5] p-4 space-y-3 shadow-sm">
+                <div className="bg-white rounded-3xl border border-[#FCA5A5] p-4 space-y-3 shadow-sm">
                   {!d.status.verified && <StatusRow label="Not Verified"        value="Inactive" />}
                   {!d.status.premiumPublishing && <StatusRow label="Premium Publishing" value="Disabled" />}
                   <button
                     onClick={() => navigate('/membership')}
-                    className="w-full bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold py-3 rounded-2xl active:scale-95 transition-all text-sm">
+                    className="w-full bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold py-3 rounded-3xl active:scale-95 transition-all text-sm">
                     Apply for Verification
                   </button>
                 </div>
@@ -116,10 +120,10 @@ export default function CreatorDashboard() {
 
             {/* ── Section 3 — Content Performance ──────────────── */}
             <Section title="Content Performance">
-              <div className="bg-white rounded-2xl border border-[#E2E6F0] shadow-sm overflow-hidden">
+              <div className="bg-white rounded-3xl border border-[#E3F2FD] shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-[#0D2137] border-b border-[#E2E6F0]">
+                    <tr className="bg-[#F8FAFF] text-[#0D2137] border-b border-[#E3F2FD]">
                       <th className="text-left  font-bold px-4 py-3">Idea</th>
                       <th className="text-right font-bold px-2 py-3">Reads</th>
                       <th className="text-right font-bold px-2 py-3">Saves</th>
@@ -153,7 +157,7 @@ export default function CreatorDashboard() {
 
             {/* ── Section 5 — Future Earnings ──────────────────── */}
             <Section title="Future Earnings">
-              <div className="bg-white rounded-2xl border border-[#E2E6F0] p-4 shadow-sm space-y-3">
+              <div className="bg-white rounded-3xl border border-[#E3F2FD] p-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-[#546E7A] text-sm">Estimated earnings</span>
                   <span className="text-[#0D2137] text-2xl font-bold">₹{fmt(d.earnings.estimated)}</span>
@@ -168,7 +172,7 @@ export default function CreatorDashboard() {
             {/* ── Section 6 — Verification center ──────────────── */}
             <Section title="Verification center">
               {d.verification === 'approved' && (
-                <div className="bg-white rounded-2xl border border-[#A7F3D0] p-4 shadow-sm space-y-3">
+                <div className="bg-white rounded-3xl border border-[#A7F3D0] p-4 shadow-sm space-y-3">
                   <PillRow value="Approved" tone="green" />
                   <StatusRow ok label="Identity verified" value="Done" />
                   <StatusRow ok label="Profile complete"  value="Done" />
@@ -176,7 +180,7 @@ export default function CreatorDashboard() {
                 </div>
               )}
               {d.verification === 'pending' && (
-                <div className="bg-white rounded-2xl border border-[#FCD34D] p-4 shadow-sm space-y-3">
+                <div className="bg-white rounded-3xl border border-[#FCD34D] p-4 shadow-sm space-y-3">
                   <PillRow value="Pending review" tone="amber" />
                   <StatusRow ok    label="Application submitted" value="Done" />
                   <StatusRow amber label="Under review by team"  value="In progress" />
@@ -184,11 +188,11 @@ export default function CreatorDashboard() {
                 </div>
               )}
               {d.verification === 'none' && (
-                <div className="bg-white rounded-2xl border border-[#E2E6F0] p-4 shadow-sm space-y-3">
+                <div className="bg-white rounded-3xl border border-[#E3F2FD] p-4 shadow-sm space-y-3">
                   <PillRow value="Not applied" tone="neutral" />
                   <button
                     onClick={() => navigate('/membership')}
-                    className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-3 rounded-2xl active:scale-95 transition-all text-sm">
+                    className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-3 rounded-3xl active:scale-95 transition-all text-sm">
                     Apply Now
                   </button>
                 </div>
@@ -198,7 +202,7 @@ export default function CreatorDashboard() {
             {/* ── Section 7 — Creator Pro ──────────────────────── */}
             <Section title="Creator Pro">
               {d.status.creatorPro ? (
-                <div className="bg-white rounded-2xl border border-[#A7F3D0] p-4 shadow-sm space-y-3">
+                <div className="bg-white rounded-3xl border border-[#A7F3D0] p-4 shadow-sm space-y-3">
                   <PillRow value="Active" tone="green" />
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-xl bg-[#F5F0FF] flex items-center justify-center shrink-0">
@@ -211,12 +215,12 @@ export default function CreatorDashboard() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl border border-[#FCA5A5] p-4 shadow-sm space-y-3">
+                <div className="bg-white rounded-3xl border border-[#FCA5A5] p-4 shadow-sm space-y-3">
                   <PillRow value="Inactive" tone="red" />
                   <div className="bg-[#FEF2F2] rounded-xl h-12" />
                   <button
                     onClick={() => navigate('/membership')}
-                    className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-3 rounded-2xl active:scale-95 transition-all text-sm">
+                    className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-3 rounded-3xl active:scale-95 transition-all text-sm">
                     Upgrade Now
                   </button>
                 </div>
@@ -226,6 +230,7 @@ export default function CreatorDashboard() {
         )}
       </div>
     </div>
+    </div>
   );
 }
 
@@ -233,7 +238,7 @@ export default function CreatorDashboard() {
 function Section({ title, children }) {
   return (
     <section className="space-y-2.5">
-      <h2 className="text-[#90A4AE] text-xs font-semibold uppercase tracking-wider px-1">{title}</h2>
+      <h2 className="text-[11px] font-bold tracking-wider text-[#90A4AE] uppercase px-1">{title}</h2>
       {children}
     </section>
   );
@@ -273,7 +278,7 @@ function PillRow({ value, tone }) {
 
 function StatCard({ label, value }) {
   return (
-    <div className="bg-white rounded-2xl border border-[#E2E6F0] p-4 shadow-sm">
+    <div className="bg-white rounded-3xl border border-[#E3F2FD] p-4 shadow-sm hover:shadow-md transition-shadow">
       <div className="text-[#90A4AE] text-xs mb-1">{label}</div>
       <div className="text-[#0D2137] text-2xl font-bold">{value}</div>
     </div>
@@ -282,9 +287,11 @@ function StatCard({ label, value }) {
 
 function MiniCard({ label, value, accent, tint, wide }) {
   const valColor = accent === 'purple' ? 'text-[#7C3AED]' : 'text-[#0D2137]';
-  const bg = tint ? 'bg-[#F5F0FF] border-[#E9D5FF]' : 'bg-white border-[#E2E6F0]';
+  const bg = tint
+  ? 'bg-[#F8F5FF] border-[#E9D5FF]'
+  : 'bg-white border-[#E3F2FD]';
   return (
-    <div className={`${bg} ${wide ? '' : ''} rounded-2xl border p-4 shadow-sm`}>
+    <div className={`${bg} ${wide ? '' : ''} rounded-3xl border p-4 shadow-sm`}>
       <div className="text-[#546E7A] text-sm mb-1">{label}</div>
       <div className={`${valColor} text-xl font-bold`}>{value}</div>
     </div>
@@ -297,7 +304,7 @@ function DashboardSkeleton() {
       {[0, 1, 2].map((i) => (
         <div key={i} className="space-y-2.5">
           <div className="sc-skeleton sc-skeleton-text w-32" />
-          <div className="sc-skeleton rounded-2xl h-28" />
+          <div className="sc-skeleton rounded-3xl h-28" />
         </div>
       ))}
     </div>
