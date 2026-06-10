@@ -32,7 +32,8 @@ export default function FollowCreators() {
     try {
       if (followed.length > 0) await api.post('/users/follow-bulk', { userIds: followed });
     } catch (_) {}
-    navigate('/home');
+    // Final onboarding step: optional profile verification (skippable from there).
+    navigate('/verify-profile?from=onboarding');
   };
 
   return (

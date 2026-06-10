@@ -85,7 +85,19 @@ export default function Profile() {
               {user?.name}
             </h2>
 
-            
+            {/* Verified creator badge */}
+            {user?.verified && (
+              <div className="mt-2 flex justify-center">
+                <span className="inline-flex items-center gap-1 bg-[#E7F8EE] text-[#15803D] text-xs font-bold px-3 py-1 rounded-full">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Verified Creator
+                </span>
+              </div>
+            )}
+
+
             <p className="text-blue-200 text-sm">
               @{user?.email?.split("@")[0]}
             </p>

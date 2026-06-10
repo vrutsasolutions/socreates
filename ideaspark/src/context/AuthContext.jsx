@@ -18,8 +18,18 @@ export const AuthProvider = ({ children }) => {
     setUser(null)
   }
 
+  // Merge a partial patch into the current user and persist it.
+  // Used for frontend-only state like profile verification.
+  const updateUser = (patch) => {
+    setUser((prev) => {
+      const next = { ...(prev || {}), ...patch }
+      localStorage.setItem('user', JSON.stringify(next))
+      return next
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

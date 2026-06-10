@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav.premium';
 import api from '../api/axiosInstance';
 import { useAuth } from '../context/AuthContext';
 import { hasCreatorPro } from '../api/paymentApi';
 import { AIAssistantBar } from '../components/common/AIInteractions.premium';
+import { saveIdeaDraft, takeIdeaDraft } from '../state/ideaDraft';
 
 const CATEGORIES = [
   'Technology','Design','Business','Science','Art','Health',
@@ -15,19 +16,48 @@ const STEPS = ['Details', 'Media', 'Publish'];
 
 export default function AddIdea() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const fileRef = useRef();
   const { user } = useAuth();
   const creatorPro = hasCreatorPro(user);
+  const verified = !!user?.verified;
 
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     title: '',
     description: '',
     category: '',
-    isPremium: false
+    isPremium: false,
+    price: '99'
   });
 
+  // Premium publishing is gated behind the /create-premium page (which decides
+  // verified vs not). Toggling ON hands off the in-progress draft and navigates
+  // there; toggling OFF just clears it inline.
+  const requestPremiumToggle = () => {
+    if (form.isPremium) { setForm((f) => ({ ...f, isPremium: false })); return; }
+    saveIdeaDraft({ form, images, previews });
+    navigate('/create-premium');
+  };
+
+  // Returning from the premium gate (?premium=1): restore the draft and, for a
+  // verified Creator Pro user, enable premium + apply the chosen price.
+  useEffect(() => {
+    if (params.get('premium') !== '1') return;
+    const d = takeIdeaDraft();
+    const p = params.get('price');
+    setForm((f) => ({
+      ...f,
+      ...(d?.form || {}),
+      ...(creatorPro && verified ? { isPremium: true, price: p || d?.form?.price || f.price } : {}),
+    }));
+    if (d) { setImages(d.images || []); setPreviews(d.previews || []); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const MAX_IMAGES = 5;
+  const TITLE_MAX = 200;
+  const DESC_MAX = 3000;
   const [images, setImages] = useState([]);     // File[]
   const [previews, setPreviews] = useState([]); // object-URL string[] (index-aligned with images)
 
@@ -39,8 +69,14 @@ export default function AddIdea() {
   const inputCls =
     "w-full bg-[#F4F7FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-[#0D2137] text-sm focus:outline-none focus:border-[#1565C0]";
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    const v =
+      name === 'title' ? value.slice(0, TITLE_MAX)
+      : name === 'description' ? value.slice(0, DESC_MAX)
+      : value;
+    setForm({ ...form, [name]: v });
+  };
 
   const handleImage = (e) => {
     const files = Array.from(e.target.files || []);
@@ -72,6 +108,12 @@ export default function AddIdea() {
   };
 
   const handlePublish = async () => {
+    // Safety net: premium requires Creator Pro + verified profile.
+    if (form.isPremium && creatorPro && !verified) {
+      navigate('/create-premium');
+      return;
+    }
+
     setChecking(true);
     setError('');
 
@@ -159,21 +201,33 @@ export default function AddIdea() {
             <AIAssistantBar onAsk={() => {}} />
 
             <div>
-              <label className="text-xs font-bold text-[#0D2137]">Idea Title</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#0D2137]">Idea Title</label>
+                <span className={`text-[11px] ${form.title.length >= TITLE_MAX ? 'text-[#E53935]' : 'text-[#90A4AE]'}`}>
+                  {form.title.length}/{TITLE_MAX}
+                </span>
+              </div>
               <input
                 name="title"
                 value={form.title}
                 onChange={handleChange}
+                maxLength={TITLE_MAX}
                 className={inputCls}
               />
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[#0D2137]">Description</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#0D2137]">Description</label>
+                <span className={`text-[11px] ${form.description.length >= DESC_MAX ? 'text-[#E53935]' : 'text-[#90A4AE]'}`}>
+                  {form.description.length}/{DESC_MAX}
+                </span>
+              </div>
               <textarea
                 name="description"
                 value={form.description}
                 onChange={handleChange}
+                maxLength={DESC_MAX}
                 rows={5}
                 className={inputCls}
               />
@@ -262,9 +316,7 @@ export default function AddIdea() {
                 </div>
 
                 <button
-                  onClick={() =>
-                    setForm({ ...form, isPremium: !form.isPremium })
-                  }
+                  onClick={requestPremiumToggle}
                   className={`w-12 h-6 rounded-full transition ${
                     form.isPremium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'
                   }`}

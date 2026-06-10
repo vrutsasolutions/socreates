@@ -32,6 +32,8 @@ import Search          from '../pages/Search';
 import Profile         from '../pages/Profile';
 import IdeaDetail      from '../pages/IdeaDetail';
 import PremiumDetail    from '../pages/PremiumDetail';
+import ProfileVerification from '../pages/ProfileVerification';
+import CreatePremiumIdea  from '../pages/CreatePremiumIdea';
 import EditProfile     from '../pages/EditProfile';
 import SavedIdeas      from '../pages/SavedIdeas';
 import Settings        from '../pages/Settings';
@@ -88,6 +90,8 @@ export default function AppRouter() {
         <Route path="/ideas/:id"        element={<PrivateRoute><IdeaDetail /></PrivateRoute>} />
         <Route path="/premium/:id"      element={<PrivateRoute><PremiumDetail /></PrivateRoute>} />
         <Route path="/settings"         element={<PrivateRoute><Settings /></PrivateRoute>} />
+        <Route path="/verify-profile"   element={<PrivateRoute><ProfileVerification /></PrivateRoute>} />
+        <Route path="/create-premium"   element={<PrivateRoute><CreatePremiumIdea /></PrivateRoute>} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
