@@ -60,7 +60,7 @@ export default function NotificationBell() {
     <div ref={wrapRef} className="relative">
       <button
         onClick={toggle}
-        className="w-9 h-9 flex items-center justify-center text-white relative"
+        className="w-9 h-9 flex items-center justify-center text-white relative hover:opacity-80 active:scale-90 transition-all"
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -76,52 +76,68 @@ export default function NotificationBell() {
 
       {open && createPortal(
         <>
-          {/* Scrim — dims page content so the panel reads as a clean floating layer; tap to close. */}
+          {/* Scrim */}
           <div className="fixed inset-0 z-[60] bg-black/20" onClick={() => setOpen(false)} aria-hidden />
           <div
             style={{ top: pos.top, right: pos.right }}
             className="fixed w-80 max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-xl
-                       ring-1 ring-black/5 z-[61] text-left">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#E3F2FD]">
-            <span className="font-bold text-[#0D2137]">Notifications</span>
-            {unreadCount > 0 && (
-              <button onClick={markAllAsRead}
-                      className="text-xs font-semibold text-[#1565C0] hover:text-[#0D47A1]">
-                Mark all read
-              </button>
-            )}
-          </div>
-
-          {/* Body */}
-          <div className="max-h-96 overflow-y-auto">
-            {loading ? (
-              <div className="px-4 py-8 text-center text-sm text-[#90A4AE]">Loading…</div>
-            ) : items.length === 0 ? (
-              <div className="px-4 py-10 text-center">
-                <div className="mb-2 flex justify-center text-[#BBDEFB]"><Icon name="bell" className="w-8 h-8" /></div>
-                <p className="text-sm text-[#546E7A]">You're all caught up</p>
-              </div>
-            ) : (
-              items.map((n) => (
+                       ring-1 ring-black/5 z-[61] text-left overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#E3F2FD]">
+              <span className="font-bold text-[15px] text-[#0D2137]" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em' }}>
+                Notifications
+              </span>
+              {unreadCount > 0 && (
                 <button
-                  key={n.id}
-                  onClick={() => handleItemClick(n)}
-                  className={`w-full flex gap-3 px-4 py-3 text-left transition-colors border-b border-[#F0F6FF]
-                              hover:bg-[#F0F6FF] ${n.read ? 'bg-white' : 'bg-[#F0F6FF]'}`}
+                  onClick={markAllAsRead}
+                  className="text-[12px] font-semibold text-[#1565C0] hover:text-[#0D47A1] transition-colors"
                 >
-                  <span className="mt-0.5 text-[#1565C0]"><Icon name={TYPE_ICON[n.type] ?? 'bell'} className="w-5 h-5" /></span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-semibold text-[#0D2137] truncate">{n.title}</span>
-                    <span className="block text-xs text-[#546E7A] line-clamp-2">{n.message}</span>
-                    <span className="block text-[11px] text-[#90A4AE] mt-0.5">{timeAgo(n.createdAt)}</span>
-                  </span>
-                  {!n.read && <span className="w-2 h-2 rounded-full bg-[#1565C0] mt-1.5 shrink-0" />}
+                  Mark all read
                 </button>
-              ))
-            )}
+              )}
+            </div>
+
+            {/* Body */}
+            <div className="max-h-96 overflow-y-auto">
+              {loading ? (
+                <div className="px-4 py-8 text-center text-[13px] text-[#90A4AE]">Loading…</div>
+              ) : items.length === 0 ? (
+                <div className="px-4 py-10 text-center">
+                  <div className="mb-3 flex justify-center text-[#BBDEFB]">
+                    <Icon name="bell" className="w-9 h-9" />
+                  </div>
+                  <p className="text-[14px] font-semibold text-[#0D2137]">You're all caught up</p>
+                  <p className="text-[12px] text-[#90A4AE] mt-1">No new notifications yet.</p>
+                </div>
+              ) : (
+                items.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => handleItemClick(n)}
+                    className={`w-full flex gap-3 px-4 py-3 text-left transition-colors border-b border-[#F0F6FF]
+                                hover:bg-[#F4F7FF] active:bg-[#EEF4FF] ${n.read ? 'bg-white' : 'bg-[#F4F7FF]'}`}
+                  >
+                    {/* Icon chip */}
+                    <span className="mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[#EEF4FF] text-[#1565C0]">
+                      <Icon name={TYPE_ICON[n.type] ?? 'bell'} className="w-4 h-4" />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[13px] font-semibold text-[#0D2137] truncate leading-snug">
+                        {n.title}
+                      </span>
+                      <span className="block text-[12px] text-[#546E7A] line-clamp-2 leading-relaxed mt-0.5">
+                        {n.message}
+                      </span>
+                      <span className="block text-[11px] text-[#90A4AE] mt-1">{timeAgo(n.createdAt)}</span>
+                    </span>
+                    {!n.read && (
+                      <span className="w-2 h-2 rounded-full bg-[#1565C0] mt-2 shrink-0" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
           </div>
-        </div>
         </>,
         document.body
       )}

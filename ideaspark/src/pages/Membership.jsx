@@ -206,7 +206,7 @@ export default function Membership() {
             const isPurple = plan.accent === 'purple';
             const ring     = isSel
               ? (isPurple ? 'border-[#7C3AED] shadow-lg shadow-purple-300/30' : 'border-[#1565C0] shadow-lg shadow-blue-300/30')
-              : 'border-[#E2E6F0] hover:border-[#BBDEFB]';
+              : 'border-[#E3F2FD] hover:border-[#BBDEFB]';
             const price    = plan[period];
             return (
               <div key={plan.id}
@@ -345,7 +345,8 @@ function ActiveMembership({ user, loading, error, onCancel, navigate }) {
       </header>
 
       {/* Body */}
-      <div className="px-4 -mt-8 relative z-10">
+      <div className="bg-[#1565C0]">
+  <div className="bg-white rounded-t-[32px] px-4 pt-6 pb-12">
         <div className="bg-white rounded-3xl shadow-md px-4 pt-5 pb-6 space-y-6">
 
           {/* Quick stats */}
@@ -392,6 +393,7 @@ function ActiveMembership({ user, loading, error, onCancel, navigate }) {
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

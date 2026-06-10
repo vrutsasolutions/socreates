@@ -217,12 +217,46 @@ export function ReportUserSheet({ convo, onClose, onSubmit }) {
 /* ════════════════════════════════════════════════════════════════════════
    Share & Attach  (bottom sheet — figma chat attachment menu)
    ════════════════════════════════════════════════════════════════════════ */
+const ATTACH_ICON = {
+  camera: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 4l1.5 2H20a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h4l1.5-2z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </svg>
+  ),
+  gallery: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="M21 15l-5-5L5 21" />
+    </svg>
+  ),
+  files: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M9 13h6M9 17h6" />
+    </svg>
+  ),
+  idea: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0012 2z" />
+    </svg>
+  ),
+  profile: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  ),
+};
+
 const ATTACH_ITEMS = [
-  { key: 'camera',  badge: 'CAM',  tint: '#FEE2E2', color: '#EF4444', title: 'Camera',           subtitle: 'Take a photo or video' },
-  { key: 'gallery', badge: 'IMG',  tint: '#E3F2FD', color: '#1565C0', title: 'Photos & Videos',  subtitle: 'Choose from gallery' },
-  { key: 'files',   badge: 'DOC',  tint: '#E6F4EA', color: '#2E7D32', title: 'Files',            subtitle: 'Send any file' },
-  { key: 'idea',    badge: 'IDEA', tint: '#FEF7E0', color: '#F59E0B', title: 'Share Idea',       subtitle: 'Share your startup idea' },
-  { key: 'profile', badge: 'USR',  tint: '#EAF2FF', color: '#3F51B5', title: 'Share Profile',    subtitle: 'Send your profile card' },
+  { key: 'camera',  tint: '#FEE2E2', color: '#EF4444', title: 'Camera',           subtitle: 'Take a photo or video' },
+  { key: 'gallery', tint: '#E3F2FD', color: '#1565C0', title: 'Photos & Videos',  subtitle: 'Choose from gallery' },
+  { key: 'files',   tint: '#E6F4EA', color: '#2E7D32', title: 'Files',            subtitle: 'Send any file' },
+  { key: 'idea',    tint: '#FEF7E0', color: '#F59E0B', title: 'Share Idea',       subtitle: 'Share your startup idea' },
+  { key: 'profile', tint: '#EAF2FF', color: '#3F51B5', title: 'Share Profile',    subtitle: 'Send your profile card' },
 ];
 
 export function ShareAttachSheet({ onClose, onPick }) {
@@ -236,8 +270,8 @@ export function ShareAttachSheet({ onClose, onPick }) {
         {ATTACH_ITEMS.map((it) => (
           <button key={it.key} onClick={() => onPick(it.key)}
                   className="w-full flex items-center gap-4 px-5 py-3 text-left border-b border-[#F0F6FF] hover:bg-[#F8FAFF] transition-colors">
-            <span className="w-11 h-11 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0" style={{ background: it.tint, color: it.color }}>
-              {it.badge}
+            <span className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: it.tint, color: it.color }}>
+              {ATTACH_ICON[it.key]}
             </span>
             <span className="flex-1 min-w-0">
               <span className="block text-[15px] font-semibold text-[#0D2137]">{it.title}</span>

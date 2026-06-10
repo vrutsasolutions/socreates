@@ -127,12 +127,24 @@ export default function Inbox() {
           </button>
           <h1 className="flex-1 text-[28px] font-bold text-white leading-none">Messages</h1>
           <button
-            onClick={() => navigate('/messages/new')}
-            aria-label="New chat"
-            className="w-10 h-10 rounded-full bg-white/15 border border-white/20 text-white flex items-center justify-center text-2xl font-bold hover:bg-white/25 active:scale-90 transition-all"
-          >
-            +
-          </button>
+  onClick={() => navigate('/messages/new')}
+  aria-label="New chat"
+  className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg hover:bg-white/20 active:scale-95 transition-all"
+>
+  <svg
+    className="w-5 h-5 text-white"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2.2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 5v14M5 12h14"
+    />
+  </svg>
+</button>
         </div>
 
         {/* floating search card */}

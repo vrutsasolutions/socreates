@@ -27,7 +27,6 @@ function formatDate(dateString) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-/** Map category name → a consistent indigo-family accent color */
 const CATEGORY_COLORS = {
   Technology: { bg: '#EEF0FF', text: '#3347E8', dot: '#4F62F5' },
   Education:  { bg: '#ECFDF5', text: '#065F46', dot: '#10B981' },
@@ -40,7 +39,6 @@ const CATEGORY_COLORS = {
 };
 const defaultColor = { bg: '#F0F2F8', text: '#343A56', dot: '#6B7494' };
 
-/** Deterministic avatar background from creator name */
 const AVATAR_PALETTES = [
   { bg: '#EEF0FF', text: '#1A28A0' },
   { bg: '#ECFDF5', text: '#065F46' },
@@ -54,7 +52,7 @@ function avatarPalette(name = '') {
   return AVATAR_PALETTES[idx] || AVATAR_PALETTES[0];
 }
 
-/* ── Skeleton card (shown while ideas are loading) ───────── */
+/* ── Skeleton ────────────────────────────────────────────── */
 export function IdeaCardSkeleton() {
   return (
     <div style={{
@@ -63,22 +61,17 @@ export function IdeaCardSkeleton() {
       borderRadius: 18,
       overflow: 'hidden',
     }}>
-      {/* image area */}
       <div className="sc-skeleton sc-skeleton-image" />
       <div style={{ padding: '12px 12px 14px' }}>
-        {/* creator row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <div className="sc-skeleton sc-skeleton-avatar" style={{ width: 24, height: 24, borderRadius: 8 }} />
           <div className="sc-skeleton sc-skeleton-text" style={{ width: '55%' }} />
           <div className="sc-skeleton sc-skeleton-text" style={{ width: '20%', marginLeft: 'auto' }} />
         </div>
-        {/* title */}
         <div className="sc-skeleton sc-skeleton-title" style={{ width: '90%', marginBottom: 6 }} />
         <div className="sc-skeleton sc-skeleton-title" style={{ width: '65%', marginBottom: 10 }} />
-        {/* description */}
         <div className="sc-skeleton sc-skeleton-text" style={{ width: '100%', marginBottom: 5 }} />
         <div className="sc-skeleton sc-skeleton-text" style={{ width: '80%', marginBottom: 14 }} />
-        {/* actions */}
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div className="sc-skeleton sc-skeleton-text" style={{ width: 40 }} />
           <div className="sc-skeleton sc-skeleton-text" style={{ width: 48 }} />
@@ -104,7 +97,6 @@ export default function IdeaCard({ idea, onSaveToggle }) {
   const catColor  = CATEGORY_COLORS[idea.category] || defaultColor;
   const avPalette = avatarPalette(idea.creatorName);
 
-  /* ── handlers ── */
   const handleSave = async (e) => {
     e.stopPropagation();
     if (saving || saveRef.current) return;
@@ -133,7 +125,6 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         ? await api.delete(`/ideas/${idea.id}/like`)
         : await api.post(`/ideas/${idea.id}/like`);
     } catch (_) {
-      // revert on error
       setLiked(wasLiked);
       setLikes(l => wasLiked ? l + 1 : l - 1);
     }
@@ -152,14 +143,13 @@ export default function IdeaCard({ idea, onSaveToggle }) {
     setShareOpen(true);
   };
 
-  /* ── render ── */
   return (
     <div
       onClick={handleClick}
       className="sc-card sc-animate-slide-up"
       style={{ cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
-      {/* ── Image / Thumbnail ─────────────────────────────── */}
+      {/* Image / Thumbnail */}
       <div style={{
         position: 'relative',
         height: 148,
@@ -179,35 +169,23 @@ export default function IdeaCard({ idea, onSaveToggle }) {
             className="sc-card-img"
           />
         ) : (
-          /* Premium Placeholder — subtle gradient bg + icon tile */
           <div style={{
             width: '100%', height: '100%',
             background: `linear-gradient(145deg, ${catColor.bg} 0%, ${catColor.bg}cc 100%)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexDirection: 'column', gap: 10,
-            position: 'relative',
-            overflow: 'hidden',
+            position: 'relative', overflow: 'hidden',
           }}>
-            {/* Decorative background circles */}
             <div style={{
-              position: 'absolute', width: 120, height: 120,
-              borderRadius: '50%',
-              background: catColor.dot + '18',
-              top: -30, right: -30,
-              pointerEvents: 'none',
+              position: 'absolute', width: 120, height: 120, borderRadius: '50%',
+              background: catColor.dot + '18', top: -30, right: -30, pointerEvents: 'none',
             }} />
             <div style={{
-              position: 'absolute', width: 80, height: 80,
-              borderRadius: '50%',
-              background: catColor.dot + '10',
-              bottom: -20, left: -20,
-              pointerEvents: 'none',
+              position: 'absolute', width: 80, height: 80, borderRadius: '50%',
+              background: catColor.dot + '10', bottom: -20, left: -20, pointerEvents: 'none',
             }} />
-
-            {/* Icon tile — rounded square with shadow */}
             <div style={{
-              width: 52, height: 52,
-              borderRadius: 16,
+              width: 52, height: 52, borderRadius: 16,
               background: '#ffffff',
               boxShadow: `0 4px 16px ${catColor.dot}28, 0 1px 4px rgba(0,0,0,0.08)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -215,14 +193,13 @@ export default function IdeaCard({ idea, onSaveToggle }) {
             }}>
               <IdeaIcon category={idea.category} color={catColor.dot} size={26} />
             </div>
-
-            {/* Category label */}
             <span style={{
-              fontSize: 11, fontWeight: 700,
-              letterSpacing: '0.06em',
+              fontSize: 10, fontWeight: 700,
+              letterSpacing: '0.07em',
               color: catColor.text,
               textTransform: 'uppercase',
               opacity: 0.85,
+              fontFamily: 'Inter, sans-serif',
             }}>
               {idea.category || 'Idea'}
             </span>
@@ -245,7 +222,7 @@ export default function IdeaCard({ idea, onSaveToggle }) {
           </div>
         )}
 
-        {/* Category pill — top right */}
+        {/* Category pill */}
         {idea.category && (
           <div style={{
             position: 'absolute', top: 8, right: 8,
@@ -254,6 +231,7 @@ export default function IdeaCard({ idea, onSaveToggle }) {
             fontSize: 10, fontWeight: 600,
             padding: '3px 8px', borderRadius: 999,
             border: `1px solid ${catColor.dot}22`,
+            fontFamily: 'Inter, sans-serif',
           }}>
             {idea.category}
           </div>
@@ -269,28 +247,31 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         )}
       </div>
 
-      {/* ── Content ───────────────────────────────────────── */}
+      {/* Content */}
       <div style={{ padding: '11px 12px 13px', display: 'flex', flexDirection: 'column', flex: 1 }}>
 
         {/* Creator row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+          {/* Improved creator avatar — rounded square */}
           <div style={{
-            width: 24, height: 24, borderRadius: 7,
+            width: 24, height: 24, borderRadius: 8,
             background: avPalette.bg, color: avPalette.text,
             fontSize: 10, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
+            fontFamily: 'Inter, sans-serif',
           }}>
             {idea.creatorName?.[0]?.toUpperCase() ?? '?'}
           </div>
           <span style={{
-            fontSize: 11, color: 'var(--sc-text-secondary)',
+            fontSize: 11.5, color: '#546E7A',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             flex: 1, minWidth: 0,
+            fontFamily: 'Inter, sans-serif',
           }}>
             {idea.creatorName}
           </span>
-          <span style={{ fontSize: 10, color: 'var(--sc-text-muted)', flexShrink: 0 }}>
+          <span style={{ fontSize: 10, color: '#90A4AE', flexShrink: 0, fontFamily: 'Inter, sans-serif' }}>
             {formatDate(idea.createdAt)}
           </span>
         </div>
@@ -298,16 +279,16 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         {/* Title */}
         <h3 style={{
           margin: '0 0 5px',
-          fontSize: 13,
+          fontSize: 13.5,
           fontWeight: 700,
-          color: 'var(--sc-neutral-900)',
+          color: '#0D2137',
           lineHeight: 1.35,
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
-          fontFamily: 'var(--sc-font-display)',
-          letterSpacing: '-0.01em',
+          fontFamily: 'Inter, sans-serif',
+          letterSpacing: '-0.02em',
         }}>
           {idea.title}
         </h3>
@@ -316,13 +297,14 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         <p style={{
           margin: '0 0 12px',
           fontSize: 11.5,
-          color: 'var(--sc-text-secondary)',
+          color: '#546E7A',
           lineHeight: 1.55,
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
           flex: 1,
+          fontFamily: 'Inter, sans-serif',
           ...(idea.isPremium ? {
             filter: 'blur(3.5px)',
             userSelect: 'none',
@@ -335,82 +317,84 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         {/* Actions row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
-          {/* Left group: Like · Comment · Share */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
 
-          {/* Like button */}
-          <button
-            onClick={handleLike}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              background: liked ? '#FEF2F2' : 'transparent',
-              border: liked ? '1px solid #FCA5A5' : '1px solid transparent',
-              borderRadius: 999,
-              padding: '3px 6px',
-              cursor: 'pointer',
-              color: liked ? '#DC2626' : 'var(--sc-text-muted)',
-              fontSize: 11, fontWeight: 600,
-              transition: 'all 180ms cubic-bezier(0.34,1.56,0.64,1)',
-              WebkitTapHighlightColor: 'transparent',
-            }}
-            aria-label={liked ? 'Unlike idea' : 'Like idea'}
-          >
-            <span style={{
-              display: 'inline-block',
-              transform: likeAnim ? 'scale(1.45)' : 'scale(1)',
-              transition: 'transform 350ms cubic-bezier(0.34,1.56,0.64,1)',
-            }}>
-              <HeartIcon filled={liked} size={13} />
-            </span>
-            <span>{likes}</span>
-          </button>
+            {/* Like */}
+            <button
+              onClick={handleLike}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: liked ? '#FEF2F2' : 'transparent',
+                border: liked ? '1px solid #FCA5A5' : '1px solid transparent',
+                borderRadius: 999,
+                padding: '4px 7px',
+                cursor: 'pointer',
+                color: liked ? '#DC2626' : '#90A4AE',
+                fontSize: 11, fontWeight: 600,
+                fontFamily: 'Inter, sans-serif',
+                transition: 'all 180ms cubic-bezier(0.34,1.56,0.64,1)',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              aria-label={liked ? 'Unlike idea' : 'Like idea'}
+            >
+              <span style={{
+                display: 'inline-block',
+                transform: likeAnim ? 'scale(1.45)' : 'scale(1)',
+                transition: 'transform 350ms cubic-bezier(0.34,1.56,0.64,1)',
+              }}>
+                <HeartIcon filled={liked} size={13} />
+              </span>
+              <span>{likes}</span>
+            </button>
 
-          {/* Comment button */}
-          <button
-            onClick={handleComment}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              background: 'transparent', border: '1px solid transparent',
-              borderRadius: 999, padding: '3px 6px', cursor: 'pointer',
-              color: 'var(--sc-text-muted)', fontSize: 11, fontWeight: 600,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-            aria-label="Comment on idea"
-          >
-            <CommentIcon size={13} />
-            <span>{idea.commentCount ?? 0}</span>
-          </button>
+            {/* Comment */}
+            <button
+              onClick={handleComment}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: 'transparent', border: '1px solid transparent',
+                borderRadius: 999, padding: '4px 7px', cursor: 'pointer',
+                color: '#90A4AE', fontSize: 11, fontWeight: 600,
+                fontFamily: 'Inter, sans-serif',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              aria-label="Comment on idea"
+            >
+              <CommentIcon size={13} />
+              <span>{idea.commentCount ?? 0}</span>
+            </button>
 
-          {/* Share button */}
-          <button
-            onClick={handleShare}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              background: 'transparent', border: '1px solid transparent',
-              borderRadius: 999, padding: '3px 6px', cursor: 'pointer',
-              color: 'var(--sc-text-muted)', fontSize: 11, fontWeight: 600,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-            aria-label="Share idea"
-          >
-            <ShareIcon size={13} />
-          </button>
-
+            {/* Share */}
+            <button
+              onClick={handleShare}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: 'transparent', border: '1px solid transparent',
+                borderRadius: 999, padding: '4px 7px', cursor: 'pointer',
+                color: '#90A4AE', fontSize: 11, fontWeight: 600,
+                fontFamily: 'Inter, sans-serif',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              aria-label="Share idea"
+            >
+              <ShareIcon size={13} />
+            </button>
           </div>
 
-          {/* Save button */}
+          {/* Save */}
           <button
             onClick={handleSave}
             disabled={saving}
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
-              background: saved ? '#EEF0FF' : 'transparent',
+              background: saved ? '#EEF4FF' : 'transparent',
               border: saved ? '1px solid #AEBCFF' : '1px solid transparent',
               borderRadius: 999,
-              padding: '3px 6px',
+              padding: '4px 7px',
               cursor: saving ? 'wait' : 'pointer',
-              color: saved ? 'var(--sc-primary-600)' : 'var(--sc-text-muted)',
+              color: saved ? '#1565C0' : '#90A4AE',
               fontSize: 11, fontWeight: 600,
+              fontFamily: 'Inter, sans-serif',
               transition: 'all 180ms cubic-bezier(0.34,1.56,0.64,1)',
               opacity: saving ? 0.6 : 1,
               WebkitTapHighlightColor: 'transparent',
@@ -422,7 +406,7 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         </div>
       </div>
 
-      {/* ── Share Post sheet (figma "06 · Share Post") ─────── */}
+      {/* Share Post sheet */}
       {shareOpen && (
         <SharePostSheet
           post={idea}
@@ -435,8 +419,10 @@ export default function IdeaCard({ idea, onSaveToggle }) {
           onClick={(e) => e.stopPropagation()}
           style={{
             position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 90,
-            zIndex: 60, background: '#0D2137', color: '#fff', fontSize: 13,
-            padding: '10px 16px', borderRadius: 999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            zIndex: 60, background: '#0D2137', color: '#fff',
+            fontSize: 13, fontFamily: 'Inter, sans-serif', fontWeight: 500,
+            padding: '10px 18px', borderRadius: 999,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
             maxWidth: '90%', textAlign: 'center',
           }}
         >
@@ -445,11 +431,8 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         document.body,
       )}
 
-      {/* ── Hover zoom on image — injected via CSS ─────────── */}
       <style>{`
-        .sc-card:hover .sc-card-img {
-          transform: scale(1.06);
-        }
+        .sc-card:hover .sc-card-img { transform: scale(1.06); }
       `}</style>
     </div>
   );
@@ -512,67 +495,18 @@ function StarIcon({ size = 12 }) {
   );
 }
 
-/**
- * Category-aware icon — uses richer, distinct icons per category.
- * Renders inside the white tile on the card placeholder.
- */
 function IdeaIcon({ category, color = '#4F62F5', size = 26 }) {
-  /* Each category gets a unique, recognisable Lucide-style icon */
   const icons = {
-    Technology: (
-      <>
-        <rect x="2" y="3" width="20" height="14" rx="2" />
-        <path d="M8 21h8M12 17v4" />
-      </>
-    ),
-    Education: (
-      <>
-        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-        <path d="M6 12v5c3.333 1.333 8.667 1.333 12 0v-5" />
-      </>
-    ),
-    Business: (
-      <>
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-        <path d="M9 22V12h6v10" />
-      </>
-    ),
-    Health: (
-      <>
-        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-      </>
-    ),
-    Design: (
-      <>
-        <circle cx="13.5" cy="6.5" r="2.5" />
-        <circle cx="17.5" cy="10.5" r="2.5" />
-        <circle cx="8.5" cy="7.5" r="2.5" />
-        <circle cx="6.5" cy="12.5" r="2.5" />
-        <path d="M12 20a4 4 0 100-8 4 4 0 000 8z" />
-      </>
-    ),
-    Social: (
-      <>
-        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-      </>
-    ),
-    Science: (
-      <>
-        <path d="M9 3h6M9 3v6l-4 9a1 1 0 00.9 1.45h12.2A1 1 0 0025 18l-4-9V3" />
-        <path d="M8.5 14h7" />
-      </>
-    ),
-    Art: (
-      <>
-        <circle cx="12" cy="12" r="10" />
-        <path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32" />
-      </>
-    ),
+    Technology: (<><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></>),
+    Education:  (<><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3.333 1.333 8.667 1.333 12 0v-5" /></>),
+    Business:   (<><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><path d="M9 22V12h6v10" /></>),
+    Health:     (<><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></>),
+    Design:     (<><circle cx="13.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="10.5" r="2.5" /><circle cx="8.5" cy="7.5" r="2.5" /><circle cx="6.5" cy="12.5" r="2.5" /><path d="M12 20a4 4 0 100-8 4 4 0 000 8z" /></>),
+    Social:     (<><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></>),
+    Science:    (<><path d="M9 3h6M9 3v6l-4 9a1 1 0 00.9 1.45h12.2A1 1 0 0025 18l-4-9V3" /><path d="M8.5 14h7" /></>),
+    Art:        (<><circle cx="12" cy="12" r="10" /><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32" /></>),
   };
 
-  /* Default: lightbulb (the app's own identity icon) */
   const defaultIcon = (
     <>
       <path d="M9 21h6M12 3a6 6 0 016 6c0 2.22-1.2 4.16-3 5.2V17H9v-2.8A6.002 6.002 0 016 9a6 6 0 016-6z" />

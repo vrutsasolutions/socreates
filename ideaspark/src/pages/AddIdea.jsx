@@ -232,7 +232,7 @@ export default function AddIdea() {
             ) : (
               /* Free creator — premium publishing locked behind Creator Pro */
               <div className="space-y-5">
-                <div className="border border-[#E2E6F0] rounded-2xl p-4 bg-white">
+                <div className="border border-[#E3F2FD] rounded-2xl p-4 bg-white">
                   <p className="font-bold text-[#0D2137]">Premium Content</p>
                   <p className="text-xs text-[#90A4AE] mt-1">
                     Premium publishing requires Creator Pro.
