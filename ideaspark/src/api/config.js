@@ -15,7 +15,7 @@ export const USE_MOCK = {
   users:         false, // ✅ backend ready  — /api/users/*
   ideas:         false, // ✅ backend ready  — /api/ideas/*
   search:        false, // ✅ backend ready  — /api/search
-  ai:            true,  // ⏳ under dev      — /api/ai/*       (Vishakha)
+  ai:            false, // ✅ backend ready — /api/ai/*       (Aparna)
   images:        true,  // ⏳ under dev      — /api/images/*   (Vishakha)
   messaging:     true,  // ⏳ under dev      — /api/messages/* (DM/inbox feature; backend TBD)
   payment:       true,  // ⏳ under dev      — /api/payment/*  (Razorpay/Stripe; backend TBD)
