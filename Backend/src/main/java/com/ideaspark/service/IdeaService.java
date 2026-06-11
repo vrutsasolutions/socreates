@@ -73,32 +73,38 @@ public class IdeaService {
     }
 
     @Transactional
-    public void deleteIdea(UUID id, String userEmail) {
-        Idea idea = ideaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Idea not found"));
+public void deleteIdea(UUID id, String userEmail) {
 
-        if (!idea.getCreator().getEmail().equals(userEmail)) {
-            throw new RuntimeException("Not authorized to delete this idea");
-        }
+    Idea idea = ideaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Idea not found"));
 
-        // Delete images from Cloudflare R2
-        if (idea.getImageUrls() != null && !idea.getImageUrls().isEmpty()) {
-            for (String url : idea.getImageUrls()) {
-                cloudflareImageService.deleteImage(url);
-            }
-        } else if (idea.getImageUrl() != null && !idea.getImageUrl().isBlank()) {
-            cloudflareImageService.deleteImage(idea.getImageUrl());
-        }
-
-        // Delete comments first because comments table has foreign key to ideas table
-        List<Comment> comments = commentRepository.findByIdeaIdOrderByCreatedAtDesc(id);
-        commentRepository.deleteAll(comments);
-        commentRepository.flush();
-
-        // Now delete idea
-        ideaRepository.delete(idea);
+    if (!idea.getCreator().getEmail().equals(userEmail)) {
+        throw new RuntimeException("Not authorized to delete this idea");
     }
 
+    // Delete images from Cloudflare
+    if (idea.getImageUrls() != null && !idea.getImageUrls().isEmpty()) {
+        for (String url : idea.getImageUrls()) {
+            cloudflareImageService.deleteImage(url);
+        }
+    } else if (idea.getImageUrl() != null && !idea.getImageUrl().isBlank()) {
+        cloudflareImageService.deleteImage(idea.getImageUrl());
+    }
+
+    // Delete bookmarks
+    savedIdeaRepository.deleteByIdeaId(id);
+
+    // Delete likes
+    ideaLikeRepository.deleteByIdeaId(id);
+
+    // Delete comments
+    commentRepository.deleteAll(
+            commentRepository.findByIdeaIdOrderByCreatedAtDesc(id)
+    );
+
+    // Delete idea
+    ideaRepository.delete(idea);
+}
     @Transactional
     public void saveIdea(UUID ideaId, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
