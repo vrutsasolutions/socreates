@@ -151,7 +151,7 @@ export function PageLoader({ message = 'Loading…' }) {
           letterSpacing: '-0.03em',
           lineHeight: 1,
         }}>
-          Socreates
+          SoCreates
         </div>
         <div style={{
           color: 'rgba(255,255,255,0.55)',

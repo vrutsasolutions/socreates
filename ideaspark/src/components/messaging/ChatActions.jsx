@@ -377,7 +377,7 @@ export function ChatActionsLayer({ convo, view, setView, navigate, onAfterDelete
           onSubmit={async (reason) => {
             try { await reportUser(convo.id, reason); } finally {
               setView(null);
-              onToast?.('Report submitted. Thanks for keeping Socreates safe.');
+              onToast?.('Report submitted. Thanks for keeping SoCreates safe.');
             }
           }}
         />

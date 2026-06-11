@@ -68,7 +68,7 @@ export default function Home() {
 
           <div className="flex items-center gap-2 flex-1">
             <Icon name="lightbulb" className="w-6 h-6 text-amber-300" />
-            <span className="text-white font-bold text-lg">Socreates</span>
+            <span className="text-white font-bold text-lg">SoCreates</span>
           </div>
 
           <button
@@ -173,7 +173,7 @@ export default function Home() {
       {/* Floating AI assistant — sits above the bottom nav, opens the AI-assisted create flow */}
       <button
         onClick={() => navigate('/add-idea')}
-        aria-label="Socreates AI"
+        aria-label="SoCreates AI"
         className="fixed right-4 bottom-24 z-40 w-14 h-14 rounded-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
         style={{
           background: 'linear-gradient(135deg, #4F62F5, #2435C9)',
