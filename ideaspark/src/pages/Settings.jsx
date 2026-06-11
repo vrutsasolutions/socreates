@@ -114,7 +114,7 @@ export default function Settings() {
             <Row icon={<Icon name="trash"   className="w-5 h-5 text-red-500" />} label="Delete Account" sublabel="Permanently delete your account and data" danger onClick={() => {}}/>
           </Section>
 
-          <p className="text-center text-[#90A4AE] text-xs pb-6">Socreates v1.0.0</p>
+          <p className="text-center text-[#90A4AE] text-xs pb-6">SoCreates v1.0.0</p>
         </div>
       </div>
     </div>

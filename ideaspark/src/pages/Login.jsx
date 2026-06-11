@@ -106,7 +106,7 @@ export default function Login() {
             <Icon name="lightbulb" className="w-8 h-8 text-amber-300" />
           </div>
           <h1 className="text-white text-2xl font-bold">Welcome Back</h1>
-          <p className="text-blue-200 text-sm mt-1">Sign in to continue to Socreates</p>
+          <p className="text-blue-200 text-sm mt-1">Sign in to continue to SoCreates</p>
         </div>
       </div>
 

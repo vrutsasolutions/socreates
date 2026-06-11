@@ -10,11 +10,15 @@ const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 export default function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [form, setForm]       = useState({ name: '', username: '', email: '', password: '' });
+  const [form, setForm]       = useState({ firstName: '', lastName: '', username: '', email: '', password: '', confirmPassword: '' });
+  const [agree, setAgree]     = useState(false);
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
   const [uname, setUname]     = useState({ state: 'idle', message: '' });
   const reqId = useRef(0);
+
+  const inputCls = 'w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition';
+  const labelCls = 'block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2';
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -47,12 +51,21 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.firstName.trim()) { setError('Please enter your first name'); return; }
     if (!USERNAME_RE.test(form.username)) { setError('Please choose a valid username'); return; }
     if (uname.state === 'taken') { setError('That username is already taken'); return; }
     if (form.password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (form.password !== form.confirmPassword) { setError('Passwords do not match'); return; }
+    if (!agree) { setError('Please agree to the terms & conditions to continue'); return; }
     setError(''); setLoading(true);
     try {
-      const { data } = await registerUser(form);
+      const payload = {
+        name: `${form.firstName} ${form.lastName}`.trim(),
+        username: form.username,
+        email: form.email,
+        password: form.password,
+      };
+      const { data } = await registerUser(payload);
       login(data.user, data.token);
       try { await sendOtp(form.email); } catch { /* non-blocking */ }
       navigate('/verify-otp', { state: { email: form.email } });
@@ -74,7 +87,7 @@ export default function Register() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl mb-4 shadow-lg">
             <Icon name="lightbulb" className="w-8 h-8 text-amber-300" />
           </div>
-          <h1 className="text-white text-2xl font-bold">Join Socreates</h1>
+          <h1 className="text-white text-2xl font-bold">Join SoCreates</h1>
           <p className="text-blue-200 text-sm mt-1">Start sharing your ideas today</p>
         </div>
       </div>
@@ -92,18 +105,23 @@ export default function Register() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {[{ name: 'name', type: 'text', label: 'Full Name', placeholder: 'John Doe' }]
-                .map(({ name, type, label, placeholder }) => (
-                <div key={name}>
-                  <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">{label}</label>
-                  <input type={type} name={name} value={form[name]}
-                         onChange={handleChange} placeholder={placeholder} required
-                         className="w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition" />
-                </div>
-              ))}
 
               <div>
-                <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">Username</label>
+                <label className={labelCls}>First Name</label>
+                <input type="text" name="firstName" value={form.firstName}
+                       onChange={handleChange} placeholder="John" required
+                       className={inputCls} />
+              </div>
+
+              <div>
+                <label className={labelCls}>Last Name</label>
+                <input type="text" name="lastName" value={form.lastName}
+                       onChange={handleChange} placeholder="Doe"
+                       className={inputCls} />
+              </div>
+
+              <div>
+                <label className={labelCls}>Username</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#90A4AE] text-sm">@</span>
                   <input type="text" name="username" value={form.username}
@@ -124,17 +142,36 @@ export default function Register() {
                 )}
               </div>
 
-              {[
-                { name: 'email',    type: 'email',    label: 'Email',    placeholder: 'you@example.com' },
-                { name: 'password', type: 'password', label: 'Password', placeholder: 'Min. 6 characters' },
-              ].map(({ name, type, label, placeholder }) => (
-                <div key={name}>
-                  <label className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">{label}</label>
-                  <input type={type} name={name} value={form[name]}
-                         onChange={handleChange} placeholder={placeholder} required
-                         className="w-full bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition" />
-                </div>
-              ))}
+              <div>
+                <label className={labelCls}>Email</label>
+                <input type="email" name="email" value={form.email}
+                       onChange={handleChange} placeholder="you@example.com" required
+                       className={inputCls} />
+              </div>
+
+              <div>
+                <label className={labelCls}>Password</label>
+                <input type="password" name="password" value={form.password}
+                       onChange={handleChange} placeholder="Min. 6 characters" required
+                       className={inputCls} />
+              </div>
+
+              <div>
+                <label className={labelCls}>Confirm Password</label>
+                <input type="password" name="confirmPassword" value={form.confirmPassword}
+                       onChange={handleChange} placeholder="Re-enter password" required
+                       className={inputCls} />
+              </div>
+
+              {/* Terms agreement */}
+              <label className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
+                <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)}
+                       className="w-5 h-5 rounded-md accent-[#1565C0] cursor-pointer shrink-0" />
+                <span className="text-[#546E7A] text-sm">
+                  I agree to all{' '}
+                  <span className="text-[#1565C0] font-semibold">terms &amp; condition</span>
+                </span>
+              </label>
 
               <button type="submit"
                       disabled={loading || uname.state === 'checking' || uname.state === 'taken' || uname.state === 'invalid'}

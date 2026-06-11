@@ -126,7 +126,7 @@ export function AIAssistantBar({ onActivate, onDismiss }) {
           margin: '0 0 2px',
           letterSpacing: '-0.01em',
         }}>
-          Socreates AI
+          SoCreates AI
         </p>
         <p style={{
           fontSize: 11,
@@ -848,7 +848,7 @@ export function AIOnboardingPrompt({ onTryAI, onDismiss }) {
         margin: '0 0 6px',
         lineHeight: 1.2,
       }}>
-        Meet Socreates AI
+        Meet SoCreates AI
       </h3>
 
       <p style={{

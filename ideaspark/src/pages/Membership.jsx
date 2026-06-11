@@ -111,7 +111,7 @@ export default function Membership() {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID,
           amount: order.amount,
           currency: 'INR',
-          name: 'Socreates',
+          name: 'SoCreates',
           description: `${selectedPlan.label} · ${period === 'yearly' ? 'Yearly' : 'Monthly'}`,
           order_id: order.orderId,
           handler: async (response) => {
