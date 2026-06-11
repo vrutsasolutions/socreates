@@ -197,9 +197,14 @@ export default function IdeaDetail() {
 
               {/* Creator row */}
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-xl bg-[#EEF0FF] text-[#1A28A0] font-bold flex items-center justify-center text-sm shrink-0">
-                  {initials(idea.creatorName)}
-                </div>
+                {idea.creatorImage ? (
+                  <img src={idea.creatorImage} alt={idea.creatorName || 'Creator'}
+                    className="w-9 h-9 rounded-xl object-cover bg-[#EEF0FF] shrink-0" />
+                ) : (
+                  <div className="w-9 h-9 rounded-xl bg-[#EEF0FF] text-[#1A28A0] font-bold flex items-center justify-center text-sm shrink-0">
+                    {initials(idea.creatorName)}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-[#0D2137] font-semibold text-sm truncate">{idea.creatorName || 'Anonymous'}</p>
                   <p className="text-[#90A4AE] text-xs">{formatDate(idea.createdAt)}</p>

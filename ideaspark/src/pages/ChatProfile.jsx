@@ -196,7 +196,7 @@ export default function ChatProfile() {
           convo={convo}
           onClose={() => setShareOpen(false)}
           onCopyLink={() => {
-            const link = `https://ideaspark.app/u/${handleFor(convo.name).replace('@', '')}`;
+            const link = `https://socreates.app/u/${handleFor(convo.name).replace('@', '')}`;
             navigator.clipboard?.writeText(link).catch(() => {});
             flash('Profile link copied');
           }}

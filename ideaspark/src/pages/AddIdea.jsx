@@ -346,7 +346,7 @@ export default function AddIdea() {
                 </div>
 
                 <button
-                  onClick={() => navigate('/creator-pro')}
+                  onClick={() => navigate('/membership?plan=creator')}
                   className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all"
                 >
                   Upgrade to Creator Pro

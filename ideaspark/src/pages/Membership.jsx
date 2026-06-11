@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { USE_MOCK } from '../api/config';
 import { createOrder, subscribe, stripeCheckout, cancelMembership } from '../api/paymentApi';
@@ -51,12 +51,28 @@ const PLANS = [
 export default function Membership() {
   const navigate        = useNavigate();
   const { user, login } = useAuth();
-  const [period, setPeriod]     = useState('yearly');   // 'monthly' | 'yearly'
-  const [selected, setSelected] = useState('creator');  // 'reader' | 'creator'
+  const [params]        = useSearchParams();
+  // A ?plan= deep link (e.g. from the "Upgrade to Creator Pro" publish gate)
+  // pre-selects and visually emphasizes that tile.
+  const emphasizedPlan  = ['reader', 'creator'].includes(params.get('plan')) ? params.get('plan') : null;
+
+  const [period, setPeriod]     = useState('yearly');               // 'monthly' | 'yearly'
+  const [selected, setSelected] = useState(emphasizedPlan || 'creator'); // 'reader' | 'creator'
+  const [emphasize, setEmphasize] = useState(!!emphasizedPlan);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
+  const emphasizedRef = useRef(null);
 
   const selectedPlan = PLANS.find((p) => p.id === selected);
+
+  // On arrival via ?plan=, scroll the emphasized tile into view and let its
+  // highlight pulse briefly, then settle back to the normal selected state.
+  useEffect(() => {
+    if (!emphasizedPlan) return;
+    emphasizedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => setEmphasize(false), 2600);
+    return () => clearTimeout(t);
+  }, [emphasizedPlan]);
 
   // Everything the success / active views need to render the plan.
   const checkoutPayload = (gateway) => ({
@@ -95,7 +111,7 @@ export default function Membership() {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID,
           amount: order.amount,
           currency: 'INR',
-          name: 'IdeaSpark',
+          name: 'Socreates',
           description: `${selectedPlan.label} · ${period === 'yearly' ? 'Yearly' : 'Monthly'}`,
           order_id: order.orderId,
           handler: async (response) => {
@@ -200,18 +216,29 @@ export default function Membership() {
         </div>
 
         {/* Plan cards */}
+        <style>{`
+          @keyframes sc-plan-emph {
+            0%   { box-shadow: 0 0 0 0 var(--emph-color); }
+            70%  { box-shadow: 0 0 0 12px transparent; }
+            100% { box-shadow: 0 0 0 0 transparent; }
+          }
+          .sc-plan-emphasis { animation: sc-plan-emph 1.3s ease-out 2; }
+        `}</style>
         <div className="grid grid-cols-2 gap-3">
           {PLANS.map((plan) => {
             const isSel    = selected === plan.id;
             const isPurple = plan.accent === 'purple';
+            const isEmph   = emphasize && plan.id === emphasizedPlan;
             const ring     = isSel
               ? (isPurple ? 'border-[#7C3AED] shadow-lg shadow-purple-300/30' : 'border-[#1565C0] shadow-lg shadow-blue-300/30')
               : 'border-[#E3F2FD] hover:border-[#BBDEFB]';
             const price    = plan[period];
             return (
               <div key={plan.id}
+                ref={plan.id === emphasizedPlan ? emphasizedRef : null}
                 onClick={() => setSelected(plan.id)}
-                className={`relative bg-white border rounded-2xl p-4 flex flex-col cursor-pointer transition-all active:scale-[0.99] ${ring}`}>
+                style={isEmph ? { '--emph-color': isPurple ? 'rgba(124,58,237,0.5)' : 'rgba(21,101,192,0.5)' } : undefined}
+                className={`relative bg-white border rounded-2xl p-4 flex flex-col cursor-pointer transition-all active:scale-[0.99] ${ring} ${isEmph ? 'sc-plan-emphasis' : ''}`}>
 
                 {plan.badge && (
                   <span className="absolute -top-2.5 right-3 bg-[#7C3AED] text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">

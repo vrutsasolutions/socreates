@@ -74,7 +74,7 @@ export default function Register() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl mb-4 shadow-lg">
             <Icon name="lightbulb" className="w-8 h-8 text-amber-300" />
           </div>
-          <h1 className="text-white text-2xl font-bold">Join IdeaSpark</h1>
+          <h1 className="text-white text-2xl font-bold">Join Socreates</h1>
           <p className="text-blue-200 text-sm mt-1">Start sharing your ideas today</p>
         </div>
       </div>

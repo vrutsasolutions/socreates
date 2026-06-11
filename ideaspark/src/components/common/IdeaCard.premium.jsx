@@ -317,15 +317,26 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
       >
         {/* Creator row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <div style={{
-            width: 22, height: 22, borderRadius: 7,
-            background: avPalette.bg, color: avPalette.text,
-            fontSize: 10, fontWeight: 700,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, fontFamily: 'Inter, sans-serif',
-          }}>
-            {idea.creatorName?.[0]?.toUpperCase() ?? '?'}
-          </div>
+          {idea.creatorImage ? (
+            <img
+              src={idea.creatorImage}
+              alt={idea.creatorName || 'Creator'}
+              style={{
+                width: 22, height: 22, borderRadius: 7,
+                objectFit: 'cover', flexShrink: 0, background: avPalette.bg,
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 22, height: 22, borderRadius: 7,
+              background: avPalette.bg, color: avPalette.text,
+              fontSize: 10, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, fontFamily: 'Inter, sans-serif',
+            }}>
+              {idea.creatorName?.[0]?.toUpperCase() ?? '?'}
+            </div>
+          )}
           <span style={{
             fontSize: 12.5, color: '#546E7A', fontWeight: 500,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -516,16 +527,27 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
         {/* Creator row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
           {/* Improved creator avatar — rounded square */}
-          <div style={{
-            width: 24, height: 24, borderRadius: 8,
-            background: avPalette.bg, color: avPalette.text,
-            fontSize: 10, fontWeight: 700,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-            fontFamily: 'Inter, sans-serif',
-          }}>
-            {idea.creatorName?.[0]?.toUpperCase() ?? '?'}
-          </div>
+          {idea.creatorImage ? (
+            <img
+              src={idea.creatorImage}
+              alt={idea.creatorName || 'Creator'}
+              style={{
+                width: 24, height: 24, borderRadius: 8,
+                objectFit: 'cover', flexShrink: 0, background: avPalette.bg,
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 24, height: 24, borderRadius: 8,
+              background: avPalette.bg, color: avPalette.text,
+              fontSize: 10, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              fontFamily: 'Inter, sans-serif',
+            }}>
+              {idea.creatorName?.[0]?.toUpperCase() ?? '?'}
+            </div>
+          )}
           <span style={{
             fontSize: 11.5, color: '#546E7A',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
