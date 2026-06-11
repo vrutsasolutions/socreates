@@ -163,15 +163,37 @@ export default function Register() {
                        className={inputCls} />
               </div>
 
-              {/* Terms agreement */}
-              <label className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
-                <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)}
-                       className="w-5 h-5 rounded-md accent-[#1565C0] cursor-pointer shrink-0" />
-                <span className="text-[#546E7A] text-sm">
-                  I agree to all{' '}
-                  <span className="text-[#1565C0] font-semibold">terms &amp; condition</span>
-                </span>
-              </label>
+           
+<div className="flex items-center gap-2.5 pt-1 select-none">
+  <label className="relative cursor-pointer">
+    <input 
+      type="checkbox" 
+      checked={agree} 
+      onChange={(e) => setAgree(e.target.checked)}
+      className="peer sr-only" 
+    />
+    <div className="w-5 h-5 rounded-md border-2 border-[#BBDEFB] bg-white hover:border-[#1565C0] peer-checked:bg-[#1565C0] peer-checked:border-[#1565C0] transition flex items-center justify-center shrink-0">
+      {agree && (
+        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+    </div>
+  </label>
+  
+  {/* Clicking this text navigates to the page; it does NOT toggle the checkbox */}
+  <span className="text-[#546E7A] text-sm leading-tight">
+    I agree to all{' '}
+    <Link 
+      to="/terms" 
+      target="_blank" 
+      rel="noopener noreferrer" 
+      className="text-[#1565C0] font-semibold hover:underline cursor-pointer"
+    >
+      terms &amp; conditions
+    </Link>
+  </span>
+</div>
 
               <button type="submit"
                       disabled={loading || uname.state === 'checking' || uname.state === 'taken' || uname.state === 'invalid'}
