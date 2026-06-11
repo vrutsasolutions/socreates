@@ -54,7 +54,30 @@ function avatarPalette(name = '') {
 }
 
 /* ── Skeleton ────────────────────────────────────────────── */
-export function IdeaCardSkeleton() {
+export function IdeaCardSkeleton({ variant = 'card' } = {}) {
+  if (variant === 'list') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="sc-skeleton sc-skeleton-avatar" style={{ width: 22, height: 22, borderRadius: 7 }} />
+          <div className="sc-skeleton sc-skeleton-text" style={{ width: '40%' }} />
+        </div>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <div className="sc-skeleton sc-skeleton-title" style={{ width: '95%', marginBottom: 7 }} />
+            <div className="sc-skeleton sc-skeleton-title" style={{ width: '70%', marginBottom: 12 }} />
+            <div className="sc-skeleton sc-skeleton-text" style={{ width: '100%', marginBottom: 5 }} />
+            <div className="sc-skeleton sc-skeleton-text" style={{ width: '80%' }} />
+          </div>
+          <div className="sc-skeleton" style={{ width: 96, height: 96, borderRadius: 10, flexShrink: 0 }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div className="sc-skeleton sc-skeleton-text" style={{ width: 120 }} />
+          <div className="sc-skeleton sc-skeleton-text" style={{ width: 24 }} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{
       background: '#fff',
@@ -83,7 +106,7 @@ export function IdeaCardSkeleton() {
 }
 
 /* ── Main card ───────────────────────────────────────────── */
-export default function IdeaCard({ idea, onSaveToggle }) {
+export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
   const navigate        = useNavigate();
   const [saved,  setSaved]  = useState(idea.savedByCurrentUser ?? false);
   const [likes,  setLikes]  = useState(idea.likeCount || 0);
@@ -144,6 +167,227 @@ export default function IdeaCard({ idea, onSaveToggle }) {
     e.stopPropagation();
     setShareOpen(true);
   };
+
+  /* Shared actions row — identical colors/behavior across card & list layouts */
+  const actionsRow = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+
+        {/* Like */}
+        <button
+          onClick={handleLike}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            background: liked ? '#FEF2F2' : 'transparent',
+            border: liked ? '1px solid #FCA5A5' : '1px solid transparent',
+            borderRadius: 999,
+            padding: '4px 7px',
+            cursor: 'pointer',
+            color: liked ? '#DC2626' : '#90A4AE',
+            fontSize: 11, fontWeight: 600,
+            fontFamily: 'Inter, sans-serif',
+            transition: 'all 180ms cubic-bezier(0.34,1.56,0.64,1)',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+          aria-label={liked ? 'Unlike idea' : 'Like idea'}
+        >
+          <span style={{
+            display: 'inline-block',
+            transform: likeAnim ? 'scale(1.45)' : 'scale(1)',
+            transition: 'transform 350ms cubic-bezier(0.34,1.56,0.64,1)',
+          }}>
+            <HeartIcon filled={liked} size={13} />
+          </span>
+          <span>{likes}</span>
+        </button>
+
+        {/* Comment */}
+        <button
+          onClick={handleComment}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            background: 'transparent', border: '1px solid transparent',
+            borderRadius: 999, padding: '4px 7px', cursor: 'pointer',
+            color: '#90A4AE', fontSize: 11, fontWeight: 600,
+            fontFamily: 'Inter, sans-serif',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+          aria-label="Comment on idea"
+        >
+          <CommentIcon size={13} />
+          <span>{idea.commentCount ?? 0}</span>
+        </button>
+
+        {/* Share */}
+        <button
+          onClick={handleShare}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            background: 'transparent', border: '1px solid transparent',
+            borderRadius: 999, padding: '4px 7px', cursor: 'pointer',
+            color: '#90A4AE', fontSize: 11, fontWeight: 600,
+            fontFamily: 'Inter, sans-serif',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+          aria-label="Share idea"
+        >
+          <ShareIcon size={13} />
+        </button>
+      </div>
+
+      {/* Save */}
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          background: saved ? '#EEF4FF' : 'transparent',
+          border: saved ? '1px solid #AEBCFF' : '1px solid transparent',
+          borderRadius: 999,
+          padding: '4px 7px',
+          cursor: saving ? 'wait' : 'pointer',
+          color: saved ? '#1565C0' : '#90A4AE',
+          fontSize: 11, fontWeight: 600,
+          fontFamily: 'Inter, sans-serif',
+          transition: 'all 180ms cubic-bezier(0.34,1.56,0.64,1)',
+          opacity: saving ? 0.6 : 1,
+          WebkitTapHighlightColor: 'transparent',
+        }}
+        aria-label={saved ? 'Unsave idea' : 'Save idea'}
+      >
+        <BookmarkIcon filled={saved} size={14} />
+      </button>
+    </div>
+  );
+
+  /* Share sheet + toast — shared portal/overlay, rendered by both layouts */
+  const overlays = (
+    <>
+      {shareOpen && (
+        <SharePostSheet
+          post={idea}
+          onClose={() => setShareOpen(false)}
+          onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2600); }}
+        />
+      )}
+      {toast && createPortal(
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 90,
+            zIndex: 60, background: '#0D2137', color: '#fff',
+            fontSize: 13, fontFamily: 'Inter, sans-serif', fontWeight: 500,
+            padding: '10px 18px', borderRadius: 999,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            maxWidth: '90%', textAlign: 'center',
+          }}
+        >
+          {toast}
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+
+  /* ── List layout — Medium-style row (no card chrome, text left / thumbnail right) ── */
+  if (variant === 'list') {
+    const thumb = images.length > 0 && !imgErr ? (
+      <img
+        src={images[0]}
+        alt={idea.title}
+        onError={() => setImgErr(true)}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+      />
+    ) : (
+      <div style={{
+        width: '100%', height: '100%',
+        background: `linear-gradient(145deg, ${catColor.bg} 0%, ${catColor.bg}cc 100%)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <IdeaIcon category={idea.category} color={catColor.dot} size={26} />
+      </div>
+    );
+
+    return (
+      <div
+        onClick={handleClick}
+        className="sc-animate-slide-up"
+        style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10 }}
+      >
+        {/* Creator row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div style={{
+            width: 22, height: 22, borderRadius: 7,
+            background: avPalette.bg, color: avPalette.text,
+            fontSize: 10, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, fontFamily: 'Inter, sans-serif',
+          }}>
+            {idea.creatorName?.[0]?.toUpperCase() ?? '?'}
+          </div>
+          <span style={{
+            fontSize: 12.5, color: '#546E7A', fontWeight: 500,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            minWidth: 0, fontFamily: 'Inter, sans-serif',
+          }}>
+            {idea.creatorName}
+          </span>
+          <span style={{ fontSize: 11, color: '#90A4AE', flexShrink: 0, fontFamily: 'Inter, sans-serif' }}>
+            · {formatDate(idea.createdAt)}
+          </span>
+          {idea.isPremium && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              background: 'linear-gradient(135deg, #FBBF24, #F59E0B)',
+              color: '#1a1200', fontSize: 9, fontWeight: 700, letterSpacing: '0.07em',
+              padding: '2px 7px', borderRadius: 999, flexShrink: 0,
+            }}>
+              <StarIcon size={8} />PRO
+            </span>
+          )}
+        </div>
+
+        {/* Title + description (left) and thumbnail (right) */}
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{
+              margin: '0 0 6px',
+              fontSize: 17, fontWeight: 800, color: '#0D2137',
+              lineHeight: 1.3,
+              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              fontFamily: 'Inter, sans-serif', letterSpacing: '-0.02em',
+            }}>
+              {idea.title}
+            </h3>
+            <p style={{
+              margin: 0,
+              fontSize: 13.5, color: '#546E7A', lineHeight: 1.5,
+              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              fontFamily: 'Inter, sans-serif',
+              ...(idea.isPremium ? { filter: 'blur(3.5px)', userSelect: 'none', pointerEvents: 'none' } : {}),
+            }}>
+              {idea.description}
+            </p>
+          </div>
+
+          <div style={{
+            width: 96, height: 96, borderRadius: 10, overflow: 'hidden',
+            background: '#F0F2F8', flexShrink: 0,
+          }}>
+            {thumb}
+          </div>
+        </div>
+
+        {/* Actions */}
+        {actionsRow}
+
+        {overlays}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -334,121 +578,10 @@ export default function IdeaCard({ idea, onSaveToggle }) {
         </p>
 
         {/* Actions row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-
-            {/* Like */}
-            <button
-              onClick={handleLike}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                background: liked ? '#FEF2F2' : 'transparent',
-                border: liked ? '1px solid #FCA5A5' : '1px solid transparent',
-                borderRadius: 999,
-                padding: '4px 7px',
-                cursor: 'pointer',
-                color: liked ? '#DC2626' : '#90A4AE',
-                fontSize: 11, fontWeight: 600,
-                fontFamily: 'Inter, sans-serif',
-                transition: 'all 180ms cubic-bezier(0.34,1.56,0.64,1)',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              aria-label={liked ? 'Unlike idea' : 'Like idea'}
-            >
-              <span style={{
-                display: 'inline-block',
-                transform: likeAnim ? 'scale(1.45)' : 'scale(1)',
-                transition: 'transform 350ms cubic-bezier(0.34,1.56,0.64,1)',
-              }}>
-                <HeartIcon filled={liked} size={13} />
-              </span>
-              <span>{likes}</span>
-            </button>
-
-            {/* Comment */}
-            <button
-              onClick={handleComment}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                background: 'transparent', border: '1px solid transparent',
-                borderRadius: 999, padding: '4px 7px', cursor: 'pointer',
-                color: '#90A4AE', fontSize: 11, fontWeight: 600,
-                fontFamily: 'Inter, sans-serif',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              aria-label="Comment on idea"
-            >
-              <CommentIcon size={13} />
-              <span>{idea.commentCount ?? 0}</span>
-            </button>
-
-            {/* Share */}
-            <button
-              onClick={handleShare}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                background: 'transparent', border: '1px solid transparent',
-                borderRadius: 999, padding: '4px 7px', cursor: 'pointer',
-                color: '#90A4AE', fontSize: 11, fontWeight: 600,
-                fontFamily: 'Inter, sans-serif',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              aria-label="Share idea"
-            >
-              <ShareIcon size={13} />
-            </button>
-          </div>
-
-          {/* Save */}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              background: saved ? '#EEF4FF' : 'transparent',
-              border: saved ? '1px solid #AEBCFF' : '1px solid transparent',
-              borderRadius: 999,
-              padding: '4px 7px',
-              cursor: saving ? 'wait' : 'pointer',
-              color: saved ? '#1565C0' : '#90A4AE',
-              fontSize: 11, fontWeight: 600,
-              fontFamily: 'Inter, sans-serif',
-              transition: 'all 180ms cubic-bezier(0.34,1.56,0.64,1)',
-              opacity: saving ? 0.6 : 1,
-              WebkitTapHighlightColor: 'transparent',
-            }}
-            aria-label={saved ? 'Unsave idea' : 'Save idea'}
-          >
-            <BookmarkIcon filled={saved} size={14} />
-          </button>
-        </div>
+        {actionsRow}
       </div>
 
-      {/* Share Post sheet */}
-      {shareOpen && (
-        <SharePostSheet
-          post={idea}
-          onClose={() => setShareOpen(false)}
-          onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2600); }}
-        />
-      )}
-      {toast && createPortal(
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 90,
-            zIndex: 60, background: '#0D2137', color: '#fff',
-            fontSize: 13, fontFamily: 'Inter, sans-serif', fontWeight: 500,
-            padding: '10px 18px', borderRadius: 999,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-            maxWidth: '90%', textAlign: 'center',
-          }}
-        >
-          {toast}
-        </div>,
-        document.body,
-      )}
+      {overlays}
 
       <style>{`
         .sc-card:hover .sc-card-img { transform: scale(1.06); }

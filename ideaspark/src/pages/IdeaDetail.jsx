@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav.premium';
 import Icon from '../components/common/Icon';
+import SharePostSheet from '../components/common/SharePostSheet';
 import { useAuth } from '../context/AuthContext';
 import ImageGallery, { ideaImages } from '../components/common/ImageGallery';
 import {
@@ -9,6 +11,10 @@ import {
   fetchComments,
   addComment,
   deleteComment,
+  saveIdea,
+  unsaveIdea,
+  likeIdea,
+  unlikeIdea,
 } from '../api/ideaApi';
 
 /* ── Helpers (mirrors IdeaCard.premium formatDate) ───────────── */
@@ -39,6 +45,16 @@ export default function IdeaDetail() {
   const [postErr, setPostErr]   = useState('');
   const inputRef = useRef(null);
 
+  // ── Engagement (like / save / share) — mirrors IdeaCard.premium ──
+  const [liked, setLiked]       = useState(false);
+  const [likes, setLikes]       = useState(0);
+  const [likeAnim, setLikeAnim] = useState(false);
+  const [saved, setSaved]       = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [toast, setToast]       = useState(null);
+  const saveRef = useRef(false);
+
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -48,6 +64,9 @@ export default function IdeaDetail() {
         if (!alive) return;
         setIdea(ideaRes.data);
         setComments(commentRes.data || []);
+        setLiked(ideaRes.data?.likedByCurrentUser ?? false);
+        setLikes(ideaRes.data?.likeCount ?? 0);
+        setSaved(ideaRes.data?.savedByCurrentUser ?? false);
       })
       .catch(() => { if (alive) setError(true); })
       .finally(() => { if (alive) setLoading(false); });
@@ -88,6 +107,36 @@ export default function IdeaDetail() {
     } catch (_) {
       setComments(prev); // revert on failure
     }
+  };
+
+  const showToast = (m) => { setToast(m); setTimeout(() => setToast(null), 2200); };
+
+  const handleLike = async () => {
+    setLikeAnim(true);
+    setTimeout(() => setLikeAnim(false), 400);
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikes((l) => (wasLiked ? l - 1 : l + 1));
+    try {
+      wasLiked ? await unlikeIdea(id) : await likeIdea(id);
+    } catch (_) {
+      setLiked(wasLiked);
+      setLikes((l) => (wasLiked ? l + 1 : l - 1));
+    }
+  };
+
+  const handleSave = async () => {
+    if (saving || saveRef.current) return;
+    saveRef.current = true;
+    setSaving(true);
+    const wasSaved = saved;
+    try {
+      wasSaved ? await unsaveIdea(id) : await saveIdea(id);
+      setSaved(!wasSaved);
+      showToast(wasSaved ? 'Removed from saved' : 'Saved to your ideas');
+    } catch (_) {}
+    setSaving(false);
+    saveRef.current = false;
   };
 
   return (
@@ -160,13 +209,65 @@ export default function IdeaDetail() {
                 {idea.description}
               </p>
 
-              <div className="flex items-center gap-5 text-[#546E7A] text-sm border-y border-[#ECEFF6] py-3 mb-5">
-                <span className="flex items-center gap-1.5">
-                  <Icon name="heart" className="w-4 h-4" /> {idea.likeCount ?? 0}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Icon name="message-square" className="w-4 h-4" /> {comments.length}
-                </span>
+              {/* Engagement actions — like / comment / share / save */}
+              <div className="flex items-center justify-between border-y border-[#ECEFF6] py-2.5 mb-5">
+                <div className="flex items-center gap-1">
+                  {/* Like */}
+                  <button
+                    onClick={handleLike}
+                    aria-label={liked ? 'Unlike idea' : 'Like idea'}
+                    className={`flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-xl transition-all active:scale-95
+                      ${liked ? 'text-[#DC2626] bg-[#FEF2F2]' : 'text-[#546E7A] hover:bg-[#F4F7FF]'}`}
+                  >
+                    <svg className={`w-[18px] h-[18px] transition-transform ${likeAnim ? 'scale-125' : 'scale-100'}`}
+                      viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'}
+                      stroke="currentColor" strokeWidth={liked ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19.5 12.6l-7.5 7.4-7.5-7.4a5 5 0 117.5-6.6 5 5 0 117.5 6.6z" />
+                    </svg>
+                    {likes}
+                  </button>
+
+                  {/* Comment — focuses the composer */}
+                  <button
+                    onClick={() => inputRef.current?.focus()}
+                    aria-label="Comment on idea"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-[#546E7A] px-2.5 py-1.5 rounded-xl hover:bg-[#F4F7FF] transition-all active:scale-95"
+                  >
+                    <Icon name="message-square" className="w-[18px] h-[18px]" />
+                    {comments.length}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {/* Share */}
+                  <button
+                    onClick={() => setShareOpen(true)}
+                    aria-label="Share idea"
+                    className="flex items-center justify-center w-9 h-9 rounded-xl text-[#546E7A] hover:bg-[#F4F7FF] transition-all active:scale-95"
+                  >
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="18" cy="5" r="3" />
+                      <circle cx="6" cy="12" r="3" />
+                      <circle cx="18" cy="19" r="3" />
+                      <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+                    </svg>
+                  </button>
+
+                  {/* Save */}
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    aria-label={saved ? 'Unsave idea' : 'Save idea'}
+                    className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all active:scale-95
+                      ${saved ? 'text-[#1565C0] bg-[#E3F2FD]' : 'text-[#546E7A] hover:bg-[#F4F7FF]'} ${saving ? 'opacity-60' : ''}`}
+                  >
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'}
+                      stroke="currentColor" strokeWidth={saved ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* ── Comments ─────────────────────────────────── */}
@@ -227,6 +328,25 @@ export default function IdeaDetail() {
           </button>
         </form>
         </div>
+      )}
+
+      {/* Share sheet */}
+      {shareOpen && idea && (
+        <SharePostSheet
+          post={idea}
+          onClose={() => setShareOpen(false)}
+          onToast={showToast}
+        />
+      )}
+
+      {/* Toast (save / share feedback) */}
+      {toast && createPortal(
+        <div
+          className="fixed left-1/2 -translate-x-1/2 bottom-[140px] z-[60] bg-[#0D2137] text-white text-[13px] font-medium px-4 py-2.5 rounded-full shadow-xl max-w-[90%] text-center"
+        >
+          {toast}
+        </div>,
+        document.body,
       )}
 
       <BottomNav />

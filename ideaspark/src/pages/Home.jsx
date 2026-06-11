@@ -127,21 +127,23 @@ export default function Home() {
           </div>
 
           {/* FEED */}
-          <div className="px-4 pt-6">
+          <div className="px-4 pt-2">
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Array(6).fill(0).map((_, i) => (
-                  <IdeaCardSkeleton key={i} />
+              <div>
+                {Array(5).fill(0).map((_, i) => (
+                  <div key={i} className="py-5 border-b border-[#F0F2F8] last:border-b-0">
+                    <IdeaCardSkeleton variant="list" />
+                  </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
                 {ideas.map((idea) => (
                   <div
                     key={idea.id}
-                    className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+                    className="py-5 border-b border-[#F0F2F8] last:border-b-0"
                   >
-                    <IdeaCard idea={idea} />
+                    <IdeaCard idea={idea} variant="list" />
                   </div>
                 ))}
               </div>
