@@ -94,14 +94,27 @@ export default function Home() {
 
         {/* floating greeting card */}
         <div className="relative z-10 mt-6">
-          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-4 shadow-md">
-            <h2 className="text-white text-2xl font-bold flex items-center gap-2">
-              Hey, {user?.name?.split(' ')[0] ?? 'there'}
-              <Icon name="hand" className="w-6 h-6 text-amber-300" />
-            </h2>
-            <p className="text-blue-200 text-[15px] mt-1">
-              Discover ideas, connect with creators, and build something meaningful
-            </p>
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-4 shadow-md flex items-center gap-3">
+            {user?.profileImage ? (
+              <img
+                src={user.profileImage}
+                alt={user?.name || 'You'}
+                className="w-12 h-12 rounded-2xl object-cover border border-white/20 shrink-0"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/20 flex items-center justify-center text-white text-xl font-bold shrink-0">
+                {user?.name?.[0]?.toUpperCase() ?? '?'}
+              </div>
+            )}
+            <div className="min-w-0">
+              <h2 className="text-white text-2xl font-bold flex items-center gap-2">
+                Hey, {user?.name?.split(' ')[0] ?? 'there'}
+                <Icon name="hand" className="w-6 h-6 text-amber-300" />
+              </h2>
+              <p className="text-blue-200 text-[15px] mt-1">
+                Discover ideas, connect with creators, and build something meaningful
+              </p>
+            </div>
           </div>
         </div>
       </header>

@@ -85,7 +85,14 @@ export default function IdeaDetail() {
     setPostErr('');
     try {
       const { data } = await addComment(id, content);
-      setComments((prev) => [data, ...prev]);
+      // Fall back to the current user's identity so the new comment shows an
+      // avatar/name immediately even if the API response omits them.
+      const newComment = {
+        ...data,
+        userName:  data.userName  ?? user?.name,
+        userImage: data.userImage ?? user?.profileImage ?? null,
+      };
+      setComments((prev) => [newComment, ...prev]);
       setText('');
     } catch (err) {
       const status = err?.response?.status;
@@ -279,11 +286,20 @@ export default function IdeaDetail() {
                 <p className="text-[#90A4AE] text-sm py-6 text-center">No comments yet — be the first to share your thoughts.</p>
               ) : (
                 <ul className="space-y-3 mb-4">
-                  {comments.map((c) => (
+                  {comments.map((c) => {
+                    // Backend comments may omit userImage; for the current user's
+                    // own comments fall back to their live profile photo.
+                    const avatarSrc = c.userImage || (isMine(c) ? user?.profileImage : null);
+                    return (
                     <li key={c.id} className="flex gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#EEF0FF] text-[#1A28A0] font-bold flex items-center justify-center text-xs shrink-0">
-                        {initials(c.userName)}
-                      </div>
+                      {avatarSrc ? (
+                        <img src={avatarSrc} alt={c.userName || 'User'}
+                          className="w-8 h-8 rounded-lg object-cover bg-[#EEF0FF] shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-[#EEF0FF] text-[#1A28A0] font-bold flex items-center justify-center text-xs shrink-0">
+                          {initials(c.userName)}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0 bg-[#F7F9FF] border border-[#ECEFF6] rounded-2xl px-3.5 py-2.5">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-[#0D2137] font-semibold text-[13px] truncate">{c.userName || 'User'}</span>
@@ -298,7 +314,8 @@ export default function IdeaDetail() {
                         <p className="text-[#37474F] text-sm break-words">{c.content}</p>
                       </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </>

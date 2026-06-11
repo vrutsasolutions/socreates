@@ -283,17 +283,29 @@ export default function DrawerMenu({ open, onClose }) {
 
           {/* Avatar + info */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: 16,
-              background: av.bg, color: av.text,
-              fontSize: 20, fontWeight: 800,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-              fontFamily: 'var(--sc-font-display, Inter, sans-serif)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            }}>
-              {user?.name?.[0]?.toUpperCase() ?? '?'}
-            </div>
+            {user?.profileImage ? (
+              <img
+                src={user.profileImage}
+                alt={user?.name || 'Profile photo'}
+                style={{
+                  width: 52, height: 52, borderRadius: 16,
+                  objectFit: 'cover', flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                }}
+              />
+            ) : (
+              <div style={{
+                width: 52, height: 52, borderRadius: 16,
+                background: av.bg, color: av.text,
+                fontSize: 20, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                fontFamily: 'var(--sc-font-display, Inter, sans-serif)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              }}>
+                {user?.name?.[0]?.toUpperCase() ?? '?'}
+              </div>
+            )}
 
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{

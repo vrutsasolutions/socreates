@@ -75,9 +75,17 @@ export default function Profile() {
 
             
             <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-[#1565C0] font-bold text-2xl">
-                {user?.name?.[0]?.toUpperCase()}
-              </div>
+              {user?.profileImage ? (
+                <img
+                  src={user.profileImage}
+                  alt={user?.name || 'Profile photo'}
+                  className="w-16 h-16 rounded-2xl object-cover bg-white"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-[#1565C0] font-bold text-2xl">
+                  {user?.name?.[0]?.toUpperCase()}
+                </div>
+              )}
             </div>
 
             

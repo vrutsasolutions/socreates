@@ -12,6 +12,7 @@
 
 import { NavLink, useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 /* ── Nav items ───────────────────────────────────────────────
    Each item has a unique custom icon — not generic heroicons.
@@ -98,6 +99,7 @@ const NAV_ITEMS = [
 /* ── Component ───────────────────────────────────────────── */
 export default function BottomNav() {
   const location = useLocation();
+  const { user } = useAuth();
   const navRef   = useRef(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, opacity: 0 });
   const itemRefs = useRef([]);
@@ -213,7 +215,19 @@ export default function BottomNav() {
                     transform: isActive ? 'scale(1.12)' : 'scale(1)',
                     transition: 'transform 300ms cubic-bezier(0.34,1.56,0.64,1)',
                   }}>
-                    <Icon active={isActive} />
+                    {to === '/profile' && user?.profileImage ? (
+                      <img
+                        src={user.profileImage}
+                        alt="Profile"
+                        style={{
+                          width: 22, height: 22, borderRadius: '50%',
+                          objectFit: 'cover', display: 'block',
+                          boxShadow: isActive ? '0 0 0 2px var(--sc-primary-500, #3347E8)' : 'none',
+                        }}
+                      />
+                    ) : (
+                      <Icon active={isActive} />
+                    )}
                   </div>
 
                   {/* Label */}
