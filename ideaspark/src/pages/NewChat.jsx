@@ -50,13 +50,13 @@ export default function NewChat() {
 
         <div className="flex items-center gap-3 relative z-10">
           <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
-            aria-label="Go back"
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
+              </svg>
           </button>
           <span className="text-white font-bold text-lg flex-1">New Chat</span>
         </div>
@@ -118,11 +118,12 @@ export default function NewChat() {
                     <p className="text-[15px] font-semibold text-[#0D2137] truncate">{c.name}</p>
                     <p className="text-sm text-[#90A4AE] truncate">{c.handle}</p>
                   </div>
-                  <span className="w-9 h-9 rounded-full bg-[#1565C0] hover:bg-[#0D47A1] text-white flex items-center justify-center shrink-0 active:scale-90 transition-all">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h8M12 8v8" />
-                    </svg>
-                  </span>
+                  {/* Replace the <span> button at the end of each contact row with: */}
+<span className="w-9 h-9 rounded-2xl bg-[#E3F2FD] text-[#1565C0] flex items-center justify-center shrink-0 hover:bg-[#BBDEFB] active:scale-90 transition-all">
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.83L3 20l1.17-3.5A7.86 7.86 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+</span>
                 </button>
               ))
             )}

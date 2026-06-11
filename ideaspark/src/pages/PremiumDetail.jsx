@@ -105,13 +105,13 @@ export default function PremiumDetail() {
 
         <div className="flex items-center gap-3 relative z-10">
           <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
-            aria-label="Go back"
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
+              </svg>
           </button>
           <span className="flex-1" />
           <div className="bg-white/15 backdrop-blur-sm border border-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5">

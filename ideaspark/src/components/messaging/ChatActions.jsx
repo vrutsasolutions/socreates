@@ -299,39 +299,74 @@ export function ShareProfileSheet({ convo, onClose, onCopyLink, onSendDM, onToas
     else if (key === 'dm') onSendDM?.();
     else onToast?.('Coming soon');
   };
+
   return (
     <div className="fixed inset-0 z-50 bg-[#F4F7FF] flex flex-col">
       <style>{SHEET_CSS}</style>
+
       {/* Header */}
-      <div className="bg-white px-4 py-4 flex items-center">
-        <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center text-[#90A4AE]">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" /></svg>
+      <div className="bg-white px-4 py-4 flex items-center gap-3 border-b border-[#F0F6FF]">
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="w-9 h-9 flex items-center justify-center text-[#90A4AE] hover:text-[#546E7A] active:scale-90 transition-all"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+          </svg>
         </button>
-        <h1 className="flex-1 text-center text-[20px] font-bold text-[#0D2137]">Share Profile</h1>
-        <span className="w-8" />
+        <h1 className="flex-1 text-center text-[18px] font-bold text-[#0D2137]">Share Profile</h1>
+        <span className="w-9" />
       </div>
-      <div className="h-1.5 bg-[#FACC15]" />
+      {/* Blue accent strip matching the app header colour */}
+      <div className="h-1 bg-[#1565C0]" />
 
       {/* Profile card */}
       <div className="mx-4 mt-5 bg-white rounded-2xl border border-[#E3F2FD] shadow-sm p-6 flex flex-col items-center">
-        <Avatar initial={convo.initial} color={convo.avatarColor} size={84} />
-        <h2 className="mt-4 text-[22px] font-bold text-[#0D2137]">{convo.name}</h2>
-        <p className="text-[13px] text-[#90A4AE]">{handleFor(convo.name)}&nbsp;&nbsp;{convo.followers ?? '2.4k'} followers</p>
+        <div className="relative">
+          <Avatar initial={convo.initial} color={convo.avatarColor} size={80} online={convo.online} />
+        </div>
+        <h2 className="mt-4 text-[20px] font-bold text-[#0D2137]">{convo.name}</h2>
+        <p className="text-[13px] text-[#90A4AE] mt-1">
+          {handleFor(convo.name)} &nbsp;·&nbsp; {convo.followers ?? '2.4k'} followers
+        </p>
       </div>
 
       {/* Quick actions */}
-      <div className="flex justify-center gap-6 mt-6">
-        {SHARE_ACTIONS.map((a) => (
-          <button key={a.key} onClick={() => act(a.key)} className="flex flex-col items-center gap-1.5">
-            <span className="w-14 h-14 rounded-full bg-[#E3F2FD] text-[#1565C0] font-bold text-lg flex items-center justify-center">{a.letter}</span>
-            <span className="text-[12px] text-[#90A4AE]">{a.label}</span>
+      <div className="flex justify-center gap-8 mt-6 px-4">
+        {[
+          { key: 'copy', label: 'Copy Link', icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          )},
+          { key: 'dm', label: 'Send DM', icon: (
+            <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h8M12 8l4 4-4 4" />
+            </svg>
+          )},
+          { key: 'more', label: 'More', icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <path strokeLinecap="round" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+            </svg>
+          )},
+        ].map((a) => (
+          <button key={a.key} onClick={() => act(a.key)} className="flex flex-col items-center gap-2 active:scale-90 transition-transform">
+            <span className="w-14 h-14 rounded-full bg-[#E3F2FD] text-[#1565C0] flex items-center justify-center hover:bg-[#BBDEFB] transition-colors">
+              {a.icon}
+            </span>
+            <span className="text-[12px] text-[#90A4AE] font-medium">{a.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Send via message */}
+      {/* CTA */}
       <div className="mt-auto p-4">
-        <button onClick={onSendDM} className="w-full h-13 py-3.5 rounded-full bg-[#1565C0] text-white font-semibold hover:bg-[#0D47A1] transition-colors">
+        <button
+          onClick={onSendDM}
+          className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-[0.97] transition-all shadow-md shadow-blue-200 text-[15px]"
+        >
           Send via Message
         </button>
       </div>

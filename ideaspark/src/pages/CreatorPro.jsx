@@ -53,42 +53,43 @@ export default function CreatorPro() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-12">
+<header className="bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
+  <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+    <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+  </div>
 
-      {/* Header */}
-      <header className="bg-[#1565C0] px-4 pt-4 pb-16 relative shadow-lg overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
-          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
-        </div>
+  <div className="flex items-center gap-3 relative z-10">
+   <button
+           onClick={() => navigate(-1)}
+               aria-label="Go back"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
+         >
+             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+             </svg>
+        </button>
+    <h1 className="text-white font-bold text-lg flex-1">Creator Pro</h1>
+  </div>
 
-        <div className="flex items-center gap-3 relative z-10">
-          <button onClick={() => navigate(-1)}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-            </svg>
-          </button>
-          <h1 className="text-white font-bold text-lg flex-1">Creator Pro</h1>
-        </div>
-
-        {/* Intro banner */}
-        <div className="relative z-10 mt-5 bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-4 text-center">
-          <p className="text-blue-100 text-sm">
-            {isPro ? 'Your creator account' : 'Unlock your full creator potential'} 🚀
-          </p>
-          <p className="text-white font-bold text-lg mt-1">
-            {isPro ? 'Creator Pro' : 'Become a Creator Pro'}
-          </p>
-        </div>
-      </header>
-
+  <div className="relative z-10 mt-5 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-4 text-center">
+    <p className="text-blue-200 text-sm">
+      {isPro ? 'Your creator account' : 'Unlock your full creator potential'} 🚀
+    </p>
+    <p className="text-white font-bold text-lg mt-1">
+      {isPro ? 'Creator Pro' : 'Become a Creator Pro'}
+    </p>
+  </div>
+</header>
       {/* Body */}
-      <div className="px-4 -mt-8 relative z-10">
-        {isPro
-          ? <ActiveState user={user} navigate={navigate} />
-          : <UpgradeState loading={loading} error={error} onUpgrade={handleUpgrade} />}
-      </div>
-    </div>
+     <div className="bg-[#1565C0]">
+  <div className="bg-white rounded-t-[32px] px-4 pt-6 pb-12">
+    {isPro
+      ? <ActiveState user={user} navigate={navigate} />
+      : <UpgradeState loading={loading} error={error} onUpgrade={handleUpgrade} />}
+  </div>
+</div>
+</div>
   );
 }
 

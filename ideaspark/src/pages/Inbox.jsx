@@ -117,13 +117,13 @@ export default function Inbox() {
         {/* top bar */}
         <div className="flex items-center gap-2 relative z-10">
           <button
-            onClick={() => navigate('/home')}
-            aria-label="Back"
-            className="w-9 h-9 -ml-1 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
+              </svg>
           </button>
           <h1 className="flex-1 text-[28px] font-bold text-white leading-none">Messages</h1>
           <button

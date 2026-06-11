@@ -44,14 +44,16 @@ export default function Premium() {
 
         {/* TOP BAR (NO STRUCTURE CHANGE) */}
         <div className="flex items-center relative z-10">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-blue-200 hover:text-white transition"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-            </svg>
-          </button>
+          
+<button
+  onClick={() => navigate(-1)}
+  aria-label="Go back"
+  className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
+>
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+  </svg>
+</button>
 
           <h1 className="flex-1 text-center text-white font-bold text-lg">
             Premium Ideas

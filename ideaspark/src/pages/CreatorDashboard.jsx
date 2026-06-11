@@ -60,24 +60,42 @@ export default function CreatorDashboard() {
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-12">
 
-    {/* HEADER — matches Home exactly */}
-<header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
-
-  {/* decorative circles */}
+  <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
   <div className="pointer-events-none absolute inset-0 overflow-hidden">
     <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
     <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
   </div>
-
-  {/* title row */}
   <div className="relative z-10">
-    <h1 className="text-[28px] font-bold text-white leading-none">
-      Creator Dashboard
-    </h1>
-    <p className="text-white/70 text-sm mt-1">
-      Insights, verification and creator performance
-    </p>
+    <h1 className="text-[26px] font-bold text-white leading-none">Creator Dashboard</h1>
+    <p className="text-white/60 text-sm mt-1">Insights, verification & creator performance</p>
   </div>
+  {/* Identity + status card */}
+  
+<div className="relative z-10 mt-5 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-4 flex items-center gap-3">
+ 
+  {user?.profileImage ? (
+    <img
+      src={user.profileImage}
+      alt={user?.name || 'You'}
+      className="w-12 h-12 rounded-2xl object-cover border border-white/20 shrink-0"
+    />
+  ) : (
+    <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/20 flex items-center justify-center text-white text-xl font-bold shrink-0">
+      {user?.name?.[0]?.toUpperCase() ?? '?'}
+    </div>
+  )}
+  <div className="min-w-0">
+    <div className="text-white font-bold text-[15px] truncate">{user?.name ?? 'Creator'}</div>
+    {d.status.creatorPro && d.status.verified && (
+      <div className="mt-1.5 inline-flex items-center gap-1.5 bg-[#ECFDF5] border border-[#A7F3D0] rounded-full px-3 py-0.5 text-[11px] font-bold text-[#065F46]">
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        Verified Creator Pro
+      </div>
+    )}
+  </div>
+</div>
 </header>
 
       <div className="bg-[#1565C0]">
@@ -157,17 +175,19 @@ export default function CreatorDashboard() {
 
             {/* ── Section 5 — Future Earnings ──────────────────── */}
             <Section title="Future Earnings">
-              <div className="bg-white rounded-3xl border border-[#E3F2FD] p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#546E7A] text-sm">Estimated earnings</span>
-                  <span className="text-[#0D2137] text-2xl font-bold">₹{fmt(d.earnings.estimated)}</span>
-                </div>
-                <div className="flex items-center gap-2 bg-[#FFF8EC] border border-[#FDE68A] rounded-xl px-3 py-2.5">
-                  <Icon name="alert-triangle" className="w-4 h-4 text-[#D97706] shrink-0" />
-                  <span className="text-[#92400E] text-xs">Revenue sharing coming soon — earnings will appear here</span>
-                </div>
-              </div>
-            </Section>
+  <div className="bg-white rounded-2xl border border-[#E3F2FD] p-4 shadow-sm space-y-3">
+    <div className="flex items-center justify-between">
+      <span className="text-[#546E7A] text-sm">Estimated earnings</span>
+      <span className="text-[#0D2137] text-2xl font-bold">₹{fmt(d.earnings.estimated)}</span>
+    </div>
+    <div className="flex items-start gap-2 bg-[#FFF8EC] border border-[#FDE68A] rounded-xl px-3 py-2.5">
+      <Icon name="alert-triangle" className="w-4 h-4 text-[#D97706] shrink-0 mt-0.5" />
+      <span className="text-[#92400E] text-xs leading-relaxed">
+        Revenue sharing coming soon — earnings will appear here
+      </span>
+    </div>
+  </div>
+</Section>
 
             {/* ── Section 6 — Verification center ──────────────── */}
             <Section title="Verification center">
@@ -300,11 +320,13 @@ function MiniCard({ label, value, accent, tint, wide }) {
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-7">
-      {[0, 1, 2].map((i) => (
+    <div className="space-y-7 animate-pulse">
+      {[0, 1, 2, 3].map((i) => (
         <div key={i} className="space-y-2.5">
-          <div className="sc-skeleton sc-skeleton-text w-32" />
-          <div className="sc-skeleton rounded-3xl h-28" />
+          {/* Section label placeholder */}
+          <div className="h-3 bg-[#E3F2FD] rounded-full w-24" />
+          {/* Card placeholder */}
+          <div className="bg-[#F0F6FF] rounded-2xl h-28" />
         </div>
       ))}
     </div>
