@@ -4,7 +4,7 @@ import BottomNav from '../components/common/BottomNav.premium';
 import api from '../api/axiosInstance';
 import { useAuth } from '../context/AuthContext';
 import { hasCreatorPro } from '../api/paymentApi';
-import { AIAssistantBar } from '../components/common/AIInteractions.premium';
+import { AIAssistantBar, AIThinkingBubble } from '../components/common/AIInteractions.premium';
 import { saveIdeaDraft, takeIdeaDraft } from '../state/ideaDraft';
 
 const CATEGORIES = [
@@ -13,6 +13,301 @@ const CATEGORIES = [
 ];
 
 const STEPS = ['Details', 'Media', 'Publish'];
+
+// ── AI Refine Modal ────────────────────────────────────────────────────────────
+function AIRefineModal({ original, onAccept, onClose }) {
+  // "select" → user picks a mode
+  // "loading" → calling API
+  // "done"    → show results
+  // "error"   → show error
+  const [screen, setScreen]   = useState('select');
+  const [mode, setMode]       = useState('enhance');  // "enhance" | "grammar"
+  const [refined, setRefined] = useState(null);
+  const [errMsg, setErrMsg]   = useState('');
+
+  const callApi = (selectedMode) => {
+    setScreen('loading');
+    setRefined(null);
+    setErrMsg('');
+    api.post('/ai/enhance', {
+      title:       original.title,
+      description: original.description,
+      mode:        selectedMode,
+    })
+      .then(({ data }) => { setRefined(data); setScreen('done'); })
+      .catch((err)    => {
+        setErrMsg(err?.response?.data?.message || 'AI service unavailable. Try again.');
+        setScreen('error');
+      });
+  };
+
+  const handleRun = () => callApi(mode);
+
+  const handleRerun = () => callApi(mode);
+
+  // Sparkle SVG icon
+  const SparkleIcon = ({ size = 16, color = '#fff' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/>
+      <path d="M5 5l1 2.5L8.5 8 6 9l-1 2.5L4 9 1.5 8 4 7 5 5z" strokeWidth={1.4}/>
+    </svg>
+  );
+
+  return (
+    // Full-screen overlay — centered, not bottom-anchored
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      {/* Card — wider, centered, taller */}
+      <div
+        className="bg-white w-full rounded-3xl shadow-2xl overflow-hidden"
+        style={{ maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}
+      >
+
+        {/* ── Header (always visible) ── */}
+        <div className="px-6 pt-6 pb-0">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                 style={{ background: 'linear-gradient(135deg,#7C3AED,#4F62F5)' }}>
+              <SparkleIcon size={18} />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-[#0D2137] text-[15px] leading-tight">IdeaSpark AI</p>
+              <p className="text-[11px] text-[#90A4AE]">
+                {screen === 'select'
+                  ? 'Choose how AI should help you'
+                  : mode === 'grammar'
+                  ? 'Spelling & grammar fix · Same words'
+                  : 'Clarity · Flow · Impact · Same idea'}
+              </p>
+            </div>
+            <button onClick={onClose}
+                    className="text-[#90A4AE] text-lg leading-none hover:text-[#0D2137] ml-2">
+              ✕
+            </button>
+          </div>
+          <div className="h-px bg-[#EEF2FF] mt-4" />
+        </div>
+
+        <div className="px-6 py-5">
+
+          {/* ══ SCREEN: mode selection ══ */}
+          {screen === 'select' && (
+            <div className="space-y-4">
+
+              <p className="text-[11px] font-bold text-[#90A4AE] uppercase tracking-widest mb-3">
+                Select mode
+              </p>
+
+              {/* Option 1 — Rewrite & Enhance */}
+              <button
+                onClick={() => setMode('enhance')}
+                className={`w-full flex items-start gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
+                  mode === 'enhance'
+                    ? 'border-[#7C3AED] bg-[#F5F3FF]'
+                    : 'border-[#E3E8F0] bg-white hover:border-[#C4B5FD]'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#EDE9FE]">
+                  <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
+                       stroke="#7C3AED" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-[#0D2137] text-sm mb-1">Rewrite &amp; enhance</p>
+                  <p className="text-xs text-[#546E7A] leading-relaxed mb-2">
+                    Improves flow, clarity and makes your idea more compelling — same concept, better words.
+                  </p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {['Clarity', 'Flow', 'Impact'].map(t => (
+                      <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#5B21B6] font-semibold">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                  mode === 'enhance' ? 'border-[#7C3AED] bg-[#7C3AED]' : 'border-[#CBD5E1]'
+                }`}>
+                  {mode === 'enhance' && (
+                    <svg width={10} height={10} viewBox="0 0 12 12" fill="none"
+                         stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 6l3 3 5-5"/>
+                    </svg>
+                  )}
+                </div>
+              </button>
+
+              {/* Option 2 — Fix Spelling & Grammar */}
+              <button
+                onClick={() => setMode('grammar')}
+                className={`w-full flex items-start gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
+                  mode === 'grammar'
+                    ? 'border-[#1565C0] bg-[#EFF6FF]'
+                    : 'border-[#E3E8F0] bg-white hover:border-[#93C5FD]'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#DBEAFE]">
+                  <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
+                       stroke="#1565C0" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 7h16M4 12h10M4 17h6"/>
+                    <circle cx="19" cy="17" r="3"/>
+                    <path d="M17.5 17l1 1 2-2"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-[#0D2137] text-sm mb-1">Fix spelling &amp; grammar</p>
+                  <p className="text-xs text-[#546E7A] leading-relaxed mb-2">
+                    Corrects spelling, punctuation and grammar only. Zero changes to your meaning or style.
+                  </p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {['Spelling', 'Grammar', 'Punctuation'].map(t => (
+                      <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#1E40AF] font-semibold">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                  mode === 'grammar' ? 'border-[#1565C0] bg-[#1565C0]' : 'border-[#CBD5E1]'
+                }`}>
+                  {mode === 'grammar' && (
+                    <svg width={10} height={10} viewBox="0 0 12 12" fill="none"
+                         stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 6l3 3 5-5"/>
+                    </svg>
+                  )}
+                </div>
+              </button>
+
+              {/* Run button */}
+              <button
+                onClick={handleRun}
+                className="w-full py-3.5 rounded-2xl font-bold text-sm text-white mt-2 active:scale-95 transition-transform"
+                style={{ background: mode === 'grammar' ? '#1565C0' : 'linear-gradient(135deg,#7C3AED,#4F62F5)' }}
+              >
+                <SparkleIcon size={14} color="#fff" /> &nbsp;Run AI
+              </button>
+
+              <button onClick={onClose}
+                      className="w-full bg-[#F4F7FF] text-[#546E7A] py-3 rounded-2xl font-semibold text-sm">
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* ══ SCREEN: loading ══ */}
+          {screen === 'loading' && (
+            <div className="flex flex-col items-center gap-4 py-12">
+              <AIThinkingBubble message={
+                mode === 'grammar' ? 'Checking spelling & grammar…' : 'Polishing your idea…'
+              } />
+            </div>
+          )}
+
+          {/* ══ SCREEN: error ══ */}
+          {screen === 'error' && (
+            <div className="space-y-4">
+              <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-sm text-red-500">
+                {errMsg}
+              </div>
+              <button onClick={handleRerun}
+                      className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold text-sm">
+                Try Again
+              </button>
+              <button onClick={() => setScreen('select')}
+                      className="w-full bg-[#F4F7FF] text-[#546E7A] py-3 rounded-2xl font-semibold text-sm">
+                ← Change mode
+              </button>
+            </div>
+          )}
+
+          {/* ══ SCREEN: results ══ */}
+          {screen === 'done' && refined && (
+            <div className="space-y-4">
+
+              {/* Mode badge */}
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${
+                  mode === 'grammar'
+                    ? 'bg-[#DBEAFE] text-[#1E40AF]'
+                    : 'bg-[#EDE9FE] text-[#5B21B6]'
+                }`}>
+                  {mode === 'grammar' ? '🔤 Spelling & grammar fixed' : '✨ Rewritten & enhanced'}
+                </span>
+              </div>
+
+              {/* Title comparison */}
+              <div className="rounded-2xl border border-[#BBDEFB] overflow-hidden">
+                <div className="bg-[#F4F7FF] px-4 py-2 border-b border-[#BBDEFB]">
+                  <p className="text-[11px] font-bold text-[#90A4AE] uppercase tracking-wide">Title</p>
+                </div>
+                <div className="px-4 py-3 border-b border-[#F0F2F8]">
+                  <p className="text-[10px] text-[#90A4AE] font-semibold mb-1">Original</p>
+                  <p className="text-sm text-[#546E7A] line-through decoration-red-300">
+                    {original.title || <span className="italic">No title</span>}
+                  </p>
+                </div>
+                <div className="px-4 py-3">
+                  <p className="text-[10px] text-[#1565C0] font-semibold mb-1">✦ Refined</p>
+                  <p className="text-sm font-semibold text-[#0D2137]">{refined.title}</p>
+                </div>
+              </div>
+
+              {/* Description comparison */}
+              <div className="rounded-2xl border border-[#BBDEFB] overflow-hidden">
+                <div className="bg-[#F4F7FF] px-4 py-2 border-b border-[#BBDEFB]">
+                  <p className="text-[11px] font-bold text-[#90A4AE] uppercase tracking-wide">Description</p>
+                </div>
+                <div className="px-4 py-3 border-b border-[#F0F2F8] max-h-32 overflow-y-auto">
+                  <p className="text-[10px] text-[#90A4AE] font-semibold mb-1">Original</p>
+                  <p className="text-sm text-[#546E7A]">
+                    {original.description || <span className="italic">No description</span>}
+                  </p>
+                </div>
+                <div className="px-4 py-3 max-h-44 overflow-y-auto">
+                  <p className="text-[10px] text-[#1565C0] font-semibold mb-1">✦ Refined</p>
+                  <p className="text-sm text-[#0D2137] leading-relaxed">{refined.description}</p>
+                </div>
+              </div>
+
+              {/* Accept */}
+              <button
+                onClick={() => onAccept(refined)}
+                className="w-full py-3.5 rounded-2xl font-bold text-sm text-white active:scale-95 transition-transform"
+                style={{ background: mode === 'grammar' ? '#1565C0' : 'linear-gradient(135deg,#7C3AED,#4F62F5)' }}
+              >
+                ✓ Accept Changes
+              </button>
+
+              <div className="flex gap-3">
+                <button onClick={handleRerun}
+                        className="flex-1 bg-[#F4F7FF] text-[#1565C0] border border-[#BBDEFB] py-2.5 rounded-2xl font-semibold text-sm active:scale-95 transition-transform">
+                  ↺ Re-run AI
+                </button>
+                <button onClick={() => setScreen('select')}
+                        className="flex-1 bg-[#F4F7FF] text-[#546E7A] border border-[#BBDEFB] py-2.5 rounded-2xl font-semibold text-sm active:scale-95 transition-transform">
+                  ← Change mode
+                </button>
+              </div>
+
+              <button onClick={onClose}
+                      className="w-full bg-[#F4F7FF] text-[#546E7A] py-2.5 rounded-2xl font-semibold text-sm">
+                Discard
+              </button>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
+// ── End AIRefineModal ──────────────────────────────────────────────────────────
+
 
 export default function AddIdea() {
   const navigate = useNavigate();
@@ -31,17 +326,34 @@ export default function AddIdea() {
     price: '99'
   });
 
-  // Premium publishing is gated behind the /create-premium page (which decides
-  // verified vs not). Toggling ON hands off the in-progress draft and navigates
-  // there; toggling OFF just clears it inline.
+  // ── AI modal state ─────────────────────────────────────────────────────────
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+
+  const handleAiActivate = () => {
+    if (!form.title.trim() && !form.description.trim()) {
+      setError('Please write a title or description before using AI.');
+      return;
+    }
+    setError('');
+    setAiModalOpen(true);
+  };
+
+  const handleAiAccept = (refined) => {
+    setForm((prev) => ({
+      ...prev,
+      title:       (refined.title       || prev.title).slice(0, TITLE_MAX),
+      description: (refined.description || prev.description).slice(0, DESC_MAX),
+    }));
+    setAiModalOpen(false);
+  };
+  // ──────────────────────────────────────────────────────────────────────────
+
   const requestPremiumToggle = () => {
     if (form.isPremium) { setForm((f) => ({ ...f, isPremium: false })); return; }
     saveIdeaDraft({ form, images, previews });
     navigate('/create-premium');
   };
 
-  // Returning from the premium gate (?premium=1): restore the draft and, for a
-  // verified Creator Pro user, enable premium + apply the chosen price.
   useEffect(() => {
     if (params.get('premium') !== '1') return;
     const d = takeIdeaDraft();
@@ -56,15 +368,15 @@ export default function AddIdea() {
   }, []);
 
   const MAX_IMAGES = 5;
-  const TITLE_MAX = 200;
-  const DESC_MAX = 3000;
-  const [images, setImages] = useState([]);     // File[]
-  const [previews, setPreviews] = useState([]); // object-URL string[] (index-aligned with images)
+  const TITLE_MAX  = 200;
+  const DESC_MAX   = 3000;
+  const [images,   setImages]   = useState([]);
+  const [previews, setPreviews] = useState([]);
 
-  const [checking, setChecking] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [checkResult, setCheckResult] = useState(null);
-  const [error, setError] = useState('');
+  const [checking,     setChecking]     = useState(false);
+  const [publishing,   setPublishing]   = useState(false);
+  const [checkResult,  setCheckResult]  = useState(null);
+  const [error,        setError]        = useState('');
 
   const inputCls =
     "w-full bg-[#F4F7FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-[#0D2137] text-sm focus:outline-none focus:border-[#1565C0]";
@@ -72,7 +384,7 @@ export default function AddIdea() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     const v =
-      name === 'title' ? value.slice(0, TITLE_MAX)
+      name === 'title'       ? value.slice(0, TITLE_MAX)
       : name === 'description' ? value.slice(0, DESC_MAX)
       : value;
     setForm({ ...form, [name]: v });
@@ -86,11 +398,11 @@ export default function AddIdea() {
       const room = MAX_IMAGES - prev.length;
       return [...prev, ...files.slice(0, room).map((f) => URL.createObjectURL(f))];
     });
-    e.target.value = ''; // let the user re-pick the same file
+    e.target.value = '';
   };
 
   const removeImage = (idx) => {
-    setImages((prev) => prev.filter((_, i) => i !== idx));
+    setImages((prev)   => prev.filter((_, i) => i !== idx));
     setPreviews((prev) => {
       URL.revokeObjectURL(prev[idx]);
       return prev.filter((_, i) => i !== idx);
@@ -99,16 +411,15 @@ export default function AddIdea() {
 
   const nextStep = () => {
     if (step === 0) {
-      if (!form.title.trim()) return setError('Title is required');
+      if (!form.title.trim())       return setError('Title is required');
       if (!form.description.trim()) return setError('Description is required');
-      if (!form.category) return setError('Please select a category');
+      if (!form.category)           return setError('Please select a category');
       setError('');
     }
     setStep((s) => s + 1);
   };
 
   const handlePublish = async () => {
-    // Safety net: premium requires Creator Pro + verified profile.
     if (form.isPremium && creatorPro && !verified) {
       navigate('/create-premium');
       return;
@@ -131,14 +442,10 @@ export default function AddIdea() {
       setCheckResult('ok');
       setPublishing(true);
 
-      // Non-Pro creators can never publish premium content.
       const payload = { ...form, isPremium: creatorPro ? form.isPremium : false };
 
       const fd = new FormData();
       fd.append('idea', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      // Backwards-compatible: current backend stores a single cover via `image`.
-      // Also send every file as repeated `images` parts for the multi-image
-      // contract (API_CONTRACT §3) once Vishakha implements it.
       if (images[0]) fd.append('image', images[0]);
       images.forEach((img) => fd.append('images', img));
 
@@ -156,6 +463,15 @@ export default function AddIdea() {
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-24">
 
+      {/* AI Refine Modal */}
+      {aiModalOpen && (
+        <AIRefineModal
+          original={{ title: form.title, description: form.description }}
+          onAccept={handleAiAccept}
+          onClose={() => setAiModalOpen(false)}
+        />
+      )}
+
       {/* HEADER */}
       <div className="bg-[#1565C0] px-4 pt-5 pb-12 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
@@ -164,8 +480,7 @@ export default function AddIdea() {
         </div>
 
         <div className="flex items-center gap-3 relative z-10">
-          
-        <button
+          <button
            onClick={() => navigate(-1)}
                aria-label="Go back"
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
@@ -175,16 +490,10 @@ export default function AddIdea() {
              </svg>
         </button>
 
-          <h1 className="text-white font-bold text-lg flex-1">
-            Add New Idea
-          </h1>
-
-          <span className="text-blue-100 text-sm">
-            {step + 1}/{STEPS.length}
-          </span>
+          <h1 className="text-white font-bold text-lg flex-1">Add New Idea</h1>
+          <span className="text-blue-100 text-sm">{step + 1}/{STEPS.length}</span>
         </div>
 
-        {/* STEP BAR */}
         <div className="mt-4 flex gap-2 relative z-10">
           {STEPS.map((_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
@@ -202,7 +511,7 @@ export default function AddIdea() {
 
         {step === 0 && (
           <div className="space-y-4">
-            <AIAssistantBar onAsk={() => {}} />
+            <AIAssistantBar onActivate={handleAiActivate} />
 
             <div>
               <div className="flex items-center justify-between">
@@ -260,7 +569,6 @@ export default function AddIdea() {
 
         {step === 1 && (
           <div className="space-y-4">
-
             <div>
               <label className="text-xs font-bold text-[#0D2137]">
                 Images <span className="text-[#90A4AE] font-normal">(up to {MAX_IMAGES})</span>
@@ -307,63 +615,45 @@ export default function AddIdea() {
               )}
 
               <p className="text-[11px] text-[#90A4AE] mt-2">The first image is used as the cover.</p>
-
               <input ref={fileRef} type="file" hidden multiple accept="image/*" onChange={handleImage} />
             </div>
 
             {creatorPro ? (
-              /* Creator Pro — premium publishing allowed */
               <div className="border border-[#BBDEFB] rounded-2xl p-4 bg-[#F4F7FF] flex justify-between items-center">
                 <div>
                   <p className="font-semibold text-sm text-[#0D2137]">Premium Content</p>
                   <p className="text-xs text-[#90A4AE]">Paid users only</p>
                 </div>
-
                 <button
                   onClick={requestPremiumToggle}
-                  className={`w-12 h-6 rounded-full transition ${
-                    form.isPremium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'
-                  }`}
+                  className={`w-12 h-6 rounded-full transition ${form.isPremium ? 'bg-[#1565C0]' : 'bg-[#BBDEFB]'}`}
                 >
-                  <div
-                    className={`w-4 h-4 bg-white rounded-full ml-1 transition-transform ${
-                      form.isPremium ? 'translate-x-6' : ''
-                    }`}
-                  />
+                  <div className={`w-4 h-4 bg-white rounded-full ml-1 transition-transform ${form.isPremium ? 'translate-x-6' : ''}`} />
                 </button>
               </div>
             ) : (
-              /* Free creator — premium publishing locked behind Creator Pro */
               <div className="space-y-5">
                 <div className="border border-[#E3F2FD] rounded-2xl p-4 bg-white">
                   <p className="font-bold text-[#0D2137]">Premium Content</p>
-                  <p className="text-xs text-[#90A4AE] mt-1">
-                    Premium publishing requires Creator Pro.
-                  </p>
-
+                  <p className="text-xs text-[#90A4AE] mt-1">Premium publishing requires Creator Pro.</p>
                   <div className="flex justify-between items-center mt-5">
                     <p className="font-bold text-sm text-[#0D2137]">Premium Toggle</p>
-                    <span className="bg-[#E2E6F0] text-[#546E7A] text-xs font-bold px-3 py-1.5 rounded-full select-none">
-                      OFF
-                    </span>
+                    <span className="bg-[#E2E6F0] text-[#546E7A] text-xs font-bold px-3 py-1.5 rounded-full select-none">OFF</span>
                   </div>
                 </div>
-
                 <button
-                  onClick={() => navigate('/membership?plan=creator')}
+                  onClick={() => navigate('/creator-pro')}
                   className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all"
                 >
                   Upgrade to Creator Pro
                 </button>
               </div>
             )}
-
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-4">
-
             <div className="border rounded-2xl overflow-hidden border-[#BBDEFB] bg-white">
               {previews[0] && (
                 <div className="relative">
@@ -375,52 +665,39 @@ export default function AddIdea() {
                   )}
                 </div>
               )}
-
               <div className="p-4">
                 <p className="text-xs text-[#1565C0]">{form.category}</p>
                 <h2 className="font-bold text-[#0D2137]">{form.title}</h2>
-                <p className="text-sm text-[#546E7A] line-clamp-3">
-                  {form.description}
-                </p>
+                <p className="text-sm text-[#546E7A] line-clamp-3">{form.description}</p>
               </div>
             </div>
 
             <div className="border border-[#BBDEFB] rounded-2xl p-4 bg-[#F4F7FF]">
               <p className="text-xs font-bold text-[#0D2137]">Security Check</p>
-              <p className="text-sm text-[#546E7A]">
-                AI + plagiarism + validation checks
-              </p>
+              <p className="text-sm text-[#546E7A]">AI + plagiarism + validation checks</p>
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm">
-                {error}
-              </div>
+              <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm">{error}</div>
             )}
           </div>
         )}
 
         <div className="mt-6 pb-6">
           {step < 2 ? (
-            <button
-              onClick={nextStep}
-              className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold"
-            >
+            <button onClick={nextStep} className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold">
               Continue →
             </button>
           ) : (
-            <button
-              onClick={handlePublish}
-              className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold"
-            >
-              {checking
-                ? 'Checking...'
-                : publishing
-                ? 'Publishing...'
-                : 'Publish'}
+            <button onClick={handlePublish} className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold">
+              {checking ? 'Checking...' : publishing ? 'Publishing...' : 'Publish'}
             </button>
           )}
         </div>
+
+        {error && step === 0 && (
+          <p className="text-xs text-red-400 text-center -mt-4 pb-2">{error}</p>
+        )}
       </div>
 
       <BottomNav />
