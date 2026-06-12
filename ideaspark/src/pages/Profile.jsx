@@ -4,6 +4,7 @@ import BottomNav from "../components/common/BottomNav.premium";
 import IdeaCard from "../components/common/IdeaCard.premium";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosInstance";
+import { fetchFollowStats } from "../api/userApi";
 import Icon from "../components/common/Icon";
 
 const TABS = ["My Ideas", "Saved"];
@@ -15,6 +16,7 @@ export default function Profile() {
   const [tab, setTab] = useState("My Ideas");
   const [myIdeas, setMyIdeas] = useState([]);
   const [saved, setSaved] = useState([]);
+  const [followStats, setFollowStats] = useState({ followersCount: 0, followingCount: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +30,14 @@ export default function Profile() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Follower / following counts for the signed-in user's own profile.
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchFollowStats(user.id)
+      .then(({ data }) => setFollowStats(data))
+      .catch(() => {});
+  }, [user?.id]);
 
   const ideas = tab === "My Ideas" ? myIdeas : saved;
 
@@ -111,7 +121,7 @@ export default function Profile() {
 
 
             <p className="text-blue-200 text-sm">
-              @{user?.email?.split("@")[0]}
+              @{user?.username || user?.email?.split("@")[0]}
             </p>
 
             {/* bio */}
@@ -129,22 +139,32 @@ export default function Profile() {
         <div className="bg-white rounded-t-[32px] px-4 pt-6">
 
           {/* STATS */}
-          <div className="flex text-center justify-center gap-8 py-4 border-b border-[#BBDEFB]">
-            <div>
+          <div className="flex text-center py-4 border-b border-[#BBDEFB]">
+            <div className="flex-1">
               <div className="text-[#1565C0] font-bold">{myIdeas.length}</div>
               <div className="text-xs text-[#90A4AE]">Ideas</div>
             </div>
 
-            <div>
+            <div className="flex-1">
               <div className="text-[#1565C0] font-bold">{saved.length}</div>
               <div className="text-xs text-[#90A4AE]">Saved</div>
             </div>
 
-            <div>
+            <div className="flex-1">
               <div className="text-[#1565C0] font-bold">
                 {myIdeas.reduce((a, i) => a + (i.likeCount || 0), 0)}
               </div>
               <div className="text-xs text-[#90A4AE]">Likes</div>
+            </div>
+
+            <div className="flex-1">
+              <div className="text-[#1565C0] font-bold">{followStats.followersCount}</div>
+              <div className="text-xs text-[#90A4AE]">Followers</div>
+            </div>
+
+            <div className="flex-1">
+              <div className="text-[#1565C0] font-bold">{followStats.followingCount}</div>
+              <div className="text-xs text-[#90A4AE]">Following</div>
             </div>
           </div>
 

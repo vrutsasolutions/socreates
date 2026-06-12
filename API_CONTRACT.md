@@ -43,6 +43,25 @@ Onboarding order: **Register → /verify-otp → /select-interests → /follow-c
 
 `Creator` = `{ id, name, bio, avatarUrl, followed }`
 
+### Follow / social graph ✅  `/api/follow`  — frontend: `src/api/userApi.jsx`
+
+Identifies the acting user via an `X-User-Id` header (current user's UUID), not
+the JWT principal — the frontend passes it explicitly on the mutating/stats calls.
+
+| Method | Path | Headers | Response |
+|---|---|---|---|
+| POST | `/{targetUserId}` | `X-User-Id` | `"Followed successfully"` |
+| DELETE | `/{targetUserId}` | `X-User-Id` | `"Unfollowed successfully"` |
+| GET | `/{userId}/followers` | — | `FollowResponse[]` |
+| GET | `/{userId}/following` | — | `FollowResponse[]` |
+| GET | `/{targetUserId}/stats` | `X-User-Id` | `FollowStats` |
+
+`FollowResponse` = `{ userId, name, username, profileImage }`
+`FollowStats` = `{ followersCount, followingCount, isFollowing }`
+
+> For the signed-in user's **own** profile, the frontend calls `/stats` with
+> `targetUserId == X-User-Id` to get their own follower/following counts.
+
 ---
 
 ## 3. Ideas ✅  `/api/ideas`

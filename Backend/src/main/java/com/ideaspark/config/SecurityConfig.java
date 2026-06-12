@@ -45,20 +45,24 @@ public class SecurityConfig {
             .sessionManagement(sm ->
                 sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Allow all CORS preflight requests
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                // Public endpoints — no token needed
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/ideas").permitAll()
-                .requestMatchers("/api/ideas/{id}").permitAll()
-                .requestMatchers("/api/search").permitAll()
-                .requestMatchers("/api/plagiarism/**").permitAll()
-                .requestMatchers("/api/notifications/**").authenticated()
-                .requestMatchers("/ws/**").permitAll()
-                .requestMatchers("/api/ideas/*/comments").permitAll()
-                // All other endpoints require authentication
-                .anyRequest().authenticated()
-            )
+    // Allow all CORS preflight requests
+    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+    // Public endpoints — no token needed
+    .requestMatchers("/api/auth/**").permitAll()
+    .requestMatchers("/api/ideas").permitAll()
+    .requestMatchers("/api/ideas/{id}").permitAll()
+    .requestMatchers("/api/search").permitAll()
+    .requestMatchers("/api/plagiarism/**").permitAll()
+    .requestMatchers("/ws/**").permitAll()
+    .requestMatchers("/api/ideas/*/comments").permitAll()
+    // Authenticated endpoints
+    .requestMatchers("/api/notifications/**").authenticated()
+    .requestMatchers("/api/follow/**").authenticated()  // ✅ Added
+    .requestMatchers("/api/ideas/*/like").authenticated()  // ✅ Added
+    .requestMatchers("/api/ideas/*/unlike").authenticated()  // ✅ Added
+    // All other endpoints require authentication
+    .anyRequest().authenticated()
+)
             .addFilterBefore(new JwtFilter(jwtUtil, userDetailsService), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

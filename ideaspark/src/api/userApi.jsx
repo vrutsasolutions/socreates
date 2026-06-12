@@ -40,3 +40,36 @@ export const fetchSuggestedCreators = () =>
 // POST /api/users/follow-bulk  { creatorIds: string[] }
 export const followBulk = (creatorIds) =>
   USE_MOCK.users ? mockResponse({ followed: creatorIds }) : api.post('/users/follow-bulk', { creatorIds });
+
+// ──────────────────────────────────────────────────────────────────────────
+//  Follow / social graph.  Backend: ✅ ready (FollowController, /api/follow).
+//  These endpoints identify the acting user via an `X-User-Id` header (the
+//  current user's UUID) rather than the JWT principal, so pass it explicitly.
+// ──────────────────────────────────────────────────────────────────────────
+
+// GET /api/follow/{userId}/stats → { followersCount, followingCount, isFollowing }
+// For the signed-in user's own profile, pass their id as both args.
+export const fetchFollowStats = (userId, currentUserId = userId) =>
+  USE_MOCK.users
+    ? mockResponse({ followersCount: 0, followingCount: 0, isFollowing: false })
+    : api.get(`/follow/${userId}/stats`, { headers: { 'X-User-Id': currentUserId } });
+
+// GET /api/follow/{userId}/followers → FollowResponse[]  { userId, name, username, profileImage }
+export const fetchFollowers = (userId) =>
+  USE_MOCK.users ? mockResponse([]) : api.get(`/follow/${userId}/followers`);
+
+// GET /api/follow/{userId}/following → FollowResponse[]
+export const fetchFollowing = (userId) =>
+  USE_MOCK.users ? mockResponse([]) : api.get(`/follow/${userId}/following`);
+
+// POST /api/follow/{targetUserId} → follow
+export const followUser = (targetUserId, currentUserId) =>
+  USE_MOCK.users
+    ? mockResponse('Followed successfully')
+    : api.post(`/follow/${targetUserId}`, null, { headers: { 'X-User-Id': currentUserId } });
+
+// DELETE /api/follow/{targetUserId} → unfollow
+export const unfollowUser = (targetUserId, currentUserId) =>
+  USE_MOCK.users
+    ? mockResponse('Unfollowed successfully')
+    : api.delete(`/follow/${targetUserId}`, { headers: { 'X-User-Id': currentUserId } });
