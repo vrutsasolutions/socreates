@@ -17,7 +17,7 @@ export const USE_MOCK = {
   search:        false, // ✅ backend ready  — /api/search
   ai:            false, // ✅ backend ready — /api/ai/*       (Aparna)
   images:        true,  // ⏳ under dev      — /api/images/*   (Vishakha)
-  messaging:     true,  // ⏳ under dev      — /api/messages/* (DM/inbox feature; backend TBD)
+  messaging:     false,  // ✅ backend ready      — /api/messages/* (DM/inbox feature; backend TBD) (Aparna)
   payment:       true,  // ⏳ under dev      — /api/payment/*  (Razorpay/Stripe; backend TBD)
 
   // Notifications are SPLIT, because the backend only shipped part of the contract:
