@@ -24,7 +24,7 @@ export const USE_MOCK = {
   //   • realtime push  → ✅ LIVE  (STOMP/SockJS, see notificationApi.subscribeToNotifications)
   //   • REST list/unread/mark-read → ⏳ still mock — those endpoints don't exist yet
   //     (backend only has POST /api/notifications/send). Flip when Vishakha adds them.
-  notifications:         true,  // ⏳ REST CRUD still mock — /api/notifications GET,read,read-all
+  notifications:         false,  // ⏳ REST CRUD still mock — /api/notifications GET,read,read-all
   notificationsRealtime: false, // ✅ live STOMP push at ws://localhost:8081/ws → /topic/notifications
 };
 
