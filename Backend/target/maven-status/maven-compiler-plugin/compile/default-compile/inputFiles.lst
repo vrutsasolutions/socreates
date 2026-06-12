@@ -1,3 +1,4 @@
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\ConversationRepository.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\model\SavedIdea.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\NotificationController.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\CreateIdeaRequest.java
@@ -13,6 +14,7 @@ C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\model\User.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\MembershipController.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\model\Comment.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\IdeaDTO.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\model\Conversation.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\config\StaticResourceConfig.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\SubscribeRequest.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\config\R2Config.java
@@ -21,6 +23,7 @@ C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\UserControl
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\UserDTO.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\LoginRequest.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\AiService.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\MessageController.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\FollowRepository.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\FollowStatsResponse.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\security\UserDetailsServiceImpl.java
@@ -28,6 +31,8 @@ C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\config\WebSocketAuthCo
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\UpdateProfileRequest.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\IdeaRepository.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\security\JwtUtil.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\MessageUploadService.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\MessageDTO.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\SavedIdeaRepository.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\SearchController.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\IdeaController.java
@@ -39,6 +44,7 @@ C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\PlagiarismServ
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\PlagiarismController.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\AuthResponse.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\config\SecurityConfig.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\MessageRepository.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\model\IdeaLike.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\IdeaService.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\UserRepository.java
@@ -54,7 +60,11 @@ C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\CloudflareImag
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\exception\GlobalExceptionHandler.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\security\JwtFilter.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\CreateCommentRequest.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\model\Message.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\model\Notification.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\ConversationDTO.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\IdeaLikeRepository.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\MessageService.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\MessageUploadController.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\FollowResponse.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\CommentRepository.java

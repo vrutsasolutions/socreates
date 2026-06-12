@@ -6,12 +6,14 @@ import com.ideaspark.model.Follow;
 import com.ideaspark.model.Notification;
 import com.ideaspark.model.User;
 import com.ideaspark.repository.FollowRepository;
+import com.ideaspark.repository.NotificationRepository;
 import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -21,7 +23,8 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
-    private final NotificationService notificationService; // ✅ Added
+    private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository; // ✅ Added for direct save
 
     // Follow a user
     public String follow(UUID currentUserId, UUID targetUserId) {
@@ -34,8 +37,9 @@ public class FollowService {
         User targetUser = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new RuntimeException("Target user not found"));
 
+        // ✅ Return gracefully instead of throwing error
         if (followRepository.existsByFollowerAndFollowing(currentUser, targetUser)) {
-            throw new RuntimeException("Already following this user");
+            return "Already following";
         }
 
         Follow follow = Follow.builder()
@@ -45,20 +49,31 @@ public class FollowService {
 
         followRepository.save(follow);
 
-        // ✅ Send notification to the person being followed
+        // ✅ Fixed notification — save directly + send via websocket
         try {
+            String followerName = (currentUser.getUsername() != null
+                    && !currentUser.getUsername().isBlank())
+                    ? "@" + currentUser.getUsername()
+                    : currentUser.getName();
+
             Notification notification = Notification.builder()
-                    .message((currentUser.getUsername() != null && !currentUser.getUsername().isBlank()
-                            ? "@" + currentUser.getUsername()
-                            : currentUser.getName()) + " started following you!")
+                    .message(followerName + " started following you!")
                     .readStatus(false)
                     .createdAt(LocalDateTime.now())
                     .user(targetUser)
                     .build();
 
-            notificationService.sendNotification(notification);
+            // Save to DB first
+            Notification saved = notificationRepository.save(notification);
+
+            // Send real-time via WebSocket
+            notificationService.sendNotification(saved);
+
+            System.out.println("✅ Follow notification sent to: " + targetUser.getEmail());
+
         } catch (Exception e) {
-            System.out.println("Follow notification failed: " + e.getMessage());
+            System.out.println("❌ Follow notification failed: " + e.getMessage());
+            e.printStackTrace();
         }
 
         return "Followed successfully";
@@ -71,10 +86,13 @@ public class FollowService {
         User targetUser = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new RuntimeException("Target user not found"));
 
-        Follow follow = followRepository.findByFollowerAndFollowing(currentUser, targetUser)
-                .orElseThrow(() -> new RuntimeException("You are not following this user"));
+        // ✅ Return gracefully instead of throwing error
+        Optional<Follow> follow = followRepository.findByFollowerAndFollowing(currentUser, targetUser);
+        if (follow.isEmpty()) {
+            return "Not following";
+        }
 
-        followRepository.delete(follow);
+        followRepository.delete(follow.get());
         return "Unfollowed successfully";
     }
 
