@@ -3,12 +3,14 @@ package com.ideaspark.service;
 import com.ideaspark.dto.FollowResponse;
 import com.ideaspark.dto.FollowStatsResponse;
 import com.ideaspark.model.Follow;
+import com.ideaspark.model.Notification;
 import com.ideaspark.model.User;
 import com.ideaspark.repository.FollowRepository;
 import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -19,6 +21,7 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService; // ✅ Added
 
     // Follow a user
     public String follow(UUID currentUserId, UUID targetUserId) {
@@ -41,6 +44,23 @@ public class FollowService {
                 .build();
 
         followRepository.save(follow);
+
+        // ✅ Send notification to the person being followed
+        try {
+            Notification notification = Notification.builder()
+                    .message((currentUser.getUsername() != null && !currentUser.getUsername().isBlank()
+                            ? "@" + currentUser.getUsername()
+                            : currentUser.getName()) + " started following you!")
+                    .readStatus(false)
+                    .createdAt(LocalDateTime.now())
+                    .user(targetUser)
+                    .build();
+
+            notificationService.sendNotification(notification);
+        } catch (Exception e) {
+            System.out.println("Follow notification failed: " + e.getMessage());
+        }
+
         return "Followed successfully";
     }
 
