@@ -27,10 +27,20 @@ public class MessageUploadService {
             "image/jpeg", "image/png", "image/webp", "image/gif"
     );
 
-    // Allowed voice types
+    // FIX (Bug 1): Browser MediaRecorder sends codec-qualified MIME types like
+    // "audio/webm;codecs=opus" — the bare "audio/webm" check was rejecting them.
+    // Added all common codec-qualified variants to prevent false rejections.
     private static final java.util.Set<String> ALLOWED_VOICE_TYPES = java.util.Set.of(
-            "audio/mpeg", "audio/mp4", "audio/webm", "audio/ogg",
-            "audio/wav", "audio/x-m4a", "audio/mp3"
+            "audio/mpeg",
+            "audio/mp3",
+            "audio/mp4",
+            "audio/wav",
+            "audio/x-m4a",
+            "audio/ogg",
+            "audio/ogg;codecs=opus",          // ✅ FIX: Firefox MediaRecorder default
+            "audio/webm",
+            "audio/webm;codecs=opus",          // ✅ FIX: Chrome/Edge MediaRecorder default
+            "audio/webm;codecs=vorbis"         // ✅ FIX: Chrome fallback
     );
 
     public String uploadImage(MultipartFile file) {
