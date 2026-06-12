@@ -1,5 +1,15 @@
 // ════════════════════════════════════════════════════════════════════════
 //  Chat  (figma "02 · Chat")
+//
+//  FIXES:
+//  1. Reads convo.name / convo.online / convo.initial correctly from the
+//     normalised object returned by messagingApi (works mock + live).
+//  2. Voice recording uses real MediaRecorder → uploads to R2 via
+//     uploadVoice() before calling sendMessage.
+//  3. Message bubble handles backend field shapes: m.text for TEXT,
+//     m.imageUrl for IMAGE, m.content (URL) for VOICE.
+//  4. Graceful mic-permission error banner instead of silent failure.
+//  5. "Uploading…" state disables cancel/send to prevent double-sends.
 // ════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -9,7 +19,10 @@ import {
   fetchConversation,
   fetchMessages,
   sendMessage,
+  uploadVoice,
 } from '../api/messagingApi';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const quotedLabel = (m) => {
   if (!m) return '';
@@ -18,13 +31,17 @@ const quotedLabel = (m) => {
   return m.text || '';
 };
 
+const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
 const QUICK_REACTIONS = [
-  { label: 'Like', emoji: '👍' },
-  { label: 'Fire', emoji: '🔥' },
-  { label: 'Heart', emoji: '❤️' },
-  { label: 'Clap', emoji: '👏' },
+  { label: 'Like',   emoji: '👍' },
+  { label: 'Fire',   emoji: '🔥' },
+  { label: 'Heart',  emoji: '❤️' },
+  { label: 'Clap',   emoji: '👏' },
   { label: 'Launch', emoji: '🚀' },
 ];
+
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function Waveform({ color = '#1565C0', animated = false }) {
   const heights = [8, 16, 10, 22, 14, 26, 12, 18, 9, 20, 13, 24, 11, 17];
@@ -62,12 +79,14 @@ function ReplyBtn({ onClick }) {
 }
 
 function Bubble({ m, onImageClick, onReply }) {
+  // Typing indicator
   if (m.type === 'typing') {
     return (
       <div className="flex justify-start">
         <div className="bg-white rounded-[19px] px-4 py-3 flex items-center gap-1.5 shadow-sm">
           {['#BBDEFB', '#1565C0', '#BBDEFB'].map((c, i) => (
-            <span key={i} className="sc-typing-dot w-2.5 h-2.5 rounded-full" style={{ background: c, animationDelay: `${i * 160}ms` }} />
+            <span key={i} className="sc-typing-dot w-2.5 h-2.5 rounded-full"
+              style={{ background: c, animationDelay: `${i * 160}ms` }} />
           ))}
         </div>
       </div>
@@ -78,37 +97,62 @@ function Bubble({ m, onImageClick, onReply }) {
   const rowCls = `flex items-end gap-1.5 group ${mine ? 'justify-end' : 'justify-start'}`;
 
   let content;
+
   if (m.type === 'image') {
+    // imageUrl set by normalizeMessage() from backend content field
+    const src = m.imageUrl || m.content || '';
     const media = m.isVideo
-      ? <video src={m.imageUrl} controls className="w-[200px] h-[130px] object-cover rounded-2xl bg-black" />
-      : <img src={m.imageUrl} alt="shared" className="w-[200px] h-[130px] object-cover rounded-2xl" />;
+      ? <video src={src} controls className="w-[200px] h-[130px] object-cover rounded-2xl bg-black" />
+      : <img src={src} alt="shared" className="w-[200px] h-[130px] object-cover rounded-2xl" />;
     content = (
       <div className="block">
         {m.replyTo && <QuotedInBubble replyTo={m.replyTo} light={false} />}
-        {m.isVideo ? media : <button onClick={() => onImageClick(m.imageUrl)} className="block">{media}</button>}
+        {m.isVideo ? media : <button onClick={() => onImageClick(src)} className="block">{media}</button>}
         {m.text && <p className="mt-1 max-w-[200px] text-[12px] text-[#0D2137]">{m.text}</p>}
       </div>
     );
+
   } else if (m.type === 'file') {
     content = (
       <div className={`flex items-center gap-3 rounded-[18px] px-4 py-3 max-w-[240px] ${mine ? 'bg-[#1565C0] text-white' : 'bg-white text-[#0D2137] shadow-sm'}`}>
         <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${mine ? 'bg-white/20' : 'bg-[#EAF2FF] text-[#1565C0]'}`}>
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M14 3v5h5M7 3h7l5 5v11a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" /></svg>
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v5h5M7 3h7l5 5v11a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" />
+          </svg>
         </span>
         <span className="text-[13px] truncate">{m.fileName}</span>
       </div>
     );
+
   } else if (m.type === 'voice') {
+    // content holds the R2 URL (set by normalizeMessage or by optimistic push)
+    const audioSrc = m.content || '';
+    const hasAudio = audioSrc.startsWith('http') || audioSrc.startsWith('blob:');
     content = (
-      <div className={`flex items-center gap-3 rounded-[18px] px-4 py-3 max-w-[240px] ${mine ? 'bg-[#1565C0]' : 'bg-white shadow-sm'}`}>
-        <span className={`w-8 h-8 rounded-full flex items-center justify-center ${mine ? 'bg-white/20 text-white' : 'bg-[#1565C0] text-white'}`}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-        </span>
-        <Waveform color={mine ? '#FFFFFF' : '#1565C0'} />
-        <span className={`text-[12px] ${mine ? 'text-white' : 'text-[#90A4AE]'}`}>{m.duration}</span>
+      <div className={`flex flex-col gap-2 rounded-[18px] px-4 py-3 max-w-[260px] ${mine ? 'bg-[#1565C0]' : 'bg-white shadow-sm'}`}>
+        <div className="flex items-center gap-3">
+          <span className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${mine ? 'bg-white/20 text-white' : 'bg-[#1565C0] text-white'}`}>
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+          </span>
+          <Waveform color={mine ? '#FFFFFF' : '#1565C0'} />
+          {m.duration && (
+            <span className={`text-[12px] shrink-0 ${mine ? 'text-white' : 'text-[#90A4AE]'}`}>{m.duration}</span>
+          )}
+        </div>
+        {hasAudio && (
+          <audio
+            src={audioSrc}
+            controls
+            className="w-full h-8"
+            style={{ filter: mine ? 'invert(1) hue-rotate(180deg)' : 'none', opacity: 0.85 }}
+          />
+        )}
       </div>
     );
+
   } else {
+    // TEXT (default)
+    const displayText = m.text ?? m.content ?? '';
     content = (
       <div className={`max-w-[240px] px-4 py-2.5 text-[13px] leading-snug ${
         mine
@@ -116,7 +160,7 @@ function Bubble({ m, onImageClick, onReply }) {
           : 'bg-white text-[#0D2137] rounded-[18px] rounded-bl-md shadow-sm'
       }`}>
         {m.replyTo && <QuotedInBubble replyTo={m.replyTo} light={mine} />}
-        {m.text}
+        {displayText}
       </div>
     );
   }
@@ -130,37 +174,58 @@ function Bubble({ m, onImageClick, onReply }) {
   );
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function Chat() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const cameraRef = useRef(null);
+
+  const cameraRef  = useRef(null);
   const galleryRef = useRef(null);
-  const filesRef = useRef(null);
-  const scrollRef = useRef(null);
+  const filesRef   = useRef(null);
+  const scrollRef  = useRef(null);
 
-  const [convo, setConvo] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState('');
-  const [recording, setRecording] = useState(false);
-  const [seconds, setSeconds] = useState(0);
-  const [compose, setCompose] = useState(null);
-  const [caption, setCaption] = useState('');
-  const [viewer, setViewer] = useState(null);
-  const [actionView, setActionView] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [replyTo, setReplyTo] = useState(null);
-  const [attachOpen, setAttachOpen] = useState(false);
+  // Voice recording
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef   = useRef([]);
+  const timerRef         = useRef(null);
 
+  const [convo,        setConvo]        = useState(null);
+  const [messages,     setMessages]     = useState([]);
+  const [text,         setText]         = useState('');
+
+  // null | 'recording' | 'uploading'
+  const [recordingState, setRecordingState] = useState(null);
+  const [seconds,      setSeconds]      = useState(0);
+  const [micError,     setMicError]     = useState(null);
+
+  const [compose,      setCompose]      = useState(null);
+  const [caption,      setCaption]      = useState('');
+  const [viewer,       setViewer]       = useState(null);
+  const [actionView,   setActionView]   = useState(null);
+  const [toast,        setToast]        = useState(null);
+  const [replyTo,      setReplyTo]      = useState(null);
+  const [attachOpen,   setAttachOpen]   = useState(false);
+  const [loading,      setLoading]      = useState(true);
+
+  // ── Load conversation + messages ────────────────────────────────────────
   useEffect(() => {
     let alive = true;
+    setLoading(true);
     (async () => {
-      const [{ data: c }, { data: msgs }] = await Promise.all([
-        fetchConversation(id),
-        fetchMessages(id),
-      ]);
-      if (!alive) return;
-      setConvo(c);
-      setMessages(msgs);
+      try {
+        const [{ data: c }, { data: msgs }] = await Promise.all([
+          fetchConversation(id),
+          fetchMessages(id),
+        ]);
+        if (!alive) return;
+        setConvo(c);
+        setMessages(msgs);
+      } catch (err) {
+        console.error('Chat load error:', err);
+      } finally {
+        if (alive) setLoading(false);
+      }
     })();
     return () => { alive = false; };
   }, [id]);
@@ -169,23 +234,54 @@ export default function Chat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
 
+  // ── Clean up mic on unmount ─────────────────────────────────────────────
   useEffect(() => {
-    if (!recording) return;
-    const t = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => clearInterval(t);
-  }, [recording]);
+    return () => {
+      stopTimer();
+      try {
+        mediaRecorderRef.current?.stream?.getTracks().forEach((t) => t.stop());
+      } catch (_) {}
+    };
+  }, []);
 
-  const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  // ── Timer helpers ───────────────────────────────────────────────────────
+  const startTimer = () => {
+    stopTimer();
+    timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+  };
+  const stopTimer = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  };
 
+  // ── Toast helper ────────────────────────────────────────────────────────
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2600);
+  };
+
+  // ── Optimistic message push ─────────────────────────────────────────────
   const pushSent = async (payload) => {
-    const optimistic = { id: 'tmp-' + Date.now(), conversationId: id, fromMe: true, time: '', ...payload };
+    const optimistic = {
+      id: 'tmp-' + Date.now(),
+      conversationId: id,
+      fromMe: true,
+      time: '',
+      ...payload,
+    };
     setMessages((prev) => [...prev.filter((m) => m.type !== 'typing'), optimistic]);
-    try { await sendMessage(id, payload); } catch (_) {}
+    try {
+      await sendMessage(id, payload);
+    } catch (err) {
+      console.error('sendMessage failed:', err);
+    }
   };
 
   const replySnippet = () =>
-    replyTo ? { name: replyTo.fromMe ? 'You' : (convo?.name ?? ''), text: quotedLabel(replyTo) } : undefined;
+    replyTo
+      ? { name: replyTo.fromMe ? 'You' : (convo?.name ?? ''), text: quotedLabel(replyTo) }
+      : undefined;
 
+  // ── Text send ───────────────────────────────────────────────────────────
   const handleSendText = () => {
     const value = text.trim();
     if (!value) return;
@@ -199,13 +295,18 @@ export default function Chat() {
     setReplyTo(null);
   };
 
+  // ── Media / file ────────────────────────────────────────────────────────
   const handleMedia = (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
-    const items = files.map((f) => ({ url: URL.createObjectURL(f), isVideo: f.type.startsWith('video'), name: f.name }));
+    const items = files.map((f) => ({
+      url: URL.createObjectURL(f),
+      isVideo: f.type.startsWith('video'),
+      name: f.name,
+    }));
     if (!compose) setCaption('');
-    setCompose((prev) => (prev ? { ...prev, items: [...prev.items, ...items] } : { items, index: 0 }));
+    setCompose((prev) => prev ? { ...prev, items: [...prev.items, ...items] } : { items, index: 0 });
   };
 
   const removeComposeItem = (i) => {
@@ -222,7 +323,10 @@ export default function Chat() {
     if (!compose) return;
     compose.items.forEach((it, i) => {
       pushSent({
-        type: 'image', imageUrl: it.url, isVideo: it.isVideo,
+        type: 'image',
+        imageUrl: it.url,
+        content: it.url,
+        isVideo: it.isVideo,
         text: i === 0 ? (caption.trim() || undefined) : undefined,
         replyTo: i === 0 ? replySnippet() : undefined,
       });
@@ -236,58 +340,163 @@ export default function Chat() {
     files.forEach((f) => pushSent({ type: 'file', fileName: f.name }));
   };
 
-  const startRecording = () => { setSeconds(0); setRecording(true); };
-  const cancelRecording = () => { setRecording(false); setSeconds(0); };
-  const sendRecording = () => {
-    pushSent({ type: 'voice', duration: fmt(seconds || 1) });
-    setRecording(false); setSeconds(0);
+  // ════════════════════════════════════════════════════════════════════════
+  //  VOICE RECORDING — real MediaRecorder
+  // ════════════════════════════════════════════════════════════════════════
+
+  const startRecording = async () => {
+    setMicError(null);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicError('Microphone not supported on this browser.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg', 'audio/mp4']
+        .find((t) => MediaRecorder.isTypeSupported(t)) || '';
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data?.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.start(100);
+      mediaRecorderRef.current = recorder;
+      setSeconds(0);
+      setRecordingState('recording');
+      startTimer();
+    } catch (err) {
+      setMicError(
+        err.name === 'NotAllowedError'
+          ? 'Microphone permission denied. Allow access and try again.'
+          : 'Could not start recording. Please try again.',
+      );
+    }
   };
 
+  const cancelRecording = () => {
+    stopTimer();
+    const recorder = mediaRecorderRef.current;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      try { recorder.stop(); } catch (_) {}
+      recorder.stream?.getTracks().forEach((t) => t.stop());
+      mediaRecorderRef.current = null;
+    }
+    audioChunksRef.current = [];
+    setRecordingState(null);
+    setSeconds(0);
+    setMicError(null);
+  };
+
+  const sendRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
+
+    const durationLabel = fmt(seconds || 1);
+    stopTimer();
+    setRecordingState('uploading');
+
+    recorder.onstop = async () => {
+      recorder.stream?.getTracks().forEach((t) => t.stop());
+      mediaRecorderRef.current = null;
+
+      const mimeType = recorder.mimeType || 'audio/webm';
+      const blob = new Blob(audioChunksRef.current, { type: mimeType });
+      audioChunksRef.current = [];
+
+      try {
+        const url = await uploadVoice(blob, mimeType);
+        pushSent({
+          type: 'voice',
+          content: url,
+          duration: durationLabel,
+          replyTo: replySnippet(),
+        });
+        setReplyTo(null);
+      } catch (_) {
+        showToast('Voice upload failed. Please try again.');
+      } finally {
+        setRecordingState(null);
+        setSeconds(0);
+      }
+    };
+
+    try { recorder.stop(); } catch (_) {
+      setRecordingState(null);
+      setSeconds(0);
+    }
+  };
+
+  const isRecording = recordingState === 'recording';
+  const isUploading = recordingState === 'uploading';
+
+  // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="h-screen flex flex-col bg-[#F4F7FF]">
       <style>{`
-        @keyframes scWave { 0%,100%{ transform: scaleY(0.5);} 50%{ transform: scaleY(1);} }
-        .sc-wave-bar { animation: scWave 900ms ease-in-out infinite; transform-origin: center; }
-        @keyframes scTyping { 0%,60%,100%{ transform: translateY(0); opacity:.5;} 30%{ transform: translateY(-4px); opacity:1;} }
-        .sc-typing-dot { animation: scTyping 1.2s ease-in-out infinite; }
-        @keyframes scPulse { 0%,100%{ opacity:1;} 50%{ opacity:.35;} }
-        .sc-rec-dot { animation: scPulse 1s ease-in-out infinite; }
+        @keyframes scWave   { 0%,100%{ transform:scaleY(0.5);} 50%{ transform:scaleY(1);} }
+        .sc-wave-bar        { animation:scWave 900ms ease-in-out infinite; transform-origin:center; }
+        @keyframes scTyping { 0%,60%,100%{ transform:translateY(0);opacity:.5;} 30%{ transform:translateY(-4px);opacity:1;} }
+        .sc-typing-dot      { animation:scTyping 1.2s ease-in-out infinite; }
+        @keyframes scPulse  { 0%,100%{ opacity:1;} 50%{ opacity:.35;} }
+        .sc-rec-dot         { animation:scPulse 1s ease-in-out infinite; }
       `}</style>
 
-      {/* ── HEADER — blue with decorative circles, avatar in frosted card ── */}
+      {/* ── HEADER ── */}
       <header className="shrink-0 bg-[#1565C0] px-4 pt-4 pb-4 relative shadow-lg border-b border-white/10">
-
-        {/* decorative circles — same as Inbox / ChatProfile */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
           <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         </div>
 
-        {/* top bar: back + name + actions */}
         <div className="flex items-center gap-3 relative z-10">
-         <button
-           onClick={() => navigate(-1)}
-               aria-label="Go back"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
-         >
-             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-             </svg>
-        </button>
+          <button onClick={() => navigate(-1)} aria-label="Go back"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
 
-          {/* floating identity pill — mirrors ChatProfile's frosted card */}
+          {/* Identity pill — shows real name + avatar once convo loads */}
           <button onClick={() => navigate(`/messages/${id}/profile`)} aria-label="View profile"
             className="flex-1 min-w-0 flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2 text-left hover:bg-white/15 active:scale-[0.98] transition-all">
-            {convo && <Avatar initial={convo.initial} color={convo.avatarColor} size={36} online={convo.online} />}
+            {loading ? (
+              // Skeleton while loading
+              <div className="w-9 h-9 rounded-full bg-white/20 animate-pulse shrink-0" />
+            ) : (
+              <Avatar
+                initial={convo?.initial ?? '?'}
+                color={convo?.avatarColor ?? '#1565C0'}
+                size={36}
+                online={convo?.online ?? false}
+              />
+            )}
             <div className="min-w-0">
-              <p className="text-[15px] font-bold text-white truncate leading-tight">{convo?.name ?? 'Chat'}</p>
-              <p className={`text-[12px] font-medium leading-tight ${convo?.online ? 'text-[#A5D6A7]' : 'text-blue-200'}`}>
-                {convo?.online ? '● Online' : 'Offline'}
-              </p>
+              {loading ? (
+                <>
+                  <div className="h-3.5 w-28 bg-white/20 rounded animate-pulse mb-1" />
+                  <div className="h-3 w-16 bg-white/15 rounded animate-pulse" />
+                </>
+              ) : (
+                <>
+                  <p className="text-[15px] font-bold text-white truncate leading-tight">
+                    {convo?.name ?? 'Chat'}
+                  </p>
+                  <p className={`text-[12px] font-medium leading-tight ${convo?.online ? 'text-[#A5D6A7]' : 'text-blue-200'}`}>
+                    {convo?.online ? '● Online' : 'Offline'}
+                  </p>
+                </>
+              )}
             </div>
           </button>
 
-          {/* call / video */}
           <div className="flex items-center gap-1 text-white relative z-10">
             <button aria-label="Call"
               className="w-9 h-9 flex items-center justify-center hover:opacity-80 active:scale-90 transition-all">
@@ -305,7 +514,7 @@ export default function Chat() {
         </div>
       </header>
 
-      {/* Messages — sits on #F4F7FF, same as Home's page bg */}
+      {/* ── Messages ── */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         <div className="flex justify-center">
           <span className="px-3 py-1 rounded-[13px] bg-[#DBEAFE] text-[12px] text-[#1565C0] font-medium">Today</span>
@@ -315,26 +524,55 @@ export default function Chat() {
         ))}
       </div>
 
+      {/* ── Mic permission error banner ── */}
+      {micError && (
+        <div className="shrink-0 bg-[#FEE2E2] border-t border-[#FECACA] px-4 py-2.5 flex items-center gap-3">
+          <svg className="w-4 h-4 text-[#EF4444] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <p className="flex-1 text-[12px] text-[#EF4444]">{micError}</p>
+          <button onClick={() => setMicError(null)} className="text-[#EF4444] text-[11px] font-semibold">Dismiss</button>
+        </div>
+      )}
+
       {/* ── Composer ── */}
-      {recording ? (
+      {(isRecording || isUploading) ? (
+        /* ── RECORDING / UPLOADING BAR ─────────────────────────────────── */
         <div className="shrink-0 bg-white border-t border-[#DBEAFE] px-4 py-3 flex items-center gap-3">
-          <button onClick={cancelRecording} aria-label="Cancel"
-            className="w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center text-[#EF4444] active:scale-95 transition-all">
+          <button onClick={cancelRecording} disabled={isUploading} aria-label="Cancel recording"
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95
+              ${isUploading ? 'bg-[#F0F6FF] text-[#90A4AE] cursor-not-allowed' : 'bg-[#FEE2E2] text-[#EF4444]'}`}>
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
             </svg>
           </button>
+
           <div className="flex-1 flex items-center gap-3 bg-[#F4F7FF] rounded-[20px] px-4 py-2">
-            <span className="sc-rec-dot w-3 h-3 rounded-full bg-[#EF4444] shrink-0" />
-            <span className="text-[13px] font-semibold text-[#0D2137] tabular-nums">{fmt(seconds)}</span>
-            <Waveform color="#1565C0" animated />
+            {isUploading ? (
+              <>
+                <svg className="w-4 h-4 text-[#1565C0] animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                <span className="text-[13px] font-semibold text-[#1565C0]">Sending voice note…</span>
+              </>
+            ) : (
+              <>
+                <span className="sc-rec-dot w-3 h-3 rounded-full bg-[#EF4444] shrink-0" />
+                <span className="text-[13px] font-semibold text-[#0D2137] tabular-nums">{fmt(seconds)}</span>
+                <Waveform color="#1565C0" animated />
+              </>
+            )}
           </div>
-          <button onClick={sendRecording} aria-label="Send voice"
-            className="w-10 h-10 rounded-full bg-[#1565C0] text-white flex items-center justify-center active:scale-95 transition-all">
+
+          <button onClick={sendRecording} disabled={isUploading} aria-label="Send voice"
+            className={`w-10 h-10 rounded-full text-white flex items-center justify-center transition-all active:scale-95
+              ${isUploading ? 'bg-[#90A4AE] cursor-not-allowed' : 'bg-[#1565C0]'}`}>
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z" /></svg>
           </button>
         </div>
       ) : (
+        /* ── NORMAL COMPOSER ────────────────────────────────────────────── */
         <div className="shrink-0 bg-white border-t border-[#DBEAFE] px-3 pt-2 pb-2.5">
 
           {replyTo && (
@@ -347,19 +585,17 @@ export default function Chat() {
                   <p className="text-[13px] text-[#90A4AE] truncate">{quotedLabel(replyTo)}</p>
                 </div>
                 <button onClick={() => setReplyTo(null)} aria-label="Cancel reply"
-                  className="w-7 h-7 rounded-full bg-[#DBEAFE] text-[#546E7A] flex items-center justify-center shrink-0 hover:bg-[#BBDEFB] transition-colors">
+                  className="w-7 h-7 rounded-full bg-[#DBEAFE] text-[#546E7A] flex items-center justify-center shrink-0">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
                   </svg>
                 </button>
               </div>
-              {/* Quick reactions — emoji + label, styled like Home's tab chips */}
               <div className="flex gap-2 overflow-x-auto pb-1 mb-1">
                 {QUICK_REACTIONS.map((q) => (
                   <button key={q.label} onClick={() => sendQuickReaction(q)}
                     className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#F0F6FF] text-[#1565C0] border border-[#BBDEFB] text-[13px] font-semibold hover:bg-[#DBEAFE] hover:border-[#1565C0] active:scale-95 transition-all">
-                    <span>{q.emoji}</span>
-                    <span>{q.label}</span>
+                    <span>{q.emoji}</span><span>{q.label}</span>
                   </button>
                 ))}
               </div>
@@ -367,7 +603,6 @@ export default function Chat() {
           )}
 
           <div className="flex items-center gap-2">
-            {/* attach — matches Inbox's new-chat button style */}
             <button onClick={() => setAttachOpen(true)} aria-label="Attach"
               className="w-10 h-10 rounded-full bg-[#1565C0] text-white flex items-center justify-center shrink-0 hover:opacity-90 active:scale-95 transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
@@ -381,14 +616,11 @@ export default function Chat() {
               </svg>
             </button>
             <div className="flex-1 flex items-center gap-2 bg-[#F0F6FF] border border-[#BBDEFB] rounded-full px-4 py-2.5">
-              <input
-                value={text}
-                onChange={(e) => setText(e.target.value)}
+              <input value={text} onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSendText(); }}
                 placeholder="Message..."
-                className="flex-1 bg-transparent text-[14px] text-[#0D2137] placeholder-[#90A4AE] focus:outline-none"
-              />
-              <button onClick={startRecording} aria-label="Record voice"
+                className="flex-1 bg-transparent text-[14px] text-[#0D2137] placeholder-[#90A4AE] focus:outline-none" />
+              <button onClick={startRecording} aria-label="Record voice message"
                 className="text-[#1565C0] shrink-0 hover:opacity-70 active:scale-90 transition-all">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3z" />
@@ -402,9 +634,9 @@ export default function Chat() {
             </button>
           </div>
 
-          <input ref={cameraRef} type="file" accept="image/*,video/*" capture="environment" hidden onChange={handleMedia} />
-          <input ref={galleryRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleMedia} />
-          <input ref={filesRef} type="file" multiple hidden onChange={handleDocs} />
+          <input ref={cameraRef}  type="file" accept="image/*,video/*" capture="environment" hidden onChange={handleMedia} />
+          <input ref={galleryRef} type="file" accept="image/*,video/*" multiple          hidden onChange={handleMedia} />
+          <input ref={filesRef}   type="file" multiple                                   hidden onChange={handleDocs}  />
         </div>
       )}
 
@@ -419,7 +651,7 @@ export default function Chat() {
               </svg>
             </button>
             <span className="flex-1 text-center text-white font-bold text-lg">Send Photo</span>
-            <button className="w-9 text-right text-[#4F9DF0] text-sm font-medium">Edit</button>
+            <span className="w-9" />
           </div>
           <div className="flex-1 flex items-center justify-center px-4 min-h-0">
             {compose.items[compose.index].isVideo
@@ -451,7 +683,7 @@ export default function Chat() {
               </div>
             ))}
             <button onClick={() => galleryRef.current?.click()} aria-label="Add more"
-              className="w-16 h-16 rounded-xl border-2 border-dashed border-white/30 text-white/70 flex items-center justify-center shrink-0 hover:border-white/60 hover:text-white transition-colors">
+              className="w-16 h-16 rounded-xl border-2 border-dashed border-white/30 text-white/70 flex items-center justify-center shrink-0">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
               </svg>
@@ -477,14 +709,10 @@ export default function Chat() {
           onClose={() => setAttachOpen(false)}
           onPick={(kind) => {
             setAttachOpen(false);
-            if (kind === 'camera') cameraRef.current?.click();
+            if (kind === 'camera')       cameraRef.current?.click();
             else if (kind === 'gallery') galleryRef.current?.click();
-            else if (kind === 'files') filesRef.current?.click();
-            else {
-              const what = kind === 'idea' ? 'Idea' : 'Profile';
-              setToast(`${what} sharing coming soon.`);
-              setTimeout(() => setToast(null), 2600);
-            }
+            else if (kind === 'files')   filesRef.current?.click();
+            else showToast(`${kind === 'idea' ? 'Idea' : 'Profile'} sharing coming soon.`);
           }}
         />
       )}
@@ -494,7 +722,7 @@ export default function Chat() {
         view={actionView}
         setView={setActionView}
         navigate={navigate}
-        onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2600); }}
+        onToast={showToast}
       />
 
       {toast && (
