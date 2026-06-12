@@ -16,6 +16,7 @@ import {
   likeIdea,
   unlikeIdea,
 } from '../api/ideaApi';
+import { fetchFollowStats, followUser, unfollowUser } from '../api/userApi';
 
 /* ── Helpers (mirrors IdeaCard.premium formatDate) ───────────── */
 function formatDate(dateString) {
@@ -55,6 +56,12 @@ export default function IdeaDetail() {
   const [toast, setToast]       = useState(null);
   const saveRef = useRef(false);
 
+  // ── Follow the idea's creator (skipped on your own ideas) ──
+  const [following, setFollowing]   = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
+  const creatorId = idea?.creatorId;
+  const canFollow = !!creatorId && !!user?.id && creatorId !== user.id;
+
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -72,6 +79,16 @@ export default function IdeaDetail() {
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [id]);
+
+  // Resolve whether the current user already follows this idea's creator.
+  useEffect(() => {
+    if (!canFollow) { setFollowing(false); return; }
+    let alive = true;
+    fetchFollowStats(creatorId, user.id)
+      .then(({ data }) => { if (alive) setFollowing(!!data.isFollowing); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [creatorId, user?.id, canFollow]);
 
   const isMine = (c) =>
     (c.userId && user?.id && c.userId === user.id) ||
@@ -129,6 +146,24 @@ export default function IdeaDetail() {
     } catch (_) {
       setLiked(wasLiked);
       setLikes((l) => (wasLiked ? l + 1 : l - 1));
+    }
+  };
+
+  const handleFollow = async () => {
+    if (followBusy || !canFollow) return;
+    setFollowBusy(true);
+    const wasFollowing = following;
+    setFollowing(!wasFollowing); // optimistic
+    try {
+      wasFollowing
+        ? await unfollowUser(creatorId, user.id)
+        : await followUser(creatorId, user.id);
+      showToast(wasFollowing ? 'Unfollowed' : `Following ${idea?.creatorName || ''}`.trim());
+    } catch (_) {
+      setFollowing(wasFollowing); // revert on failure
+      showToast('Could not update follow');
+    } finally {
+      setFollowBusy(false);
     }
   };
 
@@ -212,8 +247,21 @@ export default function IdeaDetail() {
                   <p className="text-[#0D2137] font-semibold text-sm truncate">{idea.creatorName || 'Anonymous'}</p>
                   <p className="text-[#90A4AE] text-xs">{formatDate(idea.createdAt)}</p>
                 </div>
+                {canFollow && (
+                  <button
+                    onClick={handleFollow}
+                    disabled={followBusy}
+                    aria-label={following ? 'Unfollow creator' : 'Follow creator'}
+                    className={`text-xs font-semibold px-3.5 py-1.5 rounded-full transition-all active:scale-95 disabled:opacity-60 shrink-0
+                      ${following
+                        ? 'bg-[#E3F2FD] text-[#1565C0] border border-[#BBDEFB]'
+                        : 'bg-[#1565C0] text-white hover:bg-[#0D47A1]'}`}
+                  >
+                    {following ? 'Following' : 'Follow'}
+                  </button>
+                )}
                 {idea.category && (
-                  <span className="text-[11px] font-semibold text-[#1565C0] bg-[#E3F2FD] px-2.5 py-1 rounded-full">
+                  <span className="text-[11px] font-semibold text-[#1565C0] bg-[#E3F2FD] px-2.5 py-1 rounded-full shrink-0">
                     {idea.category}
                   </span>
                 )}
