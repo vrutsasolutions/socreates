@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════════════
 //  Cloudflare Images — upload, delete, optimized retrieval.
-//  Backend: ⏳ under development (Vishakha). Mock-backed until live.
+//  Backend: ⏳ under development . Mock-backed until live.
 //  Flip USE_MOCK.images → false in config.js when /api/images/* is ready.
 // ════════════════════════════════════════════════════════════════════════
 import api from './axiosInstance';

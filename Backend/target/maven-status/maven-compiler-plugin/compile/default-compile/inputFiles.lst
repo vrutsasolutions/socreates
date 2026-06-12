@@ -5,6 +5,7 @@ D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\Notification.ja
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\config\R2Config.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\IdeaController.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\SavedIdea.java
+D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\service\AiService.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\PlagiarismController.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\repository\UserRepository.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\security\JwtUtil.java
@@ -43,6 +44,7 @@ D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\IdeasparkApplication.
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\Comment.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\ApiResponse.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\dto\RegisterRequest.java
+D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\controller\AiController.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\repository\IdeaRepository.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\IdeaLike.java
 D:\Socreates\socreates\Backend\src\main\java\com\ideaspark\model\User.java
