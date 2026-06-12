@@ -54,4 +54,11 @@ public interface IdeaRepository extends JpaRepository<Idea, UUID> {
     @Modifying
     @Query("UPDATE Idea i SET i.likeCount = i.likeCount - 1 WHERE i.id = :id AND i.likeCount > 0")
     void decrementLikeCount(@Param("id") UUID id);
+
+    // ✅ Added — Count ideas by creator
+    int countByCreatorId(UUID creatorId);
+
+    // ✅ Added — Sum all likes across all ideas by a creator
+    @Query("SELECT COALESCE(SUM(i.likeCount), 0) FROM Idea i WHERE i.creator.id = :creatorId")
+    int sumLikeCountByCreatorId(@Param("creatorId") UUID creatorId);
 }

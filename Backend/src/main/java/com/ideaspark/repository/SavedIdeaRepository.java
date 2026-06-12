@@ -18,11 +18,13 @@ public interface SavedIdeaRepository extends JpaRepository<SavedIdea, UUID> {
     boolean existsByUserIdAndIdeaId(UUID userId, UUID ideaId);
 
     @Modifying
-@Query("DELETE FROM SavedIdea s WHERE s.user.id = :userId AND s.idea.id = :ideaId")
-void deleteByUserIdAndIdeaId(@Param("userId") UUID userId, @Param("ideaId") UUID ideaId);
+    @Query("DELETE FROM SavedIdea s WHERE s.user.id = :userId AND s.idea.id = :ideaId")
+    void deleteByUserIdAndIdeaId(@Param("userId") UUID userId, @Param("ideaId") UUID ideaId);
 
-@Modifying
-@Query("DELETE FROM SavedIdea s WHERE s.idea.id = :ideaId")
-void deleteByIdeaId(@Param("ideaId") UUID ideaId);
+    @Modifying
+    @Query("DELETE FROM SavedIdea s WHERE s.idea.id = :ideaId")
+    void deleteByIdeaId(@Param("ideaId") UUID ideaId);
 
+    // ✅ Added — Count saved ideas by user
+    long countByUserId(UUID userId);
 }

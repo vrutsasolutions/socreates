@@ -12,4 +12,7 @@ public class UserDTO {
     private String profileImage;
     private String bio;
     private boolean isPremium;
+    private int ideasCount;
+    private int likesCount;
+    private int savedCount;
 }

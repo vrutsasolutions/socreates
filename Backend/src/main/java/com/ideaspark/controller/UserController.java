@@ -2,6 +2,8 @@ package com.ideaspark.controller;
 
 import com.ideaspark.dto.*;
 import com.ideaspark.model.User;
+import com.ideaspark.repository.IdeaRepository;
+import com.ideaspark.repository.SavedIdeaRepository;
 import com.ideaspark.repository.UserRepository;
 import com.ideaspark.service.CloudflareImageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +27,8 @@ public class UserController {
     private final ObjectMapper objectMapper;
     private final com.ideaspark.service.AuthService authService;
     private final CloudflareImageService cloudflareImageService;
+    private final IdeaRepository ideaRepository;           // ✅ Added
+    private final SavedIdeaRepository savedIdeaRepository; // ✅ Added
 
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(
@@ -70,8 +74,8 @@ public class UserController {
             String imageUrl = cloudflareImageService.upload(avatar);
             user.setProfileImage(imageUrl);
         }
-        User savedUser = userRepository.save(user);
 
+        User savedUser = userRepository.save(user);
         return ResponseEntity.ok(toDTO(savedUser));
     }
 
@@ -101,6 +105,7 @@ public class UserController {
         return ResponseEntity.ok(new ApiResponse(true, "Following updated"));
     }
 
+    // ✅ Updated toDTO with counts
     private UserDTO toDTO(User user) {
         UserDTO dto = new UserDTO();
 
@@ -111,6 +116,11 @@ public class UserController {
         dto.setProfileImage(user.getProfileImage());
         dto.setBio(user.getBio());
         dto.setPremium(user.isPremium());
+
+        // ✅ Counts
+        dto.setIdeasCount(ideaRepository.countByCreatorId(user.getId()));
+        dto.setLikesCount(ideaRepository.sumLikeCountByCreatorId(user.getId()));
+        dto.setSavedCount((int) savedIdeaRepository.countByUserId(user.getId()));
 
         return dto;
     }
