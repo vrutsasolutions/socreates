@@ -11,8 +11,8 @@ import { useAuth } from './AuthContext';
 import {
   fetchNotifications,
   markAsRead as apiMarkAsRead,
-  markAllAsRead as apiMarkAllAsRead,
   subscribeToNotifications,
+  normalizeNotification,
 } from '../api/notificationApi';
 
 const NotificationContext = createContext(null);
@@ -26,8 +26,13 @@ export const NotificationProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const toastTimers = useRef({});
 
-  const unreadCount = items.filter((n) => !n.read).length;
+  // ── Split counts: bell = everything except messages, message icon = messages only ──
   const unreadMessages = items.filter((n) => !n.read && n.type === 'message').length;
+  const unreadCount    = items.filter((n) => !n.read && n.type !== 'message').length;
+
+  // ── Split lists: bell shows idea-related activity, message icon shows DMs ──
+  const bellItems    = items.filter((n) => n.type !== 'message');
+  const messageItems = items.filter((n) => n.type === 'message');
 
   // ── Toasts ────────────────────────────────────────────────────────────
   const dismissToast = useCallback((id) => {
@@ -46,11 +51,9 @@ export const NotificationProvider = ({ children }) => {
     setLoading(true);
     try {
       const { data } = await fetchNotifications();
-      // ✅ normalize readStatus → read so unreadCount calculates correctly
-      const normalized = Array.isArray(data)
-        ? data.map((n) => ({ ...n, read: n.read ?? n.readStatus ?? false }))
-        : [];
-      setItems(normalized);
+      // ✅ normalize backend payload → { id, type, title, message, read, createdAt, link }
+      const list = Array.isArray(data) ? data : [];
+      setItems(list.map((n) => normalizeNotification(n)));
     } catch (err) {
       console.error('[notifications] failed to load list', err);
       setItems([]);
@@ -65,10 +68,17 @@ export const NotificationProvider = ({ children }) => {
     try { await apiMarkAsRead(id); } catch (err) { console.error('[notifications] markAsRead failed', err); }
   }, []);
 
+  // Mark all non-message ("bell") notifications as read
   const markAllAsRead = useCallback(async () => {
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-    try { await apiMarkAllAsRead(); } catch (err) { console.error('[notifications] markAllAsRead failed', err); }
-  }, []);
+    const ids = items.filter((n) => !n.read && n.type !== 'message').map((n) => n.id);
+    if (ids.length === 0) return;
+    setItems((prev) => prev.map((n) => (n.type !== 'message' ? { ...n, read: true } : n)));
+    try {
+      await Promise.all(ids.map((id) => apiMarkAsRead(id)));
+    } catch (err) {
+      console.error('[notifications] markAllAsRead failed', err);
+    }
+  }, [items]);
 
   // ── Wire up only when logged in ───────────────────────────────────────
   useEffect(() => {
@@ -109,7 +119,12 @@ export const NotificationProvider = ({ children }) => {
 
   return (
     <NotificationContext.Provider
-      value={{ items, unreadCount, unreadMessages, loading, toasts, markAsRead, markAllAsRead, dismissToast, clearMessageNotifications, reload: load }}
+      value={{
+        items, bellItems, messageItems,
+        unreadCount, unreadMessages, loading,
+        toasts, markAsRead, markAllAsRead, dismissToast,
+        clearMessageNotifications, reload: load,
+      }}
     >
       {children}
     </NotificationContext.Provider>
