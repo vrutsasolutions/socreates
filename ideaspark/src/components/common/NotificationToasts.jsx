@@ -8,6 +8,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import Icon from './Icon';
 
 const TYPE_ICON = {
+  message: 'message-square',
   like: 'heart', bookmark: 'bookmark', idea: 'lightbulb',
   follow: 'user', comment: 'message-square', system: 'bell',
 };
