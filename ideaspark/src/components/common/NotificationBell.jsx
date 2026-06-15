@@ -2,6 +2,9 @@
 //  NotificationBell
 //  Bell icon + unread badge + dropdown panel. Drop into any header.
 //  Reads everything from NotificationContext (useNotifications).
+//  Shows only non-message ("bell") notifications — likes, bookmarks,
+//  follows, comments, system. Message DMs are surfaced via the separate
+//  message icon + unreadMessages (see Home.jsx).
 // ════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -28,7 +31,7 @@ function timeAgo(iso) {
 
 export default function NotificationBell() {
   const navigate = useNavigate();
-  const { items, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
+  const { bellItems, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 16 });
   const wrapRef = useRef(null);
@@ -49,8 +52,8 @@ export default function NotificationBell() {
   }, [open]);
 
   const handleItemClick = (n) => {
-    // ✅ Fixed — using readStatus
-    if (!n.readStatus) markAsRead(n.id);
+    // ✅ Fixed — normalized notifications use `read`, not `readStatus`
+    if (!n.read) markAsRead(n.id);
     setOpen(false);
     if (n.link) navigate(n.link);
   };
@@ -100,7 +103,7 @@ export default function NotificationBell() {
             <div className="max-h-96 overflow-y-auto">
               {loading ? (
                 <div className="px-4 py-8 text-center text-[13px] text-[#90A4AE]">Loading…</div>
-              ) : items.length === 0 ? (
+              ) : bellItems.length === 0 ? (
                 <div className="px-4 py-10 text-center">
                   <div className="mb-3 flex justify-center text-[#BBDEFB]">
                     <Icon name="bell" className="w-9 h-9" />
@@ -109,13 +112,13 @@ export default function NotificationBell() {
                   <p className="text-[12px] text-[#90A4AE] mt-1">No new notifications yet.</p>
                 </div>
               ) : (
-                items.map((n) => (
+                bellItems.map((n) => (
                   <button
                     key={n.id}
                     onClick={() => handleItemClick(n)}
-                    // ✅ Fixed — using readStatus
+                    // ✅ Fixed — using `read` (normalized), not `readStatus`
                     className={`w-full flex gap-3 px-4 py-3 text-left transition-colors border-b border-[#F0F6FF]
-                                hover:bg-[#F4F7FF] active:bg-[#EEF4FF] ${n.readStatus ? 'bg-white' : 'bg-[#F4F7FF]'}`}
+                                hover:bg-[#F4F7FF] active:bg-[#EEF4FF] ${n.read ? 'bg-white' : 'bg-[#F4F7FF]'}`}
                   >
                     {/* Icon chip */}
                     <span className="mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[#EEF4FF] text-[#1565C0]">
@@ -130,8 +133,8 @@ export default function NotificationBell() {
                       </span>
                       <span className="block text-[11px] text-[#90A4AE] mt-1">{timeAgo(n.createdAt)}</span>
                     </span>
-                    {/* ✅ Fixed — using readStatus */}
-                    {!n.readStatus && (
+                    {/* ✅ Fixed — using `read` (normalized), not `readStatus` */}
+                    {!n.read && (
                       <span className="w-2 h-2 rounded-full bg-[#1565C0] mt-2 shrink-0" />
                     )}
                   </button>
