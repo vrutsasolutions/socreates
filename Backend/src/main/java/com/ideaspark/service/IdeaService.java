@@ -125,6 +125,7 @@ public void deleteIdea(UUID id, String userEmail) {
                 Notification notification = Notification.builder()
                         .message(user.getName() + " bookmarked your idea!")
                         .readStatus(false)
+                        .referenceId(idea.getId())
                         .createdAt(java.time.LocalDateTime.now())
                         .user(idea.getCreator())
                         .build();
@@ -209,6 +210,7 @@ public void deleteIdea(UUID id, String userEmail) {
                                             ? liker.getUsername()
                                             : liker.getName()) + " liked your idea!")
                             .readStatus(false)
+                            .referenceId(idea.getId())
                             .createdAt(java.time.LocalDateTime.now())
                             .user(idea.getCreator())
                             .build();
@@ -271,6 +273,7 @@ public void deleteIdea(UUID id, String userEmail) {
                                         ? user.getUsername()
                                         : user.getName()) + " commented on your idea!")
                         .readStatus(false)
+                        .referenceId(idea.getId())
                         .createdAt(java.time.LocalDateTime.now())
                         .user(idea.getCreator())
                         .build();
