@@ -46,6 +46,7 @@ C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\AuthResponse.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\config\SecurityConfig.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\MessageRepository.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\model\IdeaLike.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\OtpController.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\IdeaService.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\UserRepository.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\MembershipRepository.java
@@ -53,10 +54,12 @@ C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\LocalFileStora
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\RegisterRequest.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\repository\NotificationRepository.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\PlagiarismResult.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\EmailService.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\AiController.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\controller\FollowController.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\CommentDTO.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\CloudflareImageService.java
+C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\service\OtpService.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\exception\GlobalExceptionHandler.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\security\JwtFilter.java
 C:\Users\HP\socreates\Backend\src\main\java\com\ideaspark\dto\CreateCommentRequest.java
