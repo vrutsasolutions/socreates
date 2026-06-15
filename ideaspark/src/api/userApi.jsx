@@ -73,3 +73,7 @@ export const unfollowUser = (targetUserId, currentUserId) =>
   USE_MOCK.users
     ? mockResponse('Unfollowed successfully')
     : api.delete(`/follow/${targetUserId}`, { headers: { 'X-User-Id': currentUserId } });
+
+// DELETE /api/users/me → delete account
+export const deleteAccount = () =>
+  USE_MOCK.users ? mockResponse({ message: 'Account deleted' }) : api.delete('/users/me');

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/common/Icon';
+import { deleteAccount } from '../api/userApi';
 
 const Toggle = ({ value, onChange }) => (
   <button
@@ -25,8 +26,27 @@ export default function Settings() {
 
   const [notifs, setNotifs] = useState({ newIdeas: true, likes: true, comments: false, newsletter: false });
   const [privacy, setPrivacy] = useState({ publicProfile: true, showSaved: false, showActivity: true });
+  const [deleting, setDeleting] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This action cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+      await deleteAccount();
+      logout();
+      navigate('/');
+    } catch (err) {
+      alert('Failed to delete account. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const Section = ({ title, children }) => (
     <div className="mb-6">
@@ -56,14 +76,14 @@ export default function Settings() {
         <div className="pointer-events-none absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
         <div className="pointer-events-none absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         <button
-              onClick={() => navigate(-1)}
-              aria-label="Go back"
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
-          >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-          </button>
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
         <h1 className="text-white font-bold text-lg">Settings</h1>
       </header>
 
@@ -111,7 +131,13 @@ export default function Settings() {
 
           <Section title="Danger Zone">
             <Row icon={<Icon name="log-out" className="w-5 h-5 text-red-500" />} label="Logout" danger onClick={handleLogout}/>
-            <Row icon={<Icon name="trash"   className="w-5 h-5 text-red-500" />} label="Delete Account" sublabel="Permanently delete your account and data" danger onClick={() => {}}/>
+            <Row
+              icon={<Icon name="trash" className="w-5 h-5 text-red-500" />}
+              label={deleting ? 'Deleting...' : 'Delete Account'}
+              sublabel="Permanently delete your account and data"
+              danger
+              onClick={handleDeleteAccount}
+            />
           </Section>
 
           <p className="text-center text-[#90A4AE] text-xs pb-6">SoCreates v1.0.0</p>

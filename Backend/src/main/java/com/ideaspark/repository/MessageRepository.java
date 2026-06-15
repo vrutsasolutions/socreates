@@ -11,9 +11,10 @@ import java.util.UUID;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, UUID> {
 
-    // All messages in a conversation, oldest first
     List<Message> findByConversationOrderByCreatedAtAsc(Conversation conversation);
 
-    // Count unread messages sent TO a specific conversation (not by the reader)
     long countByConversationAndIsReadFalse(Conversation conversation);
+
+    // ✅ Added for delete account
+    List<Message> findByConversationId(UUID conversationId);
 }
