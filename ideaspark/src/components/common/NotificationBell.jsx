@@ -33,7 +33,6 @@ export default function NotificationBell() {
   const [pos, setPos] = useState({ top: 0, right: 16 });
   const wrapRef = useRef(null);
 
-  // Anchor the portaled panel just under the bell, aligned to its right edge.
   const toggle = () => {
     if (!open && wrapRef.current) {
       const r = wrapRef.current.getBoundingClientRect();
@@ -42,7 +41,6 @@ export default function NotificationBell() {
     setOpen((o) => !o);
   };
 
-  // Close on Escape — outside clicks are handled by the scrim.
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
@@ -51,7 +49,8 @@ export default function NotificationBell() {
   }, [open]);
 
   const handleItemClick = (n) => {
-    if (!n.read) markAsRead(n.id);
+    // ✅ Fixed — using readStatus
+    if (!n.readStatus) markAsRead(n.id);
     setOpen(false);
     if (n.link) navigate(n.link);
   };
@@ -114,8 +113,9 @@ export default function NotificationBell() {
                   <button
                     key={n.id}
                     onClick={() => handleItemClick(n)}
+                    // ✅ Fixed — using readStatus
                     className={`w-full flex gap-3 px-4 py-3 text-left transition-colors border-b border-[#F0F6FF]
-                                hover:bg-[#F4F7FF] active:bg-[#EEF4FF] ${n.read ? 'bg-white' : 'bg-[#F4F7FF]'}`}
+                                hover:bg-[#F4F7FF] active:bg-[#EEF4FF] ${n.readStatus ? 'bg-white' : 'bg-[#F4F7FF]'}`}
                   >
                     {/* Icon chip */}
                     <span className="mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[#EEF4FF] text-[#1565C0]">
@@ -130,7 +130,8 @@ export default function NotificationBell() {
                       </span>
                       <span className="block text-[11px] text-[#90A4AE] mt-1">{timeAgo(n.createdAt)}</span>
                     </span>
-                    {!n.read && (
+                    {/* ✅ Fixed — using readStatus */}
+                    {!n.readStatus && (
                       <span className="w-2 h-2 rounded-full bg-[#1565C0] mt-2 shrink-0" />
                     )}
                   </button>

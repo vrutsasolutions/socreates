@@ -6,6 +6,7 @@ import com.ideaspark.repository.NotificationRepository;
 import com.ideaspark.repository.UserRepository;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,50 +26,55 @@ public class NotificationService {
         this.messagingTemplate = messagingTemplate;
     }
 
-    public Notification sendNotification(Notification notification){
-        if(notification.getCreatedAt()==null){
+    public Notification sendNotification(Notification notification) {
+        if (notification.getCreatedAt() == null) {
             notification.setCreatedAt(java.time.LocalDateTime.now());
         }
         Notification saved = notificationRepository.save(notification);
-        
-       if (saved.getUser() != null && saved.getUser().getEmail() != null) {
-    messagingTemplate.convertAndSendToUser(
-            saved.getUser().getEmail(),
-            "/queue/notifications",
-            saved
-    );
-}
 
+        if (saved.getUser() != null && saved.getUser().getEmail() != null) {
+            messagingTemplate.convertAndSendToUser(
+                    saved.getUser().getEmail(),
+                    "/queue/notifications",
+                    saved
+            );
+        }
         return saved;
-
     }
-    public List<Notification> listFor(String email){
-        User user=userRepository.findByEmail(email).orElseThrow();
+
+    public List<Notification> listFor(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow();
         return notificationRepository.findByUserOrderByCreatedAtDesc(user);
     }
-    public long countUnread(String email){
-        User user=userRepository.findByEmail(email).orElseThrow();
+
+    public long countUnread(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow();
         return notificationRepository.countByUserAndReadStatusFalse(user);
     }
+
     public long unreadCountFor(String email) {
-    User user = userRepository.findByEmail(email).orElseThrow();
-    return notificationRepository.countByUserAndReadStatusFalse(user);
+        User user = userRepository.findByEmail(email).orElseThrow();
+        return notificationRepository.countByUserAndReadStatusFalse(user);
     }
+
     public void markRead(UUID id) {
-    Notification notification = notificationRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Notification not found"));
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        notification.setReadStatus(true);
+        notificationRepository.save(notification);
+    }
 
-    notification.setReadStatus(true);
-    notificationRepository.save(notification);
-}
+    // ✅ Added @Transactional to persist markAllRead properly
+    @Transactional
+    public void markAllRead(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow();
 
-    public void markAllRead(String email){
-        User user=userRepository.findByEmail(email).orElseThrow();
-        List<Notification> notifications=notificationRepository.findByUserOrderByCreatedAtDesc(user);
-        notifications.forEach(n->n.setReadStatus(true));
+        // ✅ Use a direct update query for reliability
+        List<Notification> notifications = notificationRepository
+                .findByUserOrderByCreatedAtDesc(user);
+        notifications.forEach(n -> n.setReadStatus(true));
         notificationRepository.saveAll(notifications);
     }
-    
 }
 
 

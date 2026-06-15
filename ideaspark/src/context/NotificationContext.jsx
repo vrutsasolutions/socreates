@@ -2,7 +2,7 @@
 //  NotificationContext
 //  ----------------------------------------------------------------------
 //  Single source of notification state for the bell + toasts.
-//    • initial list / unread count / mark-read  → REST (mock for now, §7 gaps)
+//    • initial list / unread count / mark-read  → REST
 //    • live pushes                              → STOMP/SockJS (live)
 //  On each live push we prepend to the list, bump unread, and surface a toast.
 // ════════════════════════════════════════════════════════════════════════
@@ -26,7 +26,7 @@ export const NotificationProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const toastTimers = useRef({});
 
-  const unreadCount = items.filter((n) => !n.read).length;
+  const unreadCount = items.filter((n) => !n.readStatus).length;
 
   // ── Toasts ────────────────────────────────────────────────────────────
   const dismissToast = useCallback((id) => {
@@ -36,11 +36,11 @@ export const NotificationProvider = ({ children }) => {
   }, []);
 
   const pushToast = useCallback((n) => {
-    setToasts((prev) => [n, ...prev].slice(0, 3)); // cap at 3 stacked
+    setToasts((prev) => [n, ...prev].slice(0, 3));
     toastTimers.current[n.id] = setTimeout(() => dismissToast(n.id), TOAST_TTL);
   }, [dismissToast]);
 
-  // ── Initial load (REST, mock for now) ─────────────────────────────────
+  // ── Initial load ───────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -54,14 +54,16 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // ── Mark read (optimistic; REST mock for now) ─────────────────────────
+  // ── Mark read ─────────────────────────────────────────────────────────
   const markAsRead = useCallback(async (id) => {
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, readStatus: true } : n)));
     try { await apiMarkAsRead(id); } catch (err) { console.error('[notifications] markAsRead failed', err); }
   }, []);
 
   const markAllAsRead = useCallback(async () => {
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+
+    setItems((prev) => prev.map((n) => ({ ...n, readStatus: true })));
     try { await apiMarkAllAsRead(); } catch (err) { console.error('[notifications] markAllAsRead failed', err); }
   }, []);
 
@@ -77,7 +79,7 @@ export const NotificationProvider = ({ children }) => {
 
     const unsubscribe = subscribeToNotifications((n) => {
       setItems((prev) => {
-        if (prev.some((x) => x.id === n.id)) return prev; // dedupe
+        if (prev.some((x) => x.id === n.id)) return prev;
         return [n, ...prev];
       });
       pushToast(n);
@@ -99,6 +101,7 @@ export const NotificationProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNotifications = () => {
   const ctx = useContext(NotificationContext);
   if (!ctx) throw new Error('useNotifications must be used within NotificationProvider');
