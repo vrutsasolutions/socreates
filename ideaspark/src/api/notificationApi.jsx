@@ -74,6 +74,12 @@ export const normalizeNotification = (n = {}) => {
     system:   'Notification',
   };
 
+  // Types that point at an idea — deep-link via referenceId when available.
+  const IDEA_LINK_TYPES = new Set(['like', 'bookmark', 'comment', 'idea']);
+  const defaultLink = IDEA_LINK_TYPES.has(type) && n.referenceId
+    ? `/ideas/${n.referenceId}`
+    : (type === 'message' ? '/messages' : '/home');
+
   return {
     id:        n.id ?? 'n-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
     type,
@@ -81,8 +87,10 @@ export const normalizeNotification = (n = {}) => {
     message,
     read:      n.read ?? n.readStatus ?? false,
     createdAt: n.createdAt ?? new Date().toISOString(),
-    // For message notifications link to inbox; others go to home
-    link:      n.link ?? (type === 'message' ? '/messages' : '/home'),
+    referenceId: n.referenceId ?? null,
+    // For idea-related notifications, link straight to the idea page;
+    // message notifications go to the inbox; everything else to home.
+    link:      n.link ?? defaultLink,
   };
 };
 
