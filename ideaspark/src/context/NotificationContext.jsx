@@ -41,12 +41,16 @@ export const NotificationProvider = ({ children }) => {
     toastTimers.current[n.id] = setTimeout(() => dismissToast(n.id), TOAST_TTL);
   }, [dismissToast]);
 
-  // ── Initial load (REST, mock for now) ─────────────────────────────────
+  // ── Initial load ──────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await fetchNotifications();
-      setItems(Array.isArray(data) ? data : []);
+      // ✅ normalize readStatus → read so unreadCount calculates correctly
+      const normalized = Array.isArray(data)
+        ? data.map((n) => ({ ...n, read: n.read ?? n.readStatus ?? false }))
+        : [];
+      setItems(normalized);
     } catch (err) {
       console.error('[notifications] failed to load list', err);
       setItems([]);
@@ -55,7 +59,7 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // ── Mark read (optimistic; REST mock for now) ─────────────────────────
+  // ── Mark read (optimistic) ────────────────────────────────────────────
   const markAsRead = useCallback(async (id) => {
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try { await apiMarkAsRead(id); } catch (err) { console.error('[notifications] markAsRead failed', err); }
