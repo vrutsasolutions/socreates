@@ -3,24 +3,8 @@
 //
 //  Mock-first. Flip USE_MOCK.messaging → false in config.js when backend is live.
 //
-//  KEY FIX: normalizeConversation() and normalizeMessage() bridge the gap
-//  between backend field names (otherUserName, senderId, content, etc.)
-//  and the frontend's mock-shaped objects (name, fromMe, text, etc.).
-//  This keeps all page/component code unchanged regardless of mock vs live.
-//
-//  Endpoints:
-//    GET  /messages/active                       → ActiveUser[]
-//    GET  /messages/conversations                → ConversationDTO[]
-//    GET  /messages/conversations/:id            → ConversationDTO
-//    GET  /messages/conversations/:id/messages   → MessageDTO[]
-//    POST /messages/conversations/:id/messages   → MessageDTO  (body:{type,content})
-//    POST /messages/upload/voice                 → { url }
-//    POST /messages/upload/image                 → { url }
-//    GET  /messages/requests                     → Request[]
-//    POST /messages/requests/:id/accept          → {}
-//    POST /messages/requests/:id/decline         → {}
-//    GET  /messages/contacts                     → UserDTO[]
-//    POST /messages/conversations                → ConversationDTO (body:{userId})
+//  KEY FIX: normalizeConversation(), normalizeMessage(), normalizeContact()
+//  bridge the gap between backend field names and the frontend's expected shape.
 // ════════════════════════════════════════════════════════════════════════
 import api from './axiosInstance';
 import { USE_MOCK, mockResponse } from './config';
@@ -47,10 +31,7 @@ const clock = () =>
 //  NORMALIZERS — convert backend DTO shapes → frontend shape
 // ════════════════════════════════════════════════════════════════════════
 
-/**
- * Get the logged-in user's ID from localStorage (set during login).
- * Backend stores the user object as JSON under the key "user".
- */
+/** Get the logged-in user's ID from localStorage */
 const getMyId = () => {
   try {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -60,9 +41,7 @@ const getMyId = () => {
   }
 };
 
-/**
- * Derive a 1–2 letter initial from a name string.
- */
+/** Derive a 1–2 letter initial from a name string */
 const initialFrom = (name = '') => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';
@@ -76,15 +55,11 @@ const initialFrom = (name = '') => {
  * Backend fields:   id, otherUserId, otherUserName, otherUserAvatar,
  *                   otherUserOnline, lastMessage, lastMessageType,
  *                   lastMessageAt, unreadCount
- *
- * Frontend expects: id, name, initial, avatarColor, online,
- *                   lastMessage, lastType, time, unread
  */
 const normalizeConversation = (dto) => ({
   id:           String(dto.id),
   name:         dto.otherUserName  ?? dto.name         ?? 'Unknown',
   initial:      dto.initial        ?? initialFrom(dto.otherUserName ?? dto.name ?? ''),
-  // avatarColor is used as a gradient seed in Avatar.jsx — use the name as seed
   avatarColor:  dto.avatarColor    ?? dto.otherUserName ?? '#1565C0',
   online:       dto.otherUserOnline ?? dto.online       ?? false,
   otherUserId:  dto.otherUserId,
@@ -98,17 +73,9 @@ const normalizeConversation = (dto) => ({
 
 /**
  * Normalize a backend MessageDTO → frontend message shape.
- *
- * Backend fields:   id, conversationId, senderId, senderName, senderAvatar,
- *                   type (TEXT|IMAGE|VOICE), content, isRead, createdAt
- *
- * Frontend expects: id, conversationId, fromMe, type (text|image|voice),
- *                   text (for TEXT), imageUrl (for IMAGE), content (for VOICE),
- *                   duration (voice — not in backend, omitted), time
  */
 const normalizeMessage = (dto, myId) => {
-  const type = (dto.type ?? 'TEXT').toLowerCase(); // 'TEXT' → 'text'
-
+  const type = (dto.type ?? 'TEXT').toLowerCase();
   return {
     id:             String(dto.id),
     conversationId: String(dto.conversationId),
@@ -116,11 +83,8 @@ const normalizeMessage = (dto, myId) => {
     senderName:     dto.senderName ?? '',
     senderAvatar:   dto.senderAvatar ?? '',
     type,
-    // TEXT: put content in `text` so the Bubble component's `m.text` works
     text:           type === 'text'  ? (dto.content ?? '') : undefined,
-    // IMAGE: put content in `imageUrl`
     imageUrl:       type === 'image' ? (dto.content ?? '') : undefined,
-    // VOICE: keep in `content` (Bubble checks m.content.startsWith('http'))
     content:        type === 'voice' ? (dto.content ?? '') : undefined,
     isRead:         dto.isRead ?? dto.read ?? false,
     time:           dto.createdAt
@@ -128,6 +92,30 @@ const normalizeMessage = (dto, myId) => {
                       : dto.time ?? '',
   };
 };
+
+/**
+ * Normalize a backend UserDTO → frontend contact shape.
+ *
+ * Backend UserDTO has: id, name, username, email, profileImage, bio, isPremium
+ * Frontend expects:    id, name, initial, avatarColor, handle, online
+ *
+ * FIX: Backend contacts have no initial/avatarColor/handle — derive them.
+ */
+const normalizeContact = (dto) => ({
+  id:          String(dto.id),
+  name:        dto.name       ?? 'Unknown',
+  initial:     initialFrom(dto.name ?? ''),
+  // Use name as seed for deterministic gradient color (same as Avatar.jsx)
+  avatarColor: dto.name       ?? '#1565C0',
+  // Use @username if present, else @email prefix
+  handle:      dto.username
+                 ? `@${dto.username}`
+                 : dto.email
+                   ? `@${dto.email.split('@')[0]}`
+                   : '',
+  online:      false, // backend doesn't track online status for contacts
+  profileImage: dto.profileImage ?? null,
+});
 
 // ── Active-now rail ──────────────────────────────────────────────────────────
 export const fetchActiveUsers = () =>
@@ -193,14 +181,12 @@ export const sendMessage = async (conversationId, payload) => {
     return mockResponse({ ...msg }, 150);
   }
 
-  // ── Live: map frontend payload → backend contract ────────────────────────
-  // Backend expects: { type: 'TEXT'|'IMAGE'|'VOICE', content: string }
   const backendPayload = {
     type: payload.type.toUpperCase(),
     content:
       payload.type === 'text'
-        ? payload.text          // text message body
-        : payload.content,      // R2 URL for image / voice
+        ? payload.text
+        : payload.content,
   };
 
   const myId = getMyId();
@@ -212,49 +198,24 @@ export const sendMessage = async (conversationId, payload) => {
 };
 
 // ════════════════════════════════════════════════════════════════════════
-//  FILE UPLOADS — call BEFORE sendMessage to obtain an R2 URL.
+//  FILE UPLOADS
 // ════════════════════════════════════════════════════════════════════════
-
-/**
- * Upload a voice recording Blob to R2.
- * @param {Blob}   blob     — audio blob from MediaRecorder
- * @param {string} mimeType — e.g. 'audio/webm;codecs=opus', 'audio/ogg'
- * @returns {Promise<string>} public R2 URL
- *
- * FIX (Bug 3): Do NOT manually set 'Content-Type': 'multipart/form-data'.
- * When set manually, the browser cannot append the required boundary parameter,
- * causing the server to fail parsing the multipart body. Let axios set it automatically.
- */
 export const uploadVoice = async (blob, mimeType = 'audio/webm') => {
-  if (USE_MOCK.messaging) {
-    // In mock mode return a local object URL so the audio player still works
-    return Promise.resolve(URL.createObjectURL(blob));
-  }
+  if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(blob));
   const ext = mimeType.includes('ogg') ? 'ogg'
     : mimeType.includes('mp4')         ? 'mp4'
     : mimeType.includes('wav')         ? 'wav'
     : 'webm';
   const form = new FormData();
   form.append('file', blob, `voice-${Date.now()}.${ext}`);
-  // ✅ FIX: No manual Content-Type header — axios sets it with the correct boundary
   const { data } = await api.post('/messages/upload/voice', form);
   return data.url;
 };
 
-/**
- * Upload an image File to R2.
- * @param {File} file
- * @returns {Promise<string>} public R2 URL
- *
- * FIX (Bug 3): Same fix as uploadVoice — no manual Content-Type header.
- */
 export const uploadImage = async (file) => {
-  if (USE_MOCK.messaging) {
-    return Promise.resolve(URL.createObjectURL(file));
-  }
+  if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(file));
   const form = new FormData();
   form.append('file', file);
-  // ✅ FIX: No manual Content-Type header — axios sets it with the correct boundary
   const { data } = await api.post('/messages/upload/image', form);
   return data.url;
 };
@@ -282,10 +243,12 @@ export const declineRequest = (id) => {
 };
 
 // ── New chat (contacts) ──────────────────────────────────────────────────────
-export const fetchContacts = () =>
-  USE_MOCK.messaging
-    ? mockResponse(MOCK_CONTACTS.map((c) => ({ ...c })))
-    : api.get('/messages/contacts');
+export const fetchContacts = async () => {
+  if (USE_MOCK.messaging) return mockResponse(MOCK_CONTACTS.map((c) => ({ ...c })));
+  const res = await api.get('/messages/contacts');
+  // FIX: normalize backend UserDTO → frontend contact shape (adds initial, avatarColor, handle)
+  return { data: (res.data ?? []).map(normalizeContact) };
+};
 
 export const startConversation = async (userId) => {
   if (USE_MOCK.messaging) {
