@@ -2,7 +2,7 @@
 //  NotificationContext
 //  ----------------------------------------------------------------------
 //  Single source of notification state for the bell + toasts.
-//    • initial list / unread count / mark-read  → REST
+//    • initial list / unread count / mark-read  → REST (mock for now, §7 gaps)
 //    • live pushes                              → STOMP/SockJS (live)
 //  On each live push we prepend to the list, bump unread, and surface a toast.
 // ════════════════════════════════════════════════════════════════════════
@@ -26,7 +26,8 @@ export const NotificationProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const toastTimers = useRef({});
 
-  const unreadCount = items.filter((n) => !n.readStatus).length;
+  const unreadCount = items.filter((n) => !n.read).length;
+  const unreadMessages = items.filter((n) => !n.read && n.type === 'message').length;
 
   // ── Toasts ────────────────────────────────────────────────────────────
   const dismissToast = useCallback((id) => {
@@ -36,11 +37,11 @@ export const NotificationProvider = ({ children }) => {
   }, []);
 
   const pushToast = useCallback((n) => {
-    setToasts((prev) => [n, ...prev].slice(0, 3));
+    setToasts((prev) => [n, ...prev].slice(0, 3)); // cap at 3 stacked
     toastTimers.current[n.id] = setTimeout(() => dismissToast(n.id), TOAST_TTL);
   }, [dismissToast]);
 
-  // ── Initial load ───────────────────────────────────────────────────────
+  // ── Initial load (REST, mock for now) ─────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -54,16 +55,14 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // ── Mark read ─────────────────────────────────────────────────────────
+  // ── Mark read (optimistic; REST mock for now) ─────────────────────────
   const markAsRead = useCallback(async (id) => {
-  
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, readStatus: true } : n)));
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try { await apiMarkAsRead(id); } catch (err) { console.error('[notifications] markAsRead failed', err); }
   }, []);
 
   const markAllAsRead = useCallback(async () => {
-
-    setItems((prev) => prev.map((n) => ({ ...n, readStatus: true })));
+    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
     try { await apiMarkAllAsRead(); } catch (err) { console.error('[notifications] markAllAsRead failed', err); }
   }, []);
 
@@ -79,7 +78,7 @@ export const NotificationProvider = ({ children }) => {
 
     const unsubscribe = subscribeToNotifications((n) => {
       setItems((prev) => {
-        if (prev.some((x) => x.id === n.id)) return prev;
+        if (prev.some((x) => x.id === n.id)) return prev; // dedupe
         return [n, ...prev];
       });
       pushToast(n);
@@ -92,16 +91,27 @@ export const NotificationProvider = ({ children }) => {
     };
   }, [user, load, pushToast]);
 
+  // Mark all message-type notifications as read (call when user opens /messages)
+  const clearMessageNotifications = useCallback(async () => {
+    const msgIds = items.filter((n) => !n.read && n.type === 'message').map((n) => n.id);
+    if (msgIds.length === 0) return;
+    setItems((prev) => prev.map((n) => n.type === 'message' ? { ...n, read: true } : n));
+    try {
+      await Promise.all(msgIds.map((id) => apiMarkAsRead(id)));
+    } catch (err) {
+      console.error('[notifications] clearMessageNotifications failed', err);
+    }
+  }, [items]);
+
   return (
     <NotificationContext.Provider
-      value={{ items, unreadCount, loading, toasts, markAsRead, markAllAsRead, dismissToast, reload: load }}
+      value={{ items, unreadCount, unreadMessages, loading, toasts, markAsRead, markAllAsRead, dismissToast, clearMessageNotifications, reload: load }}
     >
       {children}
     </NotificationContext.Provider>
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useNotifications = () => {
   const ctx = useContext(NotificationContext);
   if (!ctx) throw new Error('useNotifications must be used within NotificationProvider');
