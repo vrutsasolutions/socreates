@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -64,5 +65,13 @@ public class MessageController {
     @GetMapping("/contacts")
     public List<UserDTO> getContacts(Authentication auth) {
         return messageService.getContacts(auth.getName());
+    }
+
+    // GET /api/messages/active
+    // Returns empty list for now — online presence tracking not yet implemented.
+    // Frontend uses this for the "Active Now" rail; returning [] hides the rail gracefully.
+    @GetMapping("/active")
+    public List<Object> getActiveUsers(Authentication auth) {
+        return Collections.emptyList();
     }
 }
