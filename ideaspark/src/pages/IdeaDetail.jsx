@@ -84,9 +84,11 @@ export default function IdeaDetail() {
   useEffect(() => {
     if (!canFollow) { setFollowing(false); return; }
     let alive = true;
-    fetchFollowStats(creatorId, user.id)
-      .then(({ data }) => { if (alive) setFollowing(!!data.isFollowing); })
-      .catch(() => {});
+    fetchFollowStats(creatorId)
+  .then(({ data }) => {
+    if (alive) setFollowing(Boolean(data.isFollowing ?? data.following));
+  })
+  .catch(() => {});
     return () => { alive = false; };
   }, [creatorId, user?.id, canFollow]);
 
@@ -156,8 +158,8 @@ export default function IdeaDetail() {
     setFollowing(!wasFollowing); // optimistic
     try {
       wasFollowing
-        ? await unfollowUser(creatorId, user.id)
-        : await followUser(creatorId, user.id);
+        ? await unfollowUser(creatorId)
+        : await followUser(creatorId);
       showToast(wasFollowing ? 'Unfollowed' : `Following ${idea?.creatorName || ''}`.trim());
     } catch (_) {
       setFollowing(wasFollowing); // revert on failure

@@ -49,12 +49,17 @@ export const followBulk = (creatorIds) =>
 
 // GET /api/follow/{userId}/stats → { followersCount, followingCount, isFollowing }
 // For the signed-in user's own profile, pass their id as both args.
-export const fetchFollowStats = (userId, currentUserId = userId) =>
+// ──────────────────────────────────────────────────────────────────────────
+//  Follow / social graph. Backend uses JWT token from axiosInstance.
+// ──────────────────────────────────────────────────────────────────────────
+
+// GET /api/follow/{userId}/stats → { followersCount, followingCount, isFollowing }
+export const fetchFollowStats = (userId) =>
   USE_MOCK.users
     ? mockResponse({ followersCount: 0, followingCount: 0, isFollowing: false })
-    : api.get(`/follow/${userId}/stats`, { headers: { 'X-User-Id': currentUserId } });
+    : api.get(`/follow/${userId}/stats`);
 
-// GET /api/follow/{userId}/followers → FollowResponse[]  { userId, name, username, profileImage }
+// GET /api/follow/{userId}/followers → FollowResponse[]
 export const fetchFollowers = (userId) =>
   USE_MOCK.users ? mockResponse([]) : api.get(`/follow/${userId}/followers`);
 
@@ -63,16 +68,16 @@ export const fetchFollowing = (userId) =>
   USE_MOCK.users ? mockResponse([]) : api.get(`/follow/${userId}/following`);
 
 // POST /api/follow/{targetUserId} → follow
-export const followUser = (targetUserId, currentUserId) =>
+export const followUser = (targetUserId) =>
   USE_MOCK.users
     ? mockResponse('Followed successfully')
-    : api.post(`/follow/${targetUserId}`, null, { headers: { 'X-User-Id': currentUserId } });
+    : api.post(`/follow/${targetUserId}`);
 
 // DELETE /api/follow/{targetUserId} → unfollow
-export const unfollowUser = (targetUserId, currentUserId) =>
+export const unfollowUser = (targetUserId) =>
   USE_MOCK.users
     ? mockResponse('Unfollowed successfully')
-    : api.delete(`/follow/${targetUserId}`, { headers: { 'X-User-Id': currentUserId } });
+    : api.delete(`/follow/${targetUserId}`);
 
 // DELETE /api/users/me → delete account
 export const deleteAccount = () =>

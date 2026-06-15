@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { registerUser, sendOtp, checkUsername } from '../api/authApi';
+// import { useAuth } from '../context/AuthContext';
+import { sendOtp, checkUsername } from '../api/authApi';
 import { ValidationError, FormError } from '../components/common/ErrorStates.premium';
 import Icon from '../components/common/Icon';
 
@@ -9,7 +9,7 @@ const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 
 export default function Register() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  
   const [form, setForm]       = useState({ firstName: '', lastName: '', username: '', email: '', password: '', confirmPassword: '' });
   const [agree, setAgree]     = useState(false);
   const [error, setError]     = useState('');
@@ -65,10 +65,15 @@ export default function Register() {
         email: form.email,
         password: form.password,
       };
-      const { data } = await registerUser(payload);
-      login(data.user, data.token);
-      try { await sendOtp(form.email); } catch { /* non-blocking */ }
-      navigate('/verify-otp', { state: { email: form.email } });
+      await sendOtp(form.email.trim().toLowerCase());
+
+navigate('/verify-otp', {
+  state: {
+    email: form.email.trim().toLowerCase(),
+    payload,
+    mode: 'register',
+  },
+});
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Try again.');
     } finally { setLoading(false); }
