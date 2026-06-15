@@ -5,6 +5,7 @@ import IdeaCard from "../components/common/IdeaCard.premium";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosInstance";
 import { fetchFollowStats } from "../api/userApi";
+import { hasCreatorPro } from "../api/paymentApi";
 import Icon from "../components/common/Icon";
 
 const TABS = ["My Ideas", "Saved"];
@@ -107,15 +108,30 @@ export default function Profile() {
               {user?.name}
             </h2>
 
-            {/* Verified creator badge */}
-            {user?.verified && (
-              <div className="mt-2 flex justify-center">
-                <span className="inline-flex items-center gap-1 bg-[#E7F8EE] text-[#15803D] text-xs font-bold px-3 py-1 rounded-full">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Verified Creator
-                </span>
+            {/* Status badges — verified creator + paid tier (premium / creator pro) */}
+            {(user?.verified || user?.isPremium || hasCreatorPro(user)) && (
+              <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+                {user?.verified && (
+                  <span className="inline-flex items-center gap-1 bg-[#E7F8EE] text-[#15803D] text-xs font-bold px-3 py-1 rounded-full">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Verified Creator
+                  </span>
+                )}
+
+                {hasCreatorPro(user) ? (
+                  // Creator Pro is the higher tier — show it instead of the plain Premium pill.
+                  <span className="inline-flex items-center gap-1 bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] text-[#78350F] text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                    <Icon name="star" className="w-3.5 h-3.5" />
+                    Creator Pro
+                  </span>
+                ) : user?.isPremium && (
+                  <span className="inline-flex items-center gap-1 bg-[#FEF3C7] text-[#92400E] text-xs font-bold px-3 py-1 rounded-full">
+                    <Icon name="star" className="w-3.5 h-3.5" />
+                    Premium
+                  </span>
+                )}
               </div>
             )}
 
