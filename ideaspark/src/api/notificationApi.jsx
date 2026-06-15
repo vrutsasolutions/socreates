@@ -1,19 +1,10 @@
 // ════════════════════════════════════════════════════════════════════════
 //  Real-time notifications.
 //
-//  Backend (Vishakha) shipped real-time push but NOT the REST CRUD:
-//    ✅ LIVE  — STOMP over SockJS: connect ws://localhost:8081/ws (SockJS
-//               handshake), SUBSCRIBE destination /topic/notifications
-//               Pushed on every like / bookmark / idea publish.
-//    ⏳ MOCK  — GET / , GET /unread-count , POST /{id}/read , POST /read-all
-//               do NOT exist server-side yet (only POST /send). They stay
-//               mock-backed (USE_MOCK.notifications) until she adds them.
-//
-//  Backend payload differs from API_CONTRACT.md §7 — normalized below in
-//  normalizeNotification(): backend sends
-//    { id:UUID, message, readStatus, createdAt, user } (no type/title/link)
-//  the UI expects
-//    { id, type, title, message, read, createdAt, link }.
+//  Backend shipped real-time push + REST CRUD:
+//    ✅ LIVE  — STOMP over SockJS: /queue/notifications (per-user)
+//               Also /queue/messages (new DM) — both surfaces a toast.
+//    ✅ LIVE  — GET /api/notifications, unread-count, mark-read, read-all
 // ════════════════════════════════════════════════════════════════════════
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -21,11 +12,10 @@ import api from './axiosInstance';
 import { USE_MOCK, mockResponse } from './config';
 import { MOCK_NOTIFICATIONS } from './mockData';
 
-// SockJS handshake endpoint (NOT a raw ws:// URL — backend uses .withSockJS()).
 const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:8081/ws';
-const TOPIC  = '/user/queue/notifications';
+const TOPIC_NOTIFICATIONS = '/user/queue/notifications';
+const TOPIC_MESSAGES      = '/user/queue/messages'; // new DM pushes
 
-// Local mutable copy so mock mark-as-read reflects in the UI during dev.
 let mockStore = MOCK_NOTIFICATIONS.map((n) => ({ ...n }));
 
 // GET /api/notifications → Notification[]
@@ -59,41 +49,65 @@ export const markAllAsRead = () => {
 };
 
 // ── Payload normalization ───────────────────────────────────────────────────
-// Maps the backend Notification entity onto the shape the UI/mock layer use.
-// The backend has no `type`/`title`/`link`, so we derive them from the message
-// text (the only signal we get) for icon + routing purposes.
+// Maps the backend Notification entity → shape the UI expects.
+// Backend sends: { id, message, readStatus, createdAt, user }
+// UI expects:    { id, type, title, message, read, createdAt, link }
 export const normalizeNotification = (n = {}) => {
   const message = n.message ?? '';
   const lower = message.toLowerCase();
 
   let type = 'system';
-  if (lower.includes('like')) type = 'like';
-  else if (lower.includes('bookmark') || lower.includes('saved') || lower.includes('save')) type = 'bookmark';
+  if (lower.includes('message') || lower.includes('sent you'))  type = 'message';
+  else if (lower.includes('like'))                              type = 'like';
+  else if (lower.includes('bookmark') || lower.includes('saved')) type = 'bookmark';
   else if (lower.includes('publish') || lower.includes('posted') || lower.includes('idea')) type = 'idea';
-  else if (lower.includes('follow')) type = 'follow';
-  else if (lower.includes('comment')) type = 'comment';
+  else if (lower.includes('follow'))                            type = 'follow';
+  else if (lower.includes('comment'))                           type = 'comment';
 
   const TITLES = {
-    like: 'New like', bookmark: 'New bookmark', idea: 'New idea',
-    follow: 'New follower', comment: 'New comment', system: 'Notification',
+    message:  'New message',
+    like:     'New like',
+    bookmark: 'New bookmark',
+    idea:     'New idea',
+    follow:   'New follower',
+    comment:  'New comment',
+    system:   'Notification',
   };
 
   return {
-    id: n.id ?? 'n-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    id:        n.id ?? 'n-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
     type,
-    title: n.title ?? TITLES[type],
+    title:     n.title ?? TITLES[type],
     message,
-    // Backend uses `readStatus`; UI/mock use `read`. Accept either.
-    read: n.read ?? n.readStatus ?? false,
+    read:      n.read ?? n.readStatus ?? false,
     createdAt: n.createdAt ?? new Date().toISOString(),
-    link: n.link ?? '/home',
+    // For message notifications link to inbox; others go to home
+    link:      n.link ?? (type === 'message' ? '/messages' : '/home'),
   };
 };
 
+/**
+ * Synthesize a notification object from a live MessageDTO push.
+ * When the backend pushes to /queue/messages, it sends a MessageDTO,
+ * not a Notification. We convert it so NotificationContext can surface a toast.
+ */
+const messageToNotification = (msgDto) => ({
+  id:        'n-msg-' + (msgDto.id ?? Date.now()),
+  type:      'message',
+  title:     'New message',
+  message:   msgDto.senderName
+               ? `${msgDto.senderName} sent you a message`
+               : 'You have a new message',
+  read:      false,
+  createdAt: msgDto.createdAt ?? new Date().toISOString(),
+  link:      msgDto.conversationId
+               ? `/messages/${msgDto.conversationId}`
+               : '/messages',
+});
+
 // ── Real-time subscription ──────────────────────────────────────────────────
-// STOMP over SockJS. Calls onMessage(normalizedNotification) on each push.
-// Returns an unsubscribe/disconnect fn. In realtime-mock mode it simulates a
-// push so the UI can be exercised offline.
+// Subscribes to BOTH /queue/notifications AND /queue/messages.
+// Calls onMessage(normalizedNotification) for each push.
 export const subscribeToNotifications = (onMessage) => {
   if (USE_MOCK.notificationsRealtime) {
     const t = setTimeout(() => {
@@ -107,26 +121,38 @@ export const subscribeToNotifications = (onMessage) => {
     return () => clearTimeout(t);
   }
 
-  // ── Live STOMP/SockJS ──
-  // NOTE: the backend handshake is currently unauthenticated and broadcasts to a
-  // single shared /topic/notifications (not per-user). We still pass the JWT in
-  // the CONNECT headers so it keeps working once Vishakha adds auth + per-user
-  // queues (e.g. /user/queue/notifications).
   const token = localStorage.getItem('token');
   const client = new Client({
     webSocketFactory: () => new SockJS(WS_URL),
     connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
-    reconnectDelay: 5000,        // auto-reconnect on drop
+    reconnectDelay: 5000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
   });
 
   client.onConnect = () => {
-    client.subscribe(TOPIC, (frame) => {
+    // ── Standard notification push (likes, follows, etc.) ──────────────────
+    client.subscribe(TOPIC_NOTIFICATIONS, (frame) => {
       try {
         onMessage?.(normalizeNotification(JSON.parse(frame.body)));
       } catch (err) {
         console.error('[notifications] bad STOMP payload', err, frame.body);
+      }
+    });
+
+    // ── New DM push — surface as a toast notification ───────────────────────
+    client.subscribe(TOPIC_MESSAGES, (frame) => {
+      try {
+        const msgDto = JSON.parse(frame.body);
+        // Only show toast for messages FROM others (backend pushes to recipient only,
+        // but guard anyway to avoid self-notification on the sender's tab)
+        const myId = (() => {
+          try { return JSON.parse(localStorage.getItem('user') || '{}').id; } catch { return null; }
+        })();
+        if (myId && String(msgDto.senderId) === String(myId)) return;
+        onMessage?.(messageToNotification(msgDto));
+      } catch (err) {
+        console.error('[notifications] bad message STOMP payload', err, frame.body);
       }
     });
   };
