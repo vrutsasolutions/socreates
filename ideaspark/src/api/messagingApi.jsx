@@ -292,10 +292,21 @@ export const reportUser = (id, reason) => {
 };
 
 // ── Share a post ─────────────────────────────────────────────────────────────
-export const fetchShareTargets = () =>
-  USE_MOCK.messaging
-    ? mockResponse(MOCK_SHARE_TARGETS.map((t) => ({ ...t })))
-    : api.get('/messages/share-targets');
+export const fetchShareTargets = async () => {
+  if (USE_MOCK.messaging) return mockResponse(MOCK_SHARE_TARGETS.map((t) => ({ ...t })));
+  // ✅ Use user search API instead of missing share-targets endpoint
+  const res = await api.get('/users/search?q=');
+  return {
+    data: (res.data ?? []).map((u) => ({
+      id: String(u.id),
+      name: u.name ?? 'Unknown',
+      subtitle: u.username ? `@${u.username}` : u.email ?? '',
+      initial: u.name ? u.name[0].toUpperCase() : '?',
+      avatarColor: u.name ?? '#1565C0',
+      profileImage: u.profileImage ?? null,
+    }))
+  };
+};
 
 export const sharePost = ({ postId, title }, userIds = []) => {
   if (USE_MOCK.messaging) {

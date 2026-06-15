@@ -27,13 +27,12 @@ public class UserController {
     private final ObjectMapper objectMapper;
     private final com.ideaspark.service.AuthService authService;
     private final CloudflareImageService cloudflareImageService;
-    private final IdeaRepository ideaRepository;           // ✅ Added
-    private final SavedIdeaRepository savedIdeaRepository; // ✅ Added
+    private final IdeaRepository ideaRepository;
+    private final SavedIdeaRepository savedIdeaRepository;
 
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(
             @AuthenticationPrincipal UserDetails userDetails) {
-
         User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         return ResponseEntity.ok(toDTO(user));
     }
@@ -53,12 +52,10 @@ public class UserController {
 
         if (req.getUsername() != null && !req.getUsername().isBlank()) {
             String newUsername = authService.normalizeUsername(req.getUsername());
-
             if (!newUsername.equals(user.getUsername())
                     && userRepository.existsByUsername(newUsername)) {
                 throw new RuntimeException("Username '" + newUsername + "' is already taken");
             }
-
             user.setUsername(newUsername);
         }
 
@@ -83,32 +80,47 @@ public class UserController {
     public ResponseEntity<ApiResponse> saveInterests(
             @RequestBody java.util.Map<String, List<String>> body,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         return ResponseEntity.ok(new ApiResponse(true, "Interests saved"));
     }
 
     @GetMapping("/suggested-creators")
     public ResponseEntity<List<UserDTO>> getSuggestedCreators() {
-
         List<User> users = userRepository.findAll()
                 .stream()
                 .limit(10)
                 .toList();
-
         return ResponseEntity.ok(users.stream().map(this::toDTO).toList());
     }
 
     @PostMapping("/follow-bulk")
     public ResponseEntity<ApiResponse> followBulk(
             @RequestBody java.util.Map<String, List<String>> body) {
-
         return ResponseEntity.ok(new ApiResponse(true, "Following updated"));
     }
 
-    // ✅ Updated toDTO with counts
+    // ✅ Search users by name or username
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDTO>> searchUsers(
+            @RequestParam String q) {
+        List<User> users = userRepository.findAll()
+                .stream()
+                .filter(u -> (u.getName() != null && u.getName().toLowerCase().contains(q.toLowerCase()))
+                        || (u.getUsername() != null && u.getUsername().toLowerCase().contains(q.toLowerCase())))
+                .limit(20)
+                .toList();
+        return ResponseEntity.ok(users.stream().map(this::toDTO).toList());
+    }
+
+    // ✅ Get user by ID (for viewing other profiles)
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDTO> getUserById(@PathVariable java.util.UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(toDTO(user));
+    }
+
     private UserDTO toDTO(User user) {
         UserDTO dto = new UserDTO();
-
         dto.setId(user.getId());
         dto.setName(user.getName());
         dto.setUsername(user.getUsername());
@@ -116,12 +128,9 @@ public class UserController {
         dto.setProfileImage(user.getProfileImage());
         dto.setBio(user.getBio());
         dto.setPremium(user.isPremium());
-
-        // ✅ Counts
         dto.setIdeasCount(ideaRepository.countByCreatorId(user.getId()));
         dto.setLikesCount(ideaRepository.sumLikeCountByCreatorId(user.getId()));
         dto.setSavedCount((int) savedIdeaRepository.countByUserId(user.getId()));
-
         return dto;
     }
 }

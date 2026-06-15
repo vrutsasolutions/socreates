@@ -29,8 +29,10 @@ com\ideaspark\repository\CommentRepository.class
 com\ideaspark\service\MessageUploadService.class
 com\ideaspark\service\LocalFileStorageService.class
 com\ideaspark\exception\GlobalExceptionHandler.class
+com\ideaspark\service\EmailService.class
 com\ideaspark\controller\SearchController.class
 com\ideaspark\dto\CreateCommentRequest.class
+com\ideaspark\service\OtpService.class
 com\ideaspark\repository\IdeaRepository.class
 com\ideaspark\model\IdeaLike$IdeaLikeBuilder.class
 com\ideaspark\dto\CreateIdeaRequest.class
@@ -39,6 +41,7 @@ com\ideaspark\model\Membership.class
 com\ideaspark\service\CloudflareImageService.class
 com\ideaspark\dto\CommentDTO.class
 com\ideaspark\config\WebSocketAuthConfig$1.class
+com\ideaspark\controller\OtpController.class
 com\ideaspark\model\User$UserBuilder.class
 com\ideaspark\repository\SavedIdeaRepository.class
 com\ideaspark\security\JwtFilter.class

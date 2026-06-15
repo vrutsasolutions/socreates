@@ -47,7 +47,6 @@ public class MessageController {
     }
 
     // POST /api/messages/conversations/:id/messages
-    // body: { "type": "TEXT"|"IMAGE"|"VOICE", "content": "..." }
     @PostMapping("/conversations/{id}/messages")
     public ResponseEntity<MessageDTO> sendMessage(@PathVariable UUID id,
                                                   @RequestBody Map<String, String> body,
@@ -61,17 +60,63 @@ public class MessageController {
     }
 
     // GET /api/messages/contacts
-    // Returns all users the logged-in user can start a DM with
     @GetMapping("/contacts")
     public List<UserDTO> getContacts(Authentication auth) {
         return messageService.getContacts(auth.getName());
     }
 
     // GET /api/messages/active
-    // Returns empty list for now — online presence tracking not yet implemented.
-    // Frontend uses this for the "Active Now" rail; returning [] hides the rail gracefully.
     @GetMapping("/active")
     public List<Object> getActiveUsers(Authentication auth) {
         return Collections.emptyList();
+    }
+
+    // ✅ POST /api/messages/share-post
+    // body: { "postId": "uuid", "title": "string", "userIds": ["uuid1", "uuid2"] }
+    @PostMapping("/share-post")
+    public ResponseEntity<Map<String, Object>> sharePost(
+            @RequestBody Map<String, Object> body,
+            Authentication auth) {
+        try {
+            String title = (String) body.get("title");
+            String postId = String.valueOf(body.get("postId"));
+
+            @SuppressWarnings("unchecked")
+            List<String> userIds = (List<String>) body.get("userIds");
+
+            if (userIds == null || userIds.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "No users selected"));
+            }
+
+            // Send a message to each selected user
+            for (String userId : userIds) {
+                try {
+                    UUID targetUserId = UUID.fromString(userId);
+                    // Start or get existing conversation
+                    ConversationDTO conversation = messageService
+                            .startConversation(targetUserId, auth.getName());
+
+                    // Send the shared post as a message
+                    messageService.sendMessage(
+                            conversation.getId(),
+                            auth.getName(),
+                            "TEXT",
+                            "📨 Shared a post: " + title
+                    );
+                } catch (Exception e) {
+                    System.out.println("Failed to share with user " + userId + ": " + e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "shared", postId,
+                    "count", userIds.size(),
+                    "message", "Post shared successfully"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Failed to share post: " + e.getMessage()));
+        }
     }
 }
