@@ -25,6 +25,11 @@ public class Notification {
     @Column(name = "read_status")
     private boolean readStatus = false;
 
+    // ID of the related entity (e.g. idea) so the frontend can deep-link
+    // the notification to the right page (e.g. /ideas/{referenceId}).
+    @Column(name = "reference_id")
+    private UUID referenceId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
