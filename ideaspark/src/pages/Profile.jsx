@@ -157,15 +157,23 @@ export default function Profile() {
               <div className="text-xs text-[#90A4AE]">Likes</div>
             </div>
 
-            <div className="flex-1">
+            <button
+              type="button"
+              onClick={() => navigate("/profile/follows?tab=followers")}
+              className="flex-1 active:scale-95 transition-transform"
+            >
               <div className="text-[#1565C0] font-bold">{followStats.followersCount}</div>
               <div className="text-xs text-[#90A4AE]">Followers</div>
-            </div>
+            </button>
 
-            <div className="flex-1">
+            <button
+              type="button"
+              onClick={() => navigate("/profile/follows?tab=following")}
+              className="flex-1 active:scale-95 transition-transform"
+            >
               <div className="text-[#1565C0] font-bold">{followStats.followingCount}</div>
               <div className="text-xs text-[#90A4AE]">Following</div>
-            </div>
+            </button>
           </div>
 
           {/* EDIT BUTTON */}
