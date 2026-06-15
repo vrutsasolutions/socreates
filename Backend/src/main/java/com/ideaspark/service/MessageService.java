@@ -6,14 +6,17 @@ import com.ideaspark.dto.UserDTO;
 import com.ideaspark.model.Conversation;
 import com.ideaspark.model.Message;
 import com.ideaspark.model.Message.MessageType;
+import com.ideaspark.model.Notification;
 import com.ideaspark.model.User;
 import com.ideaspark.repository.ConversationRepository;
 import com.ideaspark.repository.MessageRepository;
+import com.ideaspark.repository.NotificationRepository;
 import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +27,7 @@ public class MessageService {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     // ── Get current user ────────────────────────────────────────────────────
@@ -37,6 +41,10 @@ public class MessageService {
         User me = getUser(email);
         return conversationRepository.findAllByUser(me).stream()
                 .map(c -> toConversationDTO(c, me))
+                // Only show conversations that have at least one message,
+                // sorted by most recent message first (latest chat on top).
+                .filter(dto -> dto.getLastMessageAt() != null)
+                .sorted((a, b) -> b.getLastMessageAt().compareTo(a.getLastMessageAt()))
                 .toList();
     }
 
@@ -105,15 +113,38 @@ public class MessageService {
 
         MessageDTO dto = toMessageDTO(message, me);
 
-        // Push to recipient in real-time via WebSocket
+        // ── Identify recipient ──────────────────────────────────────────────
         User recipient = conv.getParticipant1().getId().equals(me.getId())
                 ? conv.getParticipant2()
                 : conv.getParticipant1();
 
+        // ── Push real-time message to recipient's message queue ─────────────
         messagingTemplate.convertAndSendToUser(
                 recipient.getEmail(),
                 "/queue/messages",
                 dto
+        );
+
+        // ── Save notification and push to recipient's notification queue ────
+        String preview = switch (type) {
+            case IMAGE -> me.getName() + " sent you a photo";
+            case VOICE -> me.getName() + " sent you a voice note";
+            default    -> me.getName() + " sent you a message: " +
+                          (content.length() > 40 ? content.substring(0, 40) + "…" : content);
+        };
+
+        Notification notification = Notification.builder()
+                .user(recipient)
+                .message(preview)
+                .readStatus(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        notificationRepository.save(notification);
+
+        messagingTemplate.convertAndSendToUser(
+                recipient.getEmail(),
+                "/queue/notifications",
+                notification
         );
 
         return dto;
