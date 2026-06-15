@@ -45,8 +45,11 @@ D:\Socreates\Backend\src\main\java\com\ideaspark\controller\IdeaController.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\model\Idea.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\service\LocalFileStorageService.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\dto\SubscribeRequest.java
+D:\Socreates\Backend\src\main\java\com\ideaspark\controller\OtpController.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\dto\MessageDTO.java
+D:\Socreates\Backend\src\main\java\com\ideaspark\service\EmailService.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\config\WebSocketConfig.java
+D:\Socreates\Backend\src\main\java\com\ideaspark\service\OtpService.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\repository\ConversationRepository.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\service\AiService.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\dto\CommentDTO.java
