@@ -1,10 +1,9 @@
 package com.ideaspark.controller;
 
 import com.ideaspark.dto.*;
+import com.ideaspark.model.Conversation;
 import com.ideaspark.model.User;
-import com.ideaspark.repository.IdeaRepository;
-import com.ideaspark.repository.SavedIdeaRepository;
-import com.ideaspark.repository.UserRepository;
+import com.ideaspark.repository.*;
 import com.ideaspark.service.CloudflareImageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +13,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -29,6 +31,12 @@ public class UserController {
     private final CloudflareImageService cloudflareImageService;
     private final IdeaRepository ideaRepository;
     private final SavedIdeaRepository savedIdeaRepository;
+    private final FollowRepository followRepository;
+    private final CommentRepository commentRepository;
+    private final IdeaLikeRepository ideaLikeRepository;
+    private final NotificationRepository notificationRepository;
+    private final ConversationRepository conversationRepository;
+    private final MessageRepository messageRepository;
 
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(
@@ -98,7 +106,6 @@ public class UserController {
         return ResponseEntity.ok(new ApiResponse(true, "Following updated"));
     }
 
-    // ✅ Search users by name or username
     @GetMapping("/search")
     public ResponseEntity<List<UserDTO>> searchUsers(
             @RequestParam String q) {
@@ -111,12 +118,69 @@ public class UserController {
         return ResponseEntity.ok(users.stream().map(this::toDTO).toList());
     }
 
-    // ✅ Get user by ID (for viewing other profiles)
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getUserById(@PathVariable java.util.UUID id) {
+    public ResponseEntity<UserDTO> getUserById(@PathVariable UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(toDTO(user));
+    }
+    @Transactional
+    @DeleteMapping("/me")
+    public ResponseEntity<Map<String, String>> deleteAccount(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            User user = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            UUID userId = user.getId();
+
+            // 1. Delete notifications
+            notificationRepository.deleteAll(
+                    notificationRepository.findByUserOrderByCreatedAtDesc(user));
+
+            // 2. Delete saved ideas
+            savedIdeaRepository.deleteAll(
+                    savedIdeaRepository.findByUserIdOrderBySavedAtDesc(userId));
+
+            // 3. Delete follows
+            followRepository.findByFollower(user).forEach(followRepository::delete);
+            followRepository.findByFollowing(user).forEach(followRepository::delete);
+
+            // 4. Delete ALL likes by this user on any idea
+            ideaLikeRepository.deleteAll(
+                    ideaLikeRepository.findAll().stream()
+                            .filter(like -> like.getUser() != null && userId.equals(like.getUser().getId()))
+                            .toList());
+
+            // 5. Delete comments by this user on other ideas
+            commentRepository.deleteAll(
+                    commentRepository.findAll().stream()
+                            .filter(c -> c.getUser() != null && userId.equals(c.getUser().getId()))
+                            .toList());
+
+            // 6. For each idea by this user — delete comments and likes on it, then the idea
+            ideaRepository.findByCreatorIdOrderByCreatedAtDesc(userId).forEach(idea -> {
+                commentRepository.deleteAll(
+                        commentRepository.findByIdeaIdOrderByCreatedAtDesc(idea.getId()));
+                ideaLikeRepository.deleteByIdeaId(idea.getId());
+                ideaRepository.delete(idea);
+            });
+
+            // 7. Delete messages inside conversations involving this user, then conversations
+            List<Conversation> conversations = conversationRepository.findByUser(user);
+            conversations.forEach(conv ->
+                    messageRepository.deleteAll(messageRepository.findByConversationId(conv.getId())));
+            conversationRepository.deleteAll(conversations);
+
+            // 8. Finally delete the user
+            userRepository.delete(user);
+
+            return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Failed to delete account: " + e.getMessage()));
+        }
     }
 
     private UserDTO toDTO(User user) {

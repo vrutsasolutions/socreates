@@ -17,6 +17,7 @@ import SelectInterests from '../pages/SelectInterests';
 import FollowCreators  from '../pages/FollowCreators';
 import Home            from '../pages/Home';
 import Inbox           from '../pages/Inbox';
+import ForgotPassword from '../pages/ForgotPassword';
 import Chat            from '../pages/Chat';
 import ChatProfile     from '../pages/ChatProfile';
 import Requests        from '../pages/Requests';
@@ -61,9 +62,10 @@ export default function AppRouter() {
         <Route path="/"          element={<Welcome />} />
         <Route path="/login"     element={<PublicOnly><Login /></PublicOnly>} />       {/* ← LOGIN ROUTE */}
         <Route path="/register"  element={<PublicOnly><Register /></PublicOnly>} />
+        <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
 
         {/* Onboarding (protected) — Register → OTP → Interests → Follow → Home */}
-        <Route path="/verify-otp"       element={<PrivateRoute><VerifyOtp /></PrivateRoute>} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/select-interests" element={<PrivateRoute><SelectInterests /></PrivateRoute>} />
         <Route path="/follow-creators"  element={<PrivateRoute><FollowCreators /></PrivateRoute>} />
 

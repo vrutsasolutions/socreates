@@ -44,5 +44,5 @@ export const verifyOtp = (email, code) => {
       ? mockResponse({ verified: true })
       : Promise.reject({ response: { status: 400, data: { message: 'Invalid code. Enter the 6-digit code (mock: 123456).' } } })
   }
-  return api.post('/auth/verify-otp', { email, code })
+  return api.post('/auth/verify-otp', { email, otp: code })
 }
