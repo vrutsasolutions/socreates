@@ -24,9 +24,17 @@ const threads = Object.fromEntries(
   Object.entries(MOCK_MESSAGES).map(([k, v]) => [k, v.map((m) => ({ ...m }))]),
 );
 
+// const clock = () =>
+//   new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+const formatTime = (date) =>
+  new Date(date).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 const clock = () =>
   new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
 // ════════════════════════════════════════════════════════════════════════
 //  NORMALIZERS — convert backend DTO shapes → frontend shape
 // ════════════════════════════════════════════════════════════════════════
@@ -65,9 +73,9 @@ const normalizeConversation = (dto) => ({
   otherUserId:  dto.otherUserId,
   lastMessage:  dto.lastMessage    ?? '',
   lastType:     (dto.lastMessageType ?? dto.lastType ?? 'TEXT').toLowerCase(),
-  time:         dto.lastMessageAt
-                  ? new Date(dto.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                  : dto.time ?? '',
+  time: dto.createdAt
+  ? formatTime(dto.createdAt)
+  : dto.time ?? '',
   unread:       dto.unreadCount    ?? dto.unread        ?? 0,
 });
 

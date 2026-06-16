@@ -24,7 +24,8 @@ public class User {
     private String email;
 
     // Stored lowercase, like Instagram handles. Unique across all users.
-    // Column left nullable so ddl-auto=update doesn't fail on pre-existing NULL rows.
+    // Column left nullable so ddl-auto=update doesn't fail on pre-existing NULL
+    // rows.
     @Column(unique = true, length = 30)
     private String username;
 
@@ -39,6 +40,15 @@ public class User {
 
     @Column(name = "is_premium")
     private boolean isPremium = false;
+
+    @Column(name = "is_verified")
+    private boolean isVerified = false;
+
+    @Column(name = "otp_code")
+    private String otpCode;
+
+    @Column(name = "otp_expires_at")
+    private LocalDateTime otpExpiresAt;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

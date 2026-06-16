@@ -1,48 +1,84 @@
 package com.ideaspark.service;
+
+import com.ideaspark.model.EmailOtp;
+import com.ideaspark.repository.EmailOtpRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@RequiredArgsConstructor
 public class OtpService {
 
-    private final Map<String, String> otpStore=new ConcurrentHashMap<>();
-    private final Map<String,LocalDateTime> otpExpiry=new ConcurrentHashMap<>();
+    private final EmailOtpRepository emailOtpRepository;
 
-    private static final int OTP_EXPIRY_MINUTES=10;
+    private static final int OTP_EXPIRY_MINUTES = 10;
 
-    public String generateOtp(String email){
-        String otp=String.format("%06d",new Random().nextInt(999999));
-        otpStore.put(email,otp);
-        otpExpiry.put(email,LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES));
+    public String generateOtp(String email) {
+        return generateOtp(email, "REGISTER");
+    }
+
+    public String generateOtp(String email, String purpose) {
+        email = email.trim().toLowerCase();
+
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        LocalDateTime expiry = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
+
+        EmailOtp emailOtp = EmailOtp.builder()
+                .email(email)
+                .otpCode(otp)
+                .otpExpiresAt(expiry)
+                .purpose(purpose)
+                .verified(false)
+                .build();
+
+        emailOtpRepository.save(emailOtp);
+
         return otp;
     }
 
-    public boolean validateOtp(String email,String otp){
-        String storedOtp=otpStore.get(email);
-        LocalDateTime expiry=otpExpiry.get(email);
+    public boolean validateOtp(String email, String otp) {
+        return validateOtp(email, otp, "REGISTER");
+    }
 
-        if(storedOtp==null || expiry==null){
-            return false;
-        }
-        if(LocalDateTime.now().isAfter(expiry)){
-            otpStore.remove(email);
-            otpExpiry.remove(email);
+    public boolean validateOtp(String email, String otp, String purpose) {
+        email = email.trim().toLowerCase();
+
+        var otpRecordOpt = emailOtpRepository
+                .findTopByEmailAndPurposeOrderByCreatedAtDesc(email, purpose);
+
+        if (otpRecordOpt.isEmpty()) {
             return false;
         }
 
-        if(!storedOtp.equals(otp)){
+        EmailOtp otpRecord = otpRecordOpt.get();
+
+        if (otpRecord.isVerified()) {
             return false;
         }
-        otpStore.remove(email);
-        otpExpiry.remove(email);
+
+        if (LocalDateTime.now().isAfter(otpRecord.getOtpExpiresAt())) {
+            return false;
+        }
+
+        if (!otpRecord.getOtpCode().equals(otp)) {
+            return false;
+        }
+
+        otpRecord.setVerified(true);
+        emailOtpRepository.save(otpRecord);
+
         return true;
+    }
 
+    public boolean hasOtp(String email) {
+        return emailOtpRepository
+                .findTopByEmailAndPurposeOrderByCreatedAtDesc(
+                        email.trim().toLowerCase(),
+                        "REGISTER"
+                )
+                .isPresent();
     }
-    public boolean hasOtp(String email){
-        return otpStore.containsKey(email);
-    }
-    
 }
