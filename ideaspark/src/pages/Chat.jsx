@@ -570,16 +570,11 @@ export default function Chat() {
           </button>
 
           <div className="flex items-center gap-1 text-white relative z-10">
-            <button aria-label="Call"
+            <button onClick={() => navigate(`/messages/${id}/profile`)} aria-label="Chat info"
               className="w-9 h-9 flex items-center justify-center hover:opacity-80 active:scale-90 transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h2.28a1 1 0 01.95.68l1 3a1 1 0 01-.27 1.05L7.6 9.79a14 14 0 006.6 6.6l1.06-1.36a1 1 0 011.05-.27l3 1a1 1 0 01.68.95V19a2 2 0 01-2 2A16 16 0 013 5z" />
-              </svg>
-            </button>
-            <button aria-label="Video"
-              className="w-9 h-9 flex items-center justify-center hover:opacity-80 active:scale-90 transition-all">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55-2.28A1 1 0 0121 8.62v6.76a1 1 0 01-1.45.9L15 14M4 6h9a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" />
+                <circle cx="12" cy="12" r="9" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 11v5M12 8h.01" />
               </svg>
             </button>
           </div>
