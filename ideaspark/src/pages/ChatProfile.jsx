@@ -1,8 +1,8 @@
 // ════════════════════════════════════════════════════════════════════════
 //  ChatProfile  (figma "Chat Profile" / "Chat Info")
 //  Reached from the chat action menu → View Profile.
-//  Big avatar, quick actions (Call / Video / Search), media row,
-//  notifications toggle, and PRIVACY & SAFETY actions that reuse the
+//  Big avatar, media row, notifications toggle, and PRIVACY & SAFETY
+//  actions that reuse the
 //  shared Block / Report / Delete overlays.
 // ════════════════════════════════════════════════════════════════════════
 import { useEffect, useState } from 'react';
@@ -10,18 +10,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
 import { ChatActionsLayer, ShareProfileSheet, handleFor } from '../components/messaging/ChatActions';
 import { fetchConversation } from '../api/messagingApi';
-
-const QuickAction = ({ label, onClick, children }) => (
-  <button
-    onClick={onClick}
-    className="flex flex-col items-center gap-2 active:scale-90 transition-transform"
-  >
-    <span className="w-14 h-14 rounded-2xl bg-[#E3F2FD] text-[#1565C0] flex items-center justify-center hover:bg-[#BBDEFB] transition-colors">
-      {children}
-    </span>
-    <span className="text-sm text-[#1565C0] font-semibold">{label}</span>
-  </button>
-);
 
 const SafetyRow = ({ title, subtitle, danger, onClick, children }) => (
   <button
@@ -109,20 +97,6 @@ export default function ChatProfile() {
       {/* CONTENT WRAPPER — matches Home */}
       <div className="bg-[#1565C0]">
         <div className="bg-white rounded-t-[32px] pt-6">
-
-          {/* Quick actions */}
-          <div className="flex items-center justify-center gap-10 px-6 pb-6 border-b border-[#F0F6FF]">
-            <QuickAction label="Call">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h2.28a1 1 0 01.95.68l1 3a1 1 0 01-.27 1.05L7.6 9.79a14 14 0 006.6 6.6l1.06-1.36a1 1 0 011.05-.27l3 1a1 1 0 01.68.95V19a2 2 0 01-2 2A16 16 0 013 5z" />
-              </svg>
-            </QuickAction>
-            <QuickAction label="Video">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.55-2.28A1 1 0 0121 8.62v6.76a1 1 0 01-1.45.9L15 14M4 6h9a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" />
-              </svg>
-            </QuickAction>
-          </div>
 
           {/* Media row */}
           <button className="w-full flex items-center justify-between px-5 py-4 border-b border-[#F0F6FF] hover:bg-[#F0F6FF] active:bg-[#E3F2FD] transition-colors">
