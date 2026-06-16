@@ -74,6 +74,12 @@ const normalizeConversation = (dto) => ({
 /**
  * Normalize a backend MessageDTO → frontend message shape.
  */
+/** Derive a human filename from an R2 upload URL (.../{uuid}-{originalName}) */
+const fileNameFromUrl = (url = '') => {
+  const seg = String(url).split('/').pop() || 'File';
+  return decodeURIComponent(seg.replace(/^[0-9a-fA-F-]{36}-/, ''));
+};
+
 const normalizeMessage = (dto, myId) => {
   const type = (dto.type ?? 'TEXT').toLowerCase();
   return {
@@ -85,7 +91,9 @@ const normalizeMessage = (dto, myId) => {
     type,
     text:           type === 'text'  ? (dto.content ?? '') : undefined,
     imageUrl:       type === 'image' ? (dto.content ?? '') : undefined,
-    content:        type === 'voice' ? (dto.content ?? '') : undefined,
+    content:        (type === 'voice' || type === 'file') ? (dto.content ?? '') : undefined,
+    fileName:       type === 'file'  ? fileNameFromUrl(dto.content) : undefined,
+    reaction:       dto.reaction ?? undefined,
     isRead:         dto.isRead ?? dto.read ?? false,
     time:           dto.createdAt
                       ? new Date(dto.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -197,9 +205,42 @@ export const sendMessage = async (conversationId, payload) => {
   return { data: normalizeMessage(res.data, myId) };
 };
 
+// ── Per-message actions (reactions + delete) ─────────────────────────────────
+// POST /messages/messages/{id}/react { emoji } — toggles one emoji per user.
+export const reactToMessage = (messageId, emoji) => {
+  if (USE_MOCK.messaging) {
+    Object.keys(threads).forEach((tid) => {
+      threads[tid] = threads[tid].map((m) =>
+        m.id === messageId ? { ...m, reaction: m.reaction === emoji ? undefined : emoji } : m,
+      );
+    });
+    return mockResponse({ reaction: emoji }, 120);
+  }
+  return api.post(`/messages/messages/${messageId}/react`, { emoji });
+};
+
+// DELETE /messages/messages/{id}?scope=me|everyone
+export const deleteMessage = (messageId, scope = 'me') => {
+  if (USE_MOCK.messaging) {
+    Object.keys(threads).forEach((tid) => {
+      threads[tid] = threads[tid].filter((m) => m.id !== messageId);
+    });
+    return mockResponse({ deleted: messageId, scope }, 120);
+  }
+  return api.delete(`/messages/messages/${messageId}`, { params: { scope } });
+};
+
 // ════════════════════════════════════════════════════════════════════════
 //  FILE UPLOADS
 // ════════════════════════════════════════════════════════════════════════
+export const uploadFile = async (file) => {
+  if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(file));
+  const form = new FormData();
+  form.append('file', file);
+  const { data } = await api.post('/messages/upload/file', form);
+  return data.url;
+};
+
 export const uploadVoice = async (blob, mimeType = 'audio/webm') => {
   if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(blob));
   const ext = mimeType.includes('ogg') ? 'ogg'

@@ -38,4 +38,16 @@ public class MessageUploadController {
         String url = messageUploadService.uploadVoice(file);
         return ResponseEntity.ok(Map.of("url", url));
     }
+
+    /**
+     * POST /api/messages/upload/file
+     * Form-data: file = <document / any file>
+     * Returns: { "url": "https://..." }
+     */
+    @PostMapping("/upload/file")
+    public ResponseEntity<Map<String, String>> uploadFile(
+            @RequestParam("file") MultipartFile file) {
+        String url = messageUploadService.uploadFile(file);
+        return ResponseEntity.ok(Map.of("url", url));
+    }
 }

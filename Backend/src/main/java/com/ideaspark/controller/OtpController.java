@@ -110,20 +110,32 @@ public class OtpController {
                     .body(Map.of("message", "Invalid or expired OTP"));
         }
 
-        return ResponseEntity.ok(Map.of("message", "OTP verified successfully"));
+        // Issue a single-use reset token the client must present at /reset.
+        String resetToken = otpService.generateResetToken(email);
+        return ResponseEntity.ok(Map.of(
+                "message", "OTP verified successfully",
+                "resetToken", resetToken));
     }
 
-    // Reset password after OTP verified
+    // Reset password after OTP verified — requires a valid reset token.
     @PostMapping("/forgot-password/reset")
     public ResponseEntity<Map<String, String>> resetPassword(
             @RequestBody Map<String, String> body) {
 
         String email = body.get("email");
         String newPassword = body.get("newPassword");
+        String resetToken = body.get("resetToken");
 
-        if (email == null || newPassword == null) {
+        if (email == null || newPassword == null || resetToken == null) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Email and new password are required"));
+                    .body(Map.of("message", "Email, reset token and new password are required"));
+        }
+
+        // SECURITY: a verified-OTP reset token is mandatory, so the reset
+        // endpoint cannot be called without proving OTP ownership.
+        if (!otpService.validateResetToken(email, resetToken)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Invalid or expired reset session. Please verify the OTP again."));
         }
 
         var user = userRepository.findByEmail(email)

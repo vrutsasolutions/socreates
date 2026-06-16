@@ -15,5 +15,7 @@ public class MessageDTO {
     private MessageType type;
     private String content;
     private boolean isRead;
+    // The viewing user's own emoji reaction on this message (null if none).
+    private String reaction;
     private LocalDateTime createdAt;
 }

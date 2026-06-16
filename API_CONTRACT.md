@@ -20,14 +20,21 @@ Legend: ✅ implemented · ⏳ under development
 |---|---|---|---|
 | POST | `/register` | `{ name, email, password }` | `{ token, user }` |
 | POST | `/login` | `{ email, password }` | `{ token, user }` |
-| POST | `/send-otp` ⏳ | `{ email }` | `{ message }` |
-| POST | `/verify-otp` ⏳ | `{ email, code }` | `{ verified: true }` |
+| POST | `/send-otp` ✅ | `{ email }` | `{ message }` |
+| POST | `/verify-otp` ✅ | `{ email, otp }` | `{ message }` |
+| POST | `/forgot-password/send-otp` ✅ | `{ email }` | `{ message }` |
+| POST | `/forgot-password/verify-otp` ✅ | `{ email, otp }` | `{ message, resetToken }` |
+| POST | `/forgot-password/reset` ✅ | `{ email, newPassword, resetToken }` | `{ message }` |
 
 `user` = `{ id, name, email, bio?, avatarUrl?, interests?[] }`
 
-OTP ⏳ under development . Frontend: `src/api/authApi.jsx`,
-mock-backed via `USE_MOCK.otp` (mock accepts any 6-digit code, e.g. `123456`).
+OTP ✅ LIVE (`OtpController` + `EmailService`). Frontend: `src/api/authApi.jsx`.
 Onboarding order: **Register → /verify-otp → /select-interests → /follow-creators → /home**.
+
+**Forgot-password flow (3 steps):** send-otp → verify-otp → reset. `verify-otp`
+returns a single-use **`resetToken`** (15-min TTL); `reset` **requires** it, so the
+password cannot be changed without proving OTP ownership. Frontend wizard:
+`src/pages/ForgotPassword.jsx`.
 
 ---
 
@@ -228,6 +235,38 @@ and `membership: null`.
    endpoints (§1, §2 `/me`), not just payment — so a returning user's premium state
    is correct on login/refresh, not only right after purchase.
 4. Populate `membership.stats` from real engagement data (currently mock placeholders).
+
+---
+
+## 9. Messaging / DM ✅  `/api/messages`  — frontend: `src/api/messagingApi.jsx`
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | `/conversations` | — | `ConversationDTO[]` |
+| GET | `/conversations/{id}` | — | `ConversationDTO` |
+| POST | `/conversations` | `{ userId }` | `ConversationDTO` |
+| GET | `/conversations/{id}/messages` | — | `MessageDTO[]` |
+| POST | `/conversations/{id}/messages` | `{ type, content }` | `MessageDTO` |
+| POST | `/messages/{id}/react` ✅ | `{ emoji }` | `MessageDTO` (toggles; same emoji clears) |
+| DELETE | `/messages/{id}?scope=me\|everyone` ✅ | — | `{ message }` |
+| GET | `/contacts` | — | `UserDTO[]` |
+| POST | `/upload/image` · `/upload/voice` · `/upload/file` ✅ | multipart `file` | `{ url }` |
+| POST | `/share-post` | `{ postId, title, userIds[] }` | `{ shared, count }` |
+
+`MessageDTO` = `{ id, conversationId, senderId, senderName, senderAvatar, type, content, isRead, reaction, createdAt }`
+- `type` ∈ `TEXT | IMAGE | VOICE | FILE`. `content` = text for TEXT, else the R2 URL.
+- `reaction` = the **viewing** user's emoji on this message (null if none); one emoji per user.
+- **Delete:** `everyone` is sender-only (hard delete); `me` hides it just for the caller
+  (per-user `deletedFor` set, filtered out of `GET …/messages`).
+- **Forward** reuses `POST …/messages` per target conversation (client-side fan-out).
+
+**Realtime:** new messages push over STOMP `/user/queue/messages` (sender gets no echo).
+Reactions and deletes are **not** pushed yet — the other party sees them on next load.
+
+**Still missing in backend (frontend mock/stub or 404):** message **Requests** inbox
+(`/requests`, accept/decline), **block**/**report** users, **delete conversation**
+(`DELETE /conversations/{id}`), and the `/active` rail (returns `[]`). These are wired
+in `messagingApi.jsx` but have no backend route yet.
 
 ---
 

@@ -88,7 +88,48 @@ public class MessageService {
                 .forEach(m -> m.setRead(true));
         messageRepository.saveAll(messages);
 
-        return messages.stream().map(m -> toMessageDTO(m, me)).toList();
+        // Hide messages the current user deleted only for themselves.
+        return messages.stream()
+                .filter(m -> !m.getDeletedFor().contains(me.getId()))
+                .map(m -> toMessageDTO(m, me))
+                .toList();
+    }
+
+    // ── React to a message (toggle one emoji per user) ──────────────────────
+    public MessageDTO reactToMessage(UUID messageId, String email, String emoji) {
+        User me = getUser(email);
+        Message m = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        assertParticipant(m.getConversation(), me);
+
+        String current = m.getReactions().get(me.getId());
+        if (emoji == null || emoji.isBlank() || emoji.equals(current)) {
+            m.getReactions().remove(me.getId());   // toggle off / clear
+        } else {
+            m.getReactions().put(me.getId(), emoji);
+        }
+        messageRepository.save(m);
+        return toMessageDTO(m, me);
+    }
+
+    // ── Delete a message ────────────────────────────────────────────────────
+    // scope "everyone": only the sender may, removes it for both parties.
+    // scope "me" (default): hides it only for the requesting user.
+    public void deleteMessage(UUID messageId, String email, String scope) {
+        User me = getUser(email);
+        Message m = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        assertParticipant(m.getConversation(), me);
+
+        if ("everyone".equalsIgnoreCase(scope)) {
+            if (!m.getSender().getId().equals(me.getId())) {
+                throw new RuntimeException("Only the sender can delete for everyone");
+            }
+            messageRepository.delete(m);
+        } else {
+            m.getDeletedFor().add(me.getId());
+            messageRepository.save(m);
+        }
     }
 
     // ── Send a message ──────────────────────────────────────────────────────
@@ -129,6 +170,7 @@ public class MessageService {
         String preview = switch (type) {
             case IMAGE -> me.getName() + " sent you a photo";
             case VOICE -> me.getName() + " sent you a voice note";
+            case FILE  -> me.getName() + " sent you a file";
             default    -> me.getName() + " sent you a message: " +
                           (content.length() > 40 ? content.substring(0, 40) + "…" : content);
         };
@@ -185,6 +227,7 @@ public class MessageService {
             lastMsg  = switch (last.getType()) {
                 case IMAGE -> "Sent a photo";
                 case VOICE -> "Voice note";
+                case FILE  -> "Sent a file";
                 default    -> last.getContent();
             };
         }
@@ -216,6 +259,7 @@ public class MessageService {
         dto.setType(m.getType());
         dto.setContent(m.getContent());
         dto.setRead(m.isRead());
+        dto.setReaction(m.getReactions().get(me.getId()));
         dto.setCreatedAt(m.getCreatedAt());
         return dto;
     }

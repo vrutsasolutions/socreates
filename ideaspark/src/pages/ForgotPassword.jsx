@@ -88,6 +88,7 @@ export default function ForgotPassword() {
   const [digits, setDigits] = useState(Array(OTP_LENGTH).fill(''));
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
@@ -178,7 +179,8 @@ export default function ForgotPassword() {
     }
     setLoading(true);
     try {
-      await forgotPasswordVerifyOtp(cleanEmail, code);
+      const { data } = await forgotPasswordVerifyOtp(cleanEmail, code);
+      setResetToken(data?.resetToken || '');
       setStep(3);
     } catch (err) {
       setError(apiMessage(err, 'Invalid or expired OTP.'));
@@ -216,7 +218,7 @@ export default function ForgotPassword() {
     }
     setLoading(true);
     try {
-      await forgotPasswordReset(cleanEmail, newPassword);
+      await forgotPasswordReset(cleanEmail, newPassword, resetToken);
       setStep(4);
     } catch (err) {
       setError(apiMessage(err, 'Failed to reset password. Please try again.'));

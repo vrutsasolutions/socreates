@@ -53,6 +53,15 @@ public class MessageUploadService {
         return upload(file, "messages/voice");
     }
 
+    // Documents / arbitrary files — any content type, up to 20 MB.
+    public String uploadFile(MultipartFile file) {
+        if (file == null || file.isEmpty())
+            throw new RuntimeException("File is empty");
+        if (file.getSize() > 20L * 1024 * 1024)
+            throw new RuntimeException("File too large (max 20 MB)");
+        return upload(file, "messages/files");
+    }
+
     private String upload(MultipartFile file, String folder) {
         try {
             String originalName = file.getOriginalFilename() != null

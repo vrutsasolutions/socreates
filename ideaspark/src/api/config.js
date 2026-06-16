@@ -11,7 +11,7 @@
 
 export const USE_MOCK = {
   auth:          false, // ✅ backend ready  — /api/auth/login,/register
-  otp:           false,  // ⏳ under dev      — /api/auth/send-otp,/verify-otp (Vishakha)
+  otp:           false,  // ✅ backend ready  — /api/auth/(send|verify)-otp + /forgot-password/* (OtpController)
   users:         false, // ✅ backend ready  — /api/users/*
   ideas:         false, // ✅ backend ready  — /api/ideas/*
   search:        false, // ✅ backend ready  — /api/search

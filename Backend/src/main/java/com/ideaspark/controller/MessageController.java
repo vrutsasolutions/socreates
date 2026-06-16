@@ -59,6 +59,25 @@ public class MessageController {
         return ResponseEntity.ok(sent);
     }
 
+    // POST /api/messages/messages/:id/react   body: { "emoji": "❤️" }
+    // Sending the same emoji again (or empty) clears the reaction.
+    @PostMapping("/messages/{id}/react")
+    public MessageDTO reactToMessage(@PathVariable UUID id,
+                                     @RequestBody Map<String, String> body,
+                                     Authentication auth) {
+        return messageService.reactToMessage(id, auth.getName(), body.get("emoji"));
+    }
+
+    // DELETE /api/messages/messages/:id?scope=me|everyone
+    @DeleteMapping("/messages/{id}")
+    public ResponseEntity<Map<String, String>> deleteMessage(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "me") String scope,
+            Authentication auth) {
+        messageService.deleteMessage(id, auth.getName(), scope);
+        return ResponseEntity.ok(Map.of("message", "Message deleted"));
+    }
+
     // GET /api/messages/contacts
     @GetMapping("/contacts")
     public List<UserDTO> getContacts(Authentication auth) {

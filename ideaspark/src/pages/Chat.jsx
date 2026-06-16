@@ -17,9 +17,14 @@ import Avatar from '../components/messaging/Avatar';
 import { ChatActionsLayer, ShareAttachSheet } from '../components/messaging/ChatActions';
 import {
   fetchConversation,
+  fetchContacts,
+  startConversation,
   fetchMessages,
   sendMessage,
   uploadVoice,
+  uploadFile,
+  reactToMessage,
+  deleteMessage,
 } from '../api/messagingApi';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -40,6 +45,9 @@ const QUICK_REACTIONS = [
   { label: 'Clap',   emoji: '👏' },
   { label: 'Launch', emoji: '🚀' },
 ];
+
+// Emoji reaction bar shown when exactly one message is selected
+const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '🙏', '👍'];
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -100,7 +108,16 @@ function ReplyBtn({ onClick }) {
   );
 }
 
-function Bubble({ m, onImageClick, onReply }) {
+function Bubble({ m, onImageClick, onReply, selectMode, selected, onToggleSelect, onLongPress, reaction, showReactionBar, onReact }) {
+  const pressTimer = useRef(null);
+  const startPress = () => {
+    if (selectMode) return;
+    pressTimer.current = setTimeout(() => onLongPress?.(m), 480);
+  };
+  const endPress = () => {
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
+  };
+
   // Typing indicator
   if (m.type === 'typing') {
     return (
@@ -129,14 +146,16 @@ function Bubble({ m, onImageClick, onReply }) {
     content = (
       <div className="block">
         {m.replyTo && <QuotedInBubble replyTo={m.replyTo} light={false} />}
-        {m.isVideo ? media : <button onClick={() => onImageClick(src)} className="block">{media}</button>}
+        {m.isVideo ? media : <button onClick={() => { if (!selectMode) onImageClick(src); }} className="block">{media}</button>}
         {m.text && <p className="mt-1 max-w-[200px] text-[12px] text-[#0D2137]">{m.text}</p>}
       </div>
     );
 
   } else if (m.type === 'file') {
     content = (
-      <div className={`flex items-center gap-3 rounded-[18px] px-4 py-3 max-w-[240px] ${mine ? 'bg-[#1565C0] text-white' : 'bg-white text-[#0D2137] shadow-sm'}`}>
+      <div
+        onClick={() => { if (!selectMode && m.content) window.open(m.content, '_blank', 'noopener'); }}
+        className={`flex items-center gap-3 rounded-[18px] px-4 py-3 max-w-[240px] ${m.content && !selectMode ? 'cursor-pointer' : ''} ${mine ? 'bg-[#1565C0] text-white' : 'bg-white text-[#0D2137] shadow-sm'}`}>
         <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${mine ? 'bg-white/20' : 'bg-[#EAF2FF] text-[#1565C0]'}`}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v5h5M7 3h7l5 5v11a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" />
@@ -188,10 +207,42 @@ function Bubble({ m, onImageClick, onReply }) {
   }
 
   return (
-    <div className={rowCls}>
-      {mine && <ReplyBtn onClick={() => onReply(m)} />}
-      {content}
-      {!mine && <ReplyBtn onClick={() => onReply(m)} />}
+    <div
+      onContextMenu={(e) => { e.preventDefault(); onLongPress?.(m); }}
+      className={`-mx-4 px-4 py-1 transition-colors ${selected ? 'bg-[#DBEAFE]/70' : ''} ${selectMode ? 'cursor-pointer select-none' : ''}`}
+    >
+      {/* Emoji reaction bar — only when this is the single selected message */}
+      {showReactionBar && (
+        <div className={`flex ${mine ? 'justify-end' : 'justify-start'} mb-1.5`}>
+          <div className="flex items-center gap-0.5 bg-white rounded-full shadow-md px-2 py-1.5 border border-[#E3F2FD]">
+            {REACTION_EMOJIS.map((e) => (
+              <button key={e} type="button" onClick={() => onReact?.(m, e)}
+                className="w-8 h-8 flex items-center justify-center text-lg hover:scale-125 active:scale-110 transition-transform">
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div
+        className={rowCls}
+        onPointerDown={startPress}
+        onPointerUp={endPress}
+        onPointerLeave={endPress}
+        onClick={selectMode ? () => onToggleSelect?.(m) : undefined}
+      >
+        {mine && <ReplyBtn onClick={() => { if (!selectMode) onReply(m); }} />}
+        <div className="relative">
+          {content}
+          {reaction && (
+            <span className={`absolute -bottom-2.5 ${mine ? 'left-1' : 'right-1'} bg-white rounded-full shadow px-1 py-0.5 text-[13px] leading-none border border-[#E3F2FD]`}>
+              {reaction}
+            </span>
+          )}
+        </div>
+        {!mine && <ReplyBtn onClick={() => { if (!selectMode) onReply(m); }} />}
+      </div>
     </div>
   );
 }
@@ -276,6 +327,23 @@ export default function Chat() {
   const [attachOpen,   setAttachOpen]   = useState(false);
   const [loading,      setLoading]      = useState(true);
 
+  // Message selection / per-message actions
+  const [menuOpen,     setMenuOpen]     = useState(false);   // header 3-dot dropdown
+  const [selectMode,   setSelectMode]   = useState(false);
+  const [selectedIds,  setSelectedIds]  = useState([]);
+  const [reactions,    setReactions]    = useState({});      // messageId → emoji
+  const [deletePrompt, setDeletePrompt] = useState(false);
+
+  // Menu features: search, media & docs, forward
+  const [searchMode,   setSearchMode]   = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState('');
+  const [mediaOpen,    setMediaOpen]    = useState(false);
+  const [mediaTab,     setMediaTab]     = useState('media');
+  const [forwardOpen,    setForwardOpen]    = useState(false);
+  const [forwardContacts, setForwardContacts] = useState(null); // null = loading
+  const [forwardPicked,  setForwardPicked]  = useState([]);     // selected contact ids
+  const [forwardSearch,  setForwardSearch]  = useState('');
+
   // ── Load conversation + messages ────────────────────────────────────────
   useEffect(() => {
     let alive = true;
@@ -289,6 +357,10 @@ export default function Chat() {
         if (!alive) return;
         setConvo(c);
         setMessages(msgs);
+        // Seed reactions saved on the server so they persist across reloads
+        const seeded = {};
+        msgs.forEach((m) => { if (m.reaction) seeded[m.id] = m.reaction; });
+        setReactions(seeded);
       } catch (err) {
         console.error('Chat load error:', err);
       } finally {
@@ -353,6 +425,101 @@ export default function Chat() {
     pushSent({ type: 'text', text: 'Hello 👋' });
   };
 
+  // ── Message selection / per-message actions ─────────────────────────────
+  const enterSelect = (m) => {
+    setMenuOpen(false);
+    setSelectMode(true);
+    setSelectedIds(m ? [m.id] : []);
+  };
+
+  const toggleSelect = (m) => {
+    setSelectedIds((ids) => (ids.includes(m.id) ? ids.filter((x) => x !== m.id) : [...ids, m.id]));
+  };
+
+  const exitSelect = () => {
+    setSelectMode(false);
+    setSelectedIds([]);
+  };
+
+  // Reactions only apply to a single selected message (one emoji per user)
+  const applyReaction = (m, emoji) => {
+    const next = reactions[m.id] === emoji ? undefined : emoji;
+    setReactions((r) => ({ ...r, [m.id]: next }));   // optimistic
+    exitSelect();
+    reactToMessage(m.id, emoji).catch(() => {
+      // revert on failure
+      setReactions((r) => ({ ...r, [m.id]: reactions[m.id] }));
+      showToast('Could not save reaction.');
+    });
+  };
+
+  const selectedMessages = () => messages.filter((m) => selectedIds.includes(m.id));
+
+  const copySelected = async () => {
+    const txt = selectedMessages().map((m) => m.text ?? m.content ?? quotedLabel(m)).join('\n');
+    try {
+      await navigator.clipboard.writeText(txt);
+      showToast(selectedIds.length > 1 ? 'Messages copied' : 'Message copied');
+    } catch {
+      showToast('Could not copy.');
+    }
+    exitSelect();
+  };
+
+  // Build a sendMessage payload from an existing message
+  const toPayload = (m) => {
+    if (m.type === 'image') return { type: 'image', imageUrl: m.imageUrl || m.content, content: m.content || m.imageUrl, isVideo: m.isVideo, text: m.text };
+    if (m.type === 'voice') return { type: 'voice', content: m.content, duration: m.duration };
+    if (m.type === 'file')  return { type: 'file', content: m.content, fileName: m.fileName };
+    return { type: 'text', text: m.text ?? m.content ?? '' };
+  };
+
+  const openForward = async () => {
+    setForwardOpen(true);
+    setForwardContacts(null);
+    setForwardPicked([]);
+    setForwardSearch('');
+    try {
+      const { data } = await fetchContacts();
+      setForwardContacts(data || []);
+    } catch {
+      setForwardContacts([]);
+    }
+  };
+
+  const toggleForwardPick = (cid) =>
+    setForwardPicked((p) => (p.includes(cid) ? p.filter((x) => x !== cid) : [...p, cid]));
+
+  const doForward = async () => {
+    const targets = (forwardContacts || []).filter((c) => forwardPicked.includes(c.id));
+    if (!targets.length) return;
+    const msgs = selectedMessages();
+    setForwardOpen(false);
+    exitSelect();
+    try {
+      for (const t of targets) {
+        const { data: conv } = await startConversation(t.id);   // existing or new conversation
+        for (const m of msgs) await sendMessage(conv.id, toPayload(m));
+      }
+      showToast(targets.length === 1 ? `Forwarded to ${targets[0].name}` : `Forwarded to ${targets.length} chats`);
+    } catch (err) {
+      console.error('Forward failed:', err);
+      showToast('Could not forward. Please try again.');
+    }
+  };
+
+  // scope: 'me' | 'everyone' — persisted via DELETE /messages/messages/{id}
+  const confirmDeleteMessages = (scope) => {
+    const ids = [...selectedIds];
+    setMessages((prev) => prev.filter((m) => !ids.includes(m.id)));   // optimistic
+    setDeletePrompt(false);
+    exitSelect();
+    Promise.allSettled(ids.map((mid) => deleteMessage(mid, scope))).then((res) => {
+      if (res.some((r) => r.status === 'rejected')) showToast('Some messages could not be deleted.');
+      else showToast(scope === 'everyone' ? 'Deleted for everyone' : 'Deleted for you');
+    });
+  };
+
   // ── Text send ───────────────────────────────────────────────────────────
   const handleSendText = () => {
     const value = text.trim();
@@ -406,10 +573,25 @@ export default function Chat() {
     setCompose(null); setCaption(''); setReplyTo(null);
   };
 
-  const handleDocs = (e) => {
+  // Upload each picked file to R2, then send it as a persisted FILE message
+  const handleDocs = async (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
-    files.forEach((f) => pushSent({ type: 'file', fileName: f.name }));
+    for (const f of files) {
+      const tmpId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+      setMessages((prev) => [
+        ...prev.filter((m) => m.type !== 'typing'),
+        { id: tmpId, conversationId: id, fromMe: true, time: '', type: 'file', fileName: f.name },
+      ]);
+      try {
+        const url = await uploadFile(f);
+        await sendMessage(id, { type: 'file', content: url, fileName: f.name });
+      } catch (err) {
+        console.error('File send failed:', err);
+        showToast(`Could not send ${f.name}.`);
+        setMessages((prev) => prev.filter((m) => m.id !== tmpId));
+      }
+    }
   };
 
   // ════════════════════════════════════════════════════════════════════════
@@ -509,6 +691,16 @@ export default function Chat() {
   const isRecording = recordingState === 'recording';
   const isUploading = recordingState === 'uploading';
 
+  // Search filter over the thread
+  const q = searchQuery.trim().toLowerCase();
+  const visibleMessages = searchMode && q
+    ? messages.filter((m) => (m.text ?? m.content ?? '').toLowerCase().includes(q))
+    : messages;
+
+  // Shared media / docs for the Media & Docs sheet
+  const mediaItems = messages.filter((m) => m.type === 'image');
+  const docItems   = messages.filter((m) => m.type === 'file');
+
   // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="h-screen flex flex-col bg-[#F4F7FF]">
@@ -519,6 +711,8 @@ export default function Chat() {
         .sc-typing-dot      { animation:scTyping 1.2s ease-in-out infinite; }
         @keyframes scPulse  { 0%,100%{ opacity:1;} 50%{ opacity:.35;} }
         .sc-rec-dot         { animation:scPulse 1s ease-in-out infinite; }
+        @keyframes scSlideIn { from{ transform:translateX(100%);} to{ transform:translateX(0);} }
+        .sc-slide-in        { animation:scSlideIn 260ms cubic-bezier(0.32,0.72,0,1); }
       `}</style>
 
       {/* ── HEADER ── */}
@@ -528,57 +722,141 @@ export default function Chat() {
           <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         </div>
 
-        <div className="flex items-center gap-3 relative z-10">
-          <button onClick={() => navigate(-1)} aria-label="Go back"
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+        {selectMode ? (
+          /* ── SELECTION HEADER ── */
+          <div className="flex items-center gap-3 relative z-10">
+            <button onClick={exitSelect} aria-label="Cancel selection"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
 
-          {/* Identity pill — shows real name + avatar once convo loads */}
-          <button onClick={() => navigate(`/messages/${id}/profile`)} aria-label="View profile"
-            className="flex-1 min-w-0 flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2 text-left hover:bg-white/15 active:scale-[0.98] transition-all">
-            {loading ? (
-              // Skeleton while loading
-              <div className="w-9 h-9 rounded-full bg-white/20 animate-pulse shrink-0" />
-            ) : (
-              <Avatar
-                initial={convo?.initial ?? '?'}
-                color={convo?.avatarColor ?? '#1565C0'}
-                size={36}
-                online={convo?.online ?? false}
-              />
-            )}
-            <div className="min-w-0">
-              {loading ? (
-                <>
-                  <div className="h-3.5 w-28 bg-white/20 rounded animate-pulse mb-1" />
-                  <div className="h-3 w-16 bg-white/15 rounded animate-pulse" />
-                </>
-              ) : (
-                <>
-                  <p className="text-[15px] font-bold text-white truncate leading-tight">
-                    {convo?.name ?? 'Chat'}
-                  </p>
-                  <p className={`text-[12px] font-medium leading-tight ${convo?.online ? 'text-[#A5D6A7]' : 'text-blue-200'}`}>
-                    {convo?.online ? '● Online' : 'Offline'}
-                  </p>
-                </>
-              )}
-            </div>
-          </button>
+            <span className="w-9 h-9 rounded-full bg-white/15 text-white font-bold flex items-center justify-center">
+              {selectedIds.length}
+            </span>
 
-          <div className="flex items-center gap-1 text-white relative z-10">
-            <button onClick={() => navigate(`/messages/${id}/profile`)} aria-label="Chat info"
-              className="w-9 h-9 flex items-center justify-center hover:opacity-80 active:scale-90 transition-all">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <circle cx="12" cy="12" r="9" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 11v5M12 8h.01" />
+            <div className="flex-1" />
+
+            <button onClick={copySelected} disabled={!selectedIds.length} aria-label="Copy"
+              className="w-9 h-9 flex items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/15 active:scale-90 transition-all disabled:opacity-40">
+              <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <rect x="9" y="9" width="11" height="11" rx="2" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1" />
+              </svg>
+            </button>
+            <button onClick={() => setDeletePrompt(true)} disabled={!selectedIds.length} aria-label="Delete"
+              className="w-9 h-9 flex items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/15 active:scale-90 transition-all disabled:opacity-40">
+              <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" />
+              </svg>
+            </button>
+            <button onClick={openForward} disabled={!selectedIds.length} aria-label="Forward"
+              className="w-9 h-9 flex items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/15 active:scale-90 transition-all disabled:opacity-40">
+              <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h13M13 6l6 6-6 6" />
               </svg>
             </button>
           </div>
-        </div>
+        ) : searchMode ? (
+          /* ── SEARCH HEADER ── */
+          <div className="flex items-center gap-3 relative z-10">
+            <button onClick={() => { setSearchMode(false); setSearchQuery(''); }} aria-label="Close search"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <input autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search...."
+              className="flex-1 min-w-0 bg-white/15 text-white placeholder-white/70 rounded-full px-4 py-2.5 text-[14px] focus:outline-none focus:bg-white/20" />
+          </div>
+        ) : (
+          /* ── NORMAL HEADER ── */
+          <div className="flex items-center gap-3 relative z-10">
+            <button onClick={() => navigate(-1)} aria-label="Go back"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Identity pill — tapping the name opens the chat info / profile */}
+            <button onClick={() => navigate(`/messages/${id}/profile`)} aria-label="View profile"
+              className="flex-1 min-w-0 flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2 text-left hover:bg-white/15 active:scale-[0.98] transition-all">
+              {loading ? (
+                <div className="w-9 h-9 rounded-full bg-white/20 animate-pulse shrink-0" />
+              ) : (
+                <Avatar
+                  initial={convo?.initial ?? '?'}
+                  color={convo?.avatarColor ?? '#1565C0'}
+                  size={36}
+                  online={convo?.online ?? false}
+                />
+              )}
+              <div className="min-w-0">
+                {loading ? (
+                  <>
+                    <div className="h-3.5 w-28 bg-white/20 rounded animate-pulse mb-1" />
+                    <div className="h-3 w-16 bg-white/15 rounded animate-pulse" />
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[15px] font-bold text-white truncate leading-tight">
+                      {convo?.name ?? 'Chat'}
+                    </p>
+                    <p className={`text-[12px] font-medium leading-tight ${convo?.online ? 'text-[#A5D6A7]' : 'text-blue-200'}`}>
+                      {convo?.online ? '● Online' : 'Offline'}
+                    </p>
+                  </>
+                )}
+              </div>
+            </button>
+
+            {/* 3-dot overflow menu */}
+            <div className="relative z-20">
+              <button onClick={() => setMenuOpen((v) => !v)} aria-label="More options"
+                className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 top-11 z-20 w-60 bg-white rounded-2xl shadow-xl border border-[#F0F6FF] overflow-hidden py-1">
+                    {[
+                      { key: 'search', title: 'Search', sub: 'Search in this chat',
+                        icon: <><circle cx="11" cy="11" r="7" /><path strokeLinecap="round" d="M21 21l-4.3-4.3" /></> },
+                      { key: 'media', title: 'Media & Docs', sub: 'View shared files',
+                        icon: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 15l-5-5L5 21" /></> },
+                      { key: 'select', title: 'Select Message', sub: 'Choose messages',
+                        icon: <><rect x="3" y="3" width="18" height="18" rx="4" /><path strokeLinecap="round" strokeLinejoin="round" d="M8 12l3 3 5-6" /></> },
+                    ].map((it) => (
+                      <button key={it.key}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          if (it.key === 'select') enterSelect(null);
+                          else if (it.key === 'media') { setMediaTab('media'); setMediaOpen(true); }
+                          else { setSearchQuery(''); setSearchMode(true); }
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#F8FAFF] transition-colors">
+                        <svg className="w-5 h-5 text-[#1565C0] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                          {it.icon}
+                        </svg>
+                        <span className="min-w-0">
+                          <span className="block text-[14px] font-semibold text-[#0D2137]">{it.title}</span>
+                          <span className="block text-[11px] text-[#90A4AE]">{it.sub}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ── Messages ── */}
@@ -591,9 +869,25 @@ export default function Chat() {
           <div className="flex justify-center">
             <span className="px-3 py-1 rounded-[13px] bg-[#DBEAFE] text-[12px] text-[#1565C0] font-medium">Today</span>
           </div>
-          {messages.map((m) => (
-            <Bubble key={m.id} m={m} onImageClick={(url) => setViewer(url)} onReply={(msg) => setReplyTo(msg)} />
-          ))}
+          {searchMode && q && visibleMessages.length === 0 ? (
+            <p className="text-center text-[13px] text-[#90A4AE] pt-10">No messages match “{searchQuery.trim()}”.</p>
+          ) : (
+            visibleMessages.map((m) => (
+              <Bubble
+                key={m.id}
+                m={m}
+                onImageClick={(url) => setViewer(url)}
+                onReply={(msg) => setReplyTo(msg)}
+                selectMode={selectMode}
+                selected={selectedIds.includes(m.id)}
+                onToggleSelect={toggleSelect}
+                onLongPress={enterSelect}
+                reaction={reactions[m.id]}
+                showReactionBar={selectMode && selectedIds.length === 1 && selectedIds[0] === m.id}
+                onReact={applyReaction}
+              />
+            ))
+          )}
         </div>
       )}
 
@@ -802,6 +1096,199 @@ export default function Chat() {
         navigate={navigate}
         onToast={showToast}
       />
+
+      {/* ── Delete Message? confirmation ── */}
+      {/* "Delete for Everyone" only when every selected message is your own. */}
+      {deletePrompt && (() => {
+        const allOwn = selectedMessages().length > 0 && selectedMessages().every((m) => m.fromMe);
+        const btn = 'h-12 rounded-xl border border-[#FECACA] text-[#EF4444] font-semibold hover:bg-[#FEF2F2] active:scale-[0.98] transition-all';
+        const cancelBtn = 'h-12 rounded-xl bg-[#F0F6FF] text-[#90A4AE] font-semibold hover:bg-[#E3F2FD] active:scale-[0.98] transition-all';
+        return (
+          <div className="fixed inset-0 z-[55] flex items-center justify-center px-6">
+            <div className="absolute inset-0 bg-[#0D2137]/45" onClick={() => setDeletePrompt(false)} />
+            <div className="relative w-full max-w-[340px] bg-white rounded-3xl shadow-xl p-5">
+              <h2 className="text-lg font-bold text-[#0D2137]">Delete Message?</h2>
+              <p className="text-[12px] text-[#90A4AE] mt-0.5">This will delete the message for:</p>
+              {allOwn ? (
+                <div className="mt-4 flex flex-col gap-2.5">
+                  <button onClick={() => confirmDeleteMessages('me')} className={`w-full ${btn}`}>Delete for Me</button>
+                  <button onClick={() => confirmDeleteMessages('everyone')} className={`w-full ${btn}`}>Delete for Everyone</button>
+                  <button onClick={() => setDeletePrompt(false)} className={`w-full ${cancelBtn}`}>Cancel</button>
+                </div>
+              ) : (
+                <div className="mt-4 grid grid-cols-2 gap-2.5">
+                  <button onClick={() => confirmDeleteMessages('me')} className={btn}>Delete for Me</button>
+                  <button onClick={() => setDeletePrompt(false)} className={cancelBtn}>Cancel</button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Media & Docs ── */}
+      {mediaOpen && (
+        <div className="fixed inset-0 z-50 bg-[#F4F7FF] flex flex-col">
+          <header className="shrink-0 bg-white border-b border-[#F0F6FF] px-3 py-3 flex items-center gap-2">
+            <button onClick={() => setMediaOpen(false)} aria-label="Back"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-[#546E7A] hover:bg-[#F0F6FF] active:scale-90 transition-all shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            {[['media', 'Media'], ['docs', 'Docs']].map(([key, label]) => (
+              <button key={key} onClick={() => setMediaTab(key)}
+                className={`px-4 py-1.5 rounded-full text-[14px] font-semibold transition-colors ${mediaTab === key ? 'bg-[#1565C0] text-white' : 'text-[#546E7A] hover:bg-[#F0F6FF]'}`}>
+                {label}
+              </button>
+            ))}
+          </header>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {mediaTab === 'media' ? (
+              mediaItems.length === 0 ? (
+                <p className="text-center text-[13px] text-[#90A4AE] pt-16">No shared media yet.</p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  {mediaItems.map((m) => {
+                    const src = m.imageUrl || m.content || '';
+                    return (
+                      <button key={m.id} onClick={() => { setMediaOpen(false); setViewer(src); }}
+                        className="relative aspect-square rounded-2xl overflow-hidden bg-[#E3F2FD] active:scale-[0.98] transition-transform">
+                        {m.isVideo
+                          ? <video src={src} className="w-full h-full object-cover" />
+                          : <img src={src} alt="shared" className="w-full h-full object-cover" />}
+                        {m.time && <span className="absolute bottom-1.5 left-1.5 text-[11px] text-white drop-shadow">{m.time}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              docItems.length === 0 ? (
+                <p className="text-center text-[13px] text-[#90A4AE] pt-16">No shared documents yet.</p>
+              ) : (
+                <div className="space-y-2.5 max-w-lg mx-auto">
+                  {docItems.map((m) => (
+                    <div key={m.id} className="flex items-center gap-3 bg-white rounded-2xl border border-[#F0F6FF] px-4 py-3 shadow-sm">
+                      <span className="w-10 h-10 rounded-lg bg-[#EAF2FF] text-[#1565C0] flex items-center justify-center shrink-0">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v5h5M7 3h7l5 5v11a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" />
+                        </svg>
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[14px] font-semibold text-[#0D2137] truncate">{m.fileName || 'File'}</span>
+                        {m.time && <span className="block text-[11px] text-[#90A4AE]">{m.time}</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Forward Message panel ── */}
+      {forwardOpen && (() => {
+        const q = forwardSearch.trim().toLowerCase();
+        const list = (forwardContacts || []).filter(
+          (c) => !q || c.name.toLowerCase().includes(q) || (c.handle || '').toLowerCase().includes(q),
+        );
+        const picked = (forwardContacts || []).filter((c) => forwardPicked.includes(c.id));
+        const sendLabel = forwardPicked.length === 0 ? 'Select contacts'
+          : forwardPicked.length === 1 ? `Send to ${picked[0]?.name ?? ''}`
+          : `Send to ${forwardPicked.length} contacts`;
+        return (
+          <div className="fixed inset-0 z-[55] flex">
+            <div className="flex-1" onClick={() => setForwardOpen(false)} />
+            <div className="sc-slide-in w-full max-w-[380px] h-full bg-white shadow-2xl flex flex-col">
+              {/* Header */}
+              <div className="shrink-0 bg-[#1565C0] px-5 py-4 flex items-center justify-between">
+                <h2 className="text-white text-lg font-bold">Forward Message</h2>
+                <button onClick={() => setForwardOpen(false)} aria-label="Close"
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-white hover:bg-white/15 active:scale-90 transition-all">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="shrink-0 px-4 pt-4">
+                <div className="flex items-center gap-2 bg-[#F0F6FF] border border-[#E3F2FD] rounded-full px-4 py-2.5">
+                  <svg className="w-4 h-4 text-[#90A4AE] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <circle cx="11" cy="11" r="7" /><path strokeLinecap="round" d="M21 21l-4.3-4.3" />
+                  </svg>
+                  <input value={forwardSearch} onChange={(e) => setForwardSearch(e.target.value)}
+                    placeholder="Search contacts..."
+                    className="flex-1 min-w-0 bg-transparent text-[14px] text-[#0D2137] placeholder-[#90A4AE] focus:outline-none" />
+                </div>
+              </div>
+
+              {/* Selected chips */}
+              {picked.length > 0 && (
+                <div className="shrink-0 px-4 pt-3 flex items-center gap-2 flex-wrap">
+                  <span className="text-[12px] text-[#90A4AE]">Forwarding:</span>
+                  {picked.map((c) => (
+                    <span key={c.id} className="flex items-center gap-1.5 bg-[#E3F2FD] text-[#1565C0] rounded-full pl-1 pr-2 py-0.5 text-[13px] font-semibold">
+                      <Avatar initial={c.initial} color={c.avatarColor} size={20} />
+                      {c.name}
+                      <button onClick={() => toggleForwardPick(c.id)} aria-label={`Remove ${c.name}`} className="hover:opacity-70">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-b border-[#F0F6FF] mt-3" />
+
+              {/* Contacts */}
+              <div className="flex-1 overflow-y-auto">
+                <p className="px-5 pt-3 pb-1 text-[12px] font-semibold text-[#90A4AE]">Contacts</p>
+                {forwardContacts === null ? (
+                  <p className="text-center text-[13px] text-[#90A4AE] py-10">Loading contacts…</p>
+                ) : list.length === 0 ? (
+                  <p className="text-center text-[13px] text-[#90A4AE] py-10">No contacts found.</p>
+                ) : (
+                  list.map((c) => {
+                    const on = forwardPicked.includes(c.id);
+                    return (
+                      <button key={c.id} onClick={() => toggleForwardPick(c.id)}
+                        className={`w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors ${on ? 'bg-[#EAF2FF]' : 'hover:bg-[#F8FAFF]'}`}>
+                        <Avatar initial={c.initial} color={c.avatarColor} size={42} online={c.online} />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[15px] font-semibold text-[#0D2137] truncate">{c.name}</span>
+                          <span className="block text-[12px] text-[#90A4AE] truncate">{c.handle || ''}</span>
+                        </span>
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 ${on ? 'bg-[#1565C0] border-[#1565C0]' : 'border-[#BBDEFB]'}`}>
+                          {on && (
+                            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Send */}
+              <div className="shrink-0 p-4">
+                <button onClick={doForward} disabled={!forwardPicked.length}
+                  className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-300/40 text-[15px] flex items-center justify-center gap-2">
+                  {sendLabel}
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z" /></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] bg-[#0D2137] text-white text-sm px-4 py-2.5 rounded-full shadow-lg max-w-[90%] text-center">

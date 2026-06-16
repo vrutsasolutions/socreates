@@ -57,18 +57,19 @@ export const forgotPasswordSendOtp = (email) =>
     ? mockResponse({ message: 'OTP sent (mock — use 123456)' })
     : api.post('/auth/forgot-password/send-otp', { email })
 
-// POST /api/auth/forgot-password/verify-otp { email, otp } → { message }
+// POST /api/auth/forgot-password/verify-otp { email, otp } → { message, resetToken }
+// The resetToken proves OTP ownership and is required by /reset.
 export const forgotPasswordVerifyOtp = (email, otp) => {
   if (USE_MOCK.otp) {
     return /^\d{6}$/.test(String(otp))
-      ? mockResponse({ message: 'OTP verified successfully' })
+      ? mockResponse({ message: 'OTP verified successfully', resetToken: 'mock-reset-token' })
       : Promise.reject({ response: { status: 400, data: { message: 'Invalid or expired OTP (mock: 123456).' } } })
   }
   return api.post('/auth/forgot-password/verify-otp', { email, otp })
 }
 
-// POST /api/auth/forgot-password/reset      { email, newPassword } → { message }
-export const forgotPasswordReset = (email, newPassword) =>
+// POST /api/auth/forgot-password/reset  { email, newPassword, resetToken } → { message }
+export const forgotPasswordReset = (email, newPassword, resetToken) =>
   USE_MOCK.otp
     ? mockResponse({ message: 'Password reset successfully' })
-    : api.post('/auth/forgot-password/reset', { email, newPassword })
+    : api.post('/auth/forgot-password/reset', { email, newPassword, resetToken })
