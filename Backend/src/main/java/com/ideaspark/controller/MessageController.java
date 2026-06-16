@@ -33,10 +33,10 @@ public class MessageController {
         return messageService.getConversation(id, auth.getName());
     }
 
-    // POST /api/messages/conversations  body: { "userId": "uuid" }
+    // POST /api/messages/conversations body: { "userId": "uuid" }
     @PostMapping("/conversations")
     public ConversationDTO startConversation(@RequestBody Map<String, UUID> body,
-                                             Authentication auth) {
+            Authentication auth) {
         return messageService.startConversation(body.get("userId"), auth.getName());
     }
 
@@ -49,13 +49,12 @@ public class MessageController {
     // POST /api/messages/conversations/:id/messages
     @PostMapping("/conversations/{id}/messages")
     public ResponseEntity<MessageDTO> sendMessage(@PathVariable UUID id,
-                                                  @RequestBody Map<String, String> body,
-                                                  Authentication auth) {
+            @RequestBody Map<String, String> body,
+            Authentication auth) {
         MessageDTO sent = messageService.sendMessage(
                 id, auth.getName(),
                 body.get("type"),
-                body.get("content")
-        );
+                body.get("content"));
         return ResponseEntity.ok(sent);
     }
 
@@ -102,8 +101,7 @@ public class MessageController {
                             conversation.getId(),
                             auth.getName(),
                             "TEXT",
-                            "📨 Shared a post: " + title
-                    );
+                            "📨 Shared a post: " + title);
                 } catch (Exception e) {
                     System.out.println("Failed to share with user " + userId + ": " + e.getMessage());
                 }
@@ -112,11 +110,56 @@ public class MessageController {
             return ResponseEntity.ok(Map.of(
                     "shared", postId,
                     "count", userIds.size(),
-                    "message", "Post shared successfully"
-            ));
+                    "message", "Post shared successfully"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "Failed to share post: " + e.getMessage()));
         }
+    }
+
+    @GetMapping("/requests")
+    public ResponseEntity<List<Object>> getRequests(Authentication auth) {
+        return ResponseEntity.ok(messageService.getMessageRequests(auth.getName()));
+    }
+
+    @PostMapping("/requests/{id}/accept")
+    public ResponseEntity<Map<String, String>> acceptRequest(
+            @PathVariable UUID id,
+            Authentication auth) {
+        messageService.acceptRequest(id, auth.getName());
+        return ResponseEntity.ok(Map.of("message", "Request accepted"));
+    }
+
+    @PostMapping("/requests/{id}/decline")
+    public ResponseEntity<Map<String, String>> declineRequest(
+            @PathVariable UUID id,
+            Authentication auth) {
+        messageService.declineRequest(id, auth.getName());
+        return ResponseEntity.ok(Map.of("message", "Request declined"));
+    }
+
+    @DeleteMapping("/conversations/{id}")
+    public ResponseEntity<Map<String, String>> deleteConversation(
+            @PathVariable UUID id,
+            Authentication auth) {
+        messageService.deleteConversation(id, auth.getName());
+        return ResponseEntity.ok(Map.of("message", "Conversation deleted"));
+    }
+
+    @PostMapping("/users/{id}/block")
+    public ResponseEntity<Map<String, String>> blockUser(
+            @PathVariable UUID id,
+            Authentication auth) {
+        messageService.blockUser(id, auth.getName());
+        return ResponseEntity.ok(Map.of("message", "User blocked"));
+    }
+
+    @PostMapping("/users/{id}/report")
+    public ResponseEntity<Map<String, String>> reportUser(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body,
+            Authentication auth) {
+        messageService.reportUser(id, body.getOrDefault("reason", ""), auth.getName());
+        return ResponseEntity.ok(Map.of("message", "User reported"));
     }
 }
