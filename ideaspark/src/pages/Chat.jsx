@@ -58,6 +58,28 @@ function Waveform({ color = '#1565C0', animated = false }) {
   );
 }
 
+// Dense full-width waveform that fills the composer while recording
+function FullWaveform({ color = '#1565C0', faded = '#BBDEFB' }) {
+  const bars = Array.from({ length: 46 }, (_, i) => 4 + Math.round(Math.abs(Math.sin(i * 1.7)) * 18));
+  return (
+    <div className="flex-1 flex items-center justify-between gap-[2px] h-7 overflow-hidden">
+      {bars.map((h, i) => (
+        <span
+          key={i}
+          className="sc-wave-bar"
+          style={{
+            width: 3,
+            height: h,
+            borderRadius: 3,
+            background: i % 3 === 0 ? color : faded,
+            animationDelay: `${(i % 10) * 90}ms`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function QuotedInBubble({ replyTo, light }) {
   return (
     <div className={`mb-1 pl-2 border-l-2 ${light ? 'border-white/70' : 'border-[#1565C0]'}`}>
@@ -174,6 +196,52 @@ function Bubble({ m, onImageClick, onReply }) {
   );
 }
 
+// Loading placeholder — mirrors the bubble layout while the thread loads
+function MessagesSkeleton() {
+  return (
+    <div className="flex-1 overflow-hidden px-4 py-4 space-y-4">
+      <div className="flex justify-center">
+        <span className="h-6 w-16 rounded-[13px] bg-[#DBEAFE] animate-pulse" />
+      </div>
+      <div className="flex justify-start">
+        <div className="h-9 w-44 rounded-[18px] rounded-bl-md bg-white shadow-sm animate-pulse" />
+      </div>
+      <div className="flex justify-start">
+        <div className="h-28 w-52 rounded-2xl bg-white shadow-sm animate-pulse" />
+      </div>
+      <div className="flex justify-end">
+        <div className="h-10 w-40 rounded-[18px] rounded-br-md bg-[#1565C0]/30 animate-pulse" />
+      </div>
+      <div className="flex justify-start">
+        <div className="h-7 w-28 rounded-[18px] rounded-bl-md bg-white shadow-sm animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+// Shown when a conversation has no messages yet
+function EmptyState({ onSayHello }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+      <div className="relative w-40 h-40 flex items-center justify-center mb-2">
+        <span className="absolute inset-0 rounded-full bg-[#1565C0]/5" />
+        <span className="absolute inset-5 rounded-full bg-[#1565C0]/10" />
+        <span className="w-16 h-16 rounded-full bg-[#1565C0] flex items-center justify-center shadow-lg">
+          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 01-13.5 7.8L3 21l1.2-4.5A9 9 0 1121 12z" />
+          </svg>
+        </span>
+      </div>
+      <h3 className="text-[17px] font-bold text-[#0D2137]">No messages yet</h3>
+      <p className="text-[13px] text-[#90A4AE] mt-1">Start the conversation!</p>
+      <button onClick={onSayHello}
+        className="mt-5 px-7 py-3 rounded-full bg-[#1565C0] text-white text-[14px] font-bold shadow-md hover:opacity-90 active:scale-95 transition-all">
+        Say Hello 👋
+      </button>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Chat() {
@@ -280,6 +348,10 @@ export default function Chat() {
     replyTo
       ? { name: replyTo.fromMe ? 'You' : (convo?.name ?? ''), text: quotedLabel(replyTo) }
       : undefined;
+
+  const handleSayHello = () => {
+    pushSent({ type: 'text', text: 'Hello 👋' });
+  };
 
   // ── Text send ───────────────────────────────────────────────────────────
   const handleSendText = () => {
@@ -515,14 +587,20 @@ export default function Chat() {
       </header>
 
       {/* ── Messages ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        <div className="flex justify-center">
-          <span className="px-3 py-1 rounded-[13px] bg-[#DBEAFE] text-[12px] text-[#1565C0] font-medium">Today</span>
+      {loading ? (
+        <MessagesSkeleton />
+      ) : messages.length === 0 ? (
+        <EmptyState onSayHello={handleSayHello} />
+      ) : (
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          <div className="flex justify-center">
+            <span className="px-3 py-1 rounded-[13px] bg-[#DBEAFE] text-[12px] text-[#1565C0] font-medium">Today</span>
+          </div>
+          {messages.map((m) => (
+            <Bubble key={m.id} m={m} onImageClick={(url) => setViewer(url)} onReply={(msg) => setReplyTo(msg)} />
+          ))}
         </div>
-        {messages.map((m) => (
-          <Bubble key={m.id} m={m} onImageClick={(url) => setViewer(url)} onReply={(msg) => setReplyTo(msg)} />
-        ))}
-      </div>
+      )}
 
       {/* ── Mic permission error banner ── */}
       {micError && (
@@ -559,8 +637,8 @@ export default function Chat() {
             ) : (
               <>
                 <span className="sc-rec-dot w-3 h-3 rounded-full bg-[#EF4444] shrink-0" />
-                <span className="text-[13px] font-semibold text-[#0D2137] tabular-nums">{fmt(seconds)}</span>
-                <Waveform color="#1565C0" animated />
+                <FullWaveform color="#1565C0" faded="#BBDEFB" />
+                <span className="text-[13px] font-semibold text-[#0D2137] tabular-nums shrink-0">{fmt(seconds)}</span>
               </>
             )}
           </div>
@@ -643,23 +721,28 @@ export default function Chat() {
       {/* ── Send Photo compose ── */}
       {compose && (
         <div className="fixed inset-0 z-50 bg-[#0D2137] flex flex-col">
-          <div className="flex items-center px-4 py-3">
-            <button onClick={() => { setCompose(null); setCaption(''); }} aria-label="Back"
-              className="w-9 h-9 flex items-center justify-center text-white">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span className="flex-1 text-center text-white font-bold text-lg">Send Photo</span>
-            <span className="w-9" />
-          </div>
+          <header className="shrink-0 bg-[#1565C0] px-4 py-4 relative shadow-lg">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -top-12 -right-6" />
+              <div className="absolute w-24 h-24 rounded-full border-[20px] border-white/5 -bottom-8 -left-4" />
+            </div>
+            <div className="flex items-center relative z-10">
+              <button onClick={() => { setCompose(null); setCaption(''); }} aria-label="Back"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="flex-1 text-center text-white font-bold text-lg">Send Photo</span>
+              <span className="w-9" />
+            </div>
+          </header>
           <div className="flex-1 flex items-center justify-center px-4 min-h-0">
             {compose.items[compose.index].isVideo
               ? <video src={compose.items[compose.index].url} controls className="max-h-full max-w-full rounded-2xl object-contain" />
               : <img src={compose.items[compose.index].url} alt="preview" className="max-h-full max-w-full rounded-2xl object-contain" />}
           </div>
-          <p className="text-center text-[12px] text-white/50 py-2">Pinch to zoom</p>
-          <div className="px-3 pb-2 flex items-center gap-2">
+          <div className="px-3 pb-2 pt-2 flex items-center gap-2">
             <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Add a caption..."
               className="flex-1 h-12 px-4 rounded-full bg-white/10 text-white placeholder-white/60 text-sm focus:outline-none" />
             <button onClick={handleSendCompose} aria-label="Send"

@@ -5,6 +5,7 @@
       "name": "ideaspark-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
+      "cwd": "D:\\Socreates\\ideaspark",
       "port": 5173
     }
   ]
