@@ -44,11 +44,6 @@ public class User {
     @Column(name = "is_verified")
     private boolean isVerified = false;
 
-    @Column(name = "otp_code")
-    private String otpCode;
-
-    @Column(name = "otp_expires_at")
-    private LocalDateTime otpExpiresAt;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

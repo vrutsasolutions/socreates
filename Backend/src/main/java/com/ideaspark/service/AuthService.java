@@ -49,8 +49,6 @@ public class AuthService {
         .password(passwordEncoder.encode(req.getPassword()))
         .isPremium(false)
         .isVerified(true)
-        .otpCode(null)
-        .otpExpiresAt(null)
         .build();
 
         userRepository.save(user);
