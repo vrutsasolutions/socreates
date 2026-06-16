@@ -49,6 +49,11 @@ const QUICK_REACTIONS = [
 // Emoji reaction bar shown when exactly one message is selected
 const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '🙏', '👍'];
 
+// Attachment validation (mirrors the backend upload limits)
+const MAX_MEDIA_SIZE = 5 * 1024 * 1024;  // 5 MB
+const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+const MAX_DOC_SIZE = 10 * 1024 * 1024;   // 10 MB
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function Waveform({ color = '#1565C0', animated = false }) {
@@ -539,6 +544,16 @@ export default function Chat() {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
+    for (const file of files) {
+      if (!ALLOWED_MEDIA_TYPES.includes(file.type)) {
+        showToast('Only JPG, PNG, WEBP images and MP4 videos are supported.');
+        return;
+      }
+      if (file.size > MAX_MEDIA_SIZE) {
+        showToast('Media file size must be less than 5MB.');
+        return;
+      }
+    }
     const items = files.map((f) => ({
       url: URL.createObjectURL(f),
       isVideo: f.type.startsWith('video'),
@@ -577,6 +592,13 @@ export default function Chat() {
   const handleDocs = async (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
+    if (!files.length) return;
+    for (const file of files) {
+      if (file.size > MAX_DOC_SIZE) {
+        showToast('File size must be less than 10MB.');
+        return;
+      }
+    }
     for (const f of files) {
       const tmpId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
       setMessages((prev) => [

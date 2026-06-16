@@ -19,7 +19,6 @@ public class OtpController {
     private final EmailService emailService;
     private final UserRepository userRepository;
 
-    // Send OTP for registration
     @PostMapping("/send-otp")
     public ResponseEntity<Map<String, String>> sendOtp(
             @RequestBody Map<String, String> body) {
@@ -31,19 +30,19 @@ public class OtpController {
                     .body(Map.of("message", "Email is required"));
         }
 
-        // Check if email already registered
+        email = email.trim().toLowerCase();
+
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "Email already registered"));
         }
 
-        String otp = otpService.generateOtp(email);
+        String otp = otpService.generateOtp(email, "REGISTER");
         emailService.sendOtpEmail(email, otp);
 
         return ResponseEntity.ok(Map.of("message", "OTP sent to " + email));
     }
 
-    // Verify OTP for registration
     @PostMapping("/verify-otp")
     public ResponseEntity<Map<String, String>> verifyOtp(
             @RequestBody Map<String, String> body) {
@@ -56,7 +55,9 @@ public class OtpController {
                     .body(Map.of("message", "Email and OTP are required"));
         }
 
-        boolean valid = otpService.validateOtp(email, otp);
+        email = email.trim().toLowerCase();
+
+       boolean valid = otpService.validateOtp(email, otp, "REGISTER");
 
         if (!valid) {
             return ResponseEntity.badRequest()
@@ -66,7 +67,6 @@ public class OtpController {
         return ResponseEntity.ok(Map.of("message", "OTP verified successfully"));
     }
 
-    // Send OTP for forgot password
     @PostMapping("/forgot-password/send-otp")
     public ResponseEntity<Map<String, String>> sendForgotPasswordOtp(
             @RequestBody Map<String, String> body) {
@@ -78,19 +78,19 @@ public class OtpController {
                     .body(Map.of("message", "Email is required"));
         }
 
-        // Check if email exists
+        email = email.trim().toLowerCase();
+
         if (!userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "No account found with this email"));
         }
 
-        String otp = otpService.generateOtp(email);
+        String otp = otpService.generateOtp(email, "FORGOT_PASSWORD");
         emailService.sendPasswordResetEmail(email, otp);
 
         return ResponseEntity.ok(Map.of("message", "OTP sent to " + email));
     }
 
-    // Verify OTP for forgot password
     @PostMapping("/forgot-password/verify-otp")
     public ResponseEntity<Map<String, String>> verifyForgotPasswordOtp(
             @RequestBody Map<String, String> body) {
@@ -103,7 +103,9 @@ public class OtpController {
                     .body(Map.of("message", "Email and OTP are required"));
         }
 
-        boolean valid = otpService.validateOtp(email, otp);
+        email = email.trim().toLowerCase();
+
+        boolean valid = otpService.validateOtp(email, otp, "FORGOT_PASSWORD");
 
         if (!valid) {
             return ResponseEntity.badRequest()
@@ -138,12 +140,14 @@ public class OtpController {
                     .body(Map.of("message", "Invalid or expired reset session. Please verify the OTP again."));
         }
 
+        email = email.trim().toLowerCase();
+
         var user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Encode and save new password
         user.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder()
                 .encode(newPassword));
+
         userRepository.save(user);
 
         return ResponseEntity.ok(Map.of("message", "Password reset successfully"));

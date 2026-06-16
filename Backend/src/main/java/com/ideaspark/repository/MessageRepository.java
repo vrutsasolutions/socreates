@@ -15,6 +15,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
 
     long countByConversationAndIsReadFalse(Conversation conversation);
 
-    // ✅ Added for delete account
     List<Message> findByConversationId(UUID conversationId);
+
+    void deleteByConversationId(UUID conversationId);
 }

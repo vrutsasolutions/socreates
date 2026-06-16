@@ -43,12 +43,13 @@ public class AuthService {
             throw new RuntimeException("Username '" + username + "' is already taken");
 
         User user = User.builder()
-                .name(req.getName().trim())
-                .username(username)
-                .email(email)
-                .password(passwordEncoder.encode(req.getPassword()))
-                .isPremium(false)
-                .build();
+        .name(req.getName().trim())
+        .username(username)
+        .email(email)
+        .password(passwordEncoder.encode(req.getPassword()))
+        .isPremium(false)
+        .isVerified(true)
+        .build();
 
         userRepository.save(user);
         return buildResponse(user);
