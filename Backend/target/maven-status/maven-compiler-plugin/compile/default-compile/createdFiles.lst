@@ -3,6 +3,7 @@ com\ideaspark\service\AuthService.class
 com\ideaspark\dto\ConversationDTO.class
 com\ideaspark\dto\IdeaDTO.class
 com\ideaspark\controller\FollowController.class
+com\ideaspark\model\EmailOtp$EmailOtpBuilder.class
 com\ideaspark\controller\UserController.class
 com\ideaspark\model\Message$MessageBuilder.class
 com\ideaspark\dto\MembershipDTO.class
@@ -15,6 +16,7 @@ com\ideaspark\service\MembershipService.class
 com\ideaspark\model\Membership$MembershipBuilder.class
 com\ideaspark\model\Conversation$ConversationBuilder.class
 com\ideaspark\dto\FollowStatsResponse$FollowStatsResponseBuilder.class
+com\ideaspark\model\EmailOtp.class
 com\ideaspark\config\WebSocketAuthConfig.class
 com\ideaspark\controller\IdeaController.class
 com\ideaspark\repository\ConversationRepository.class
@@ -65,6 +67,7 @@ com\ideaspark\service\MessageService$1.class
 com\ideaspark\model\Comment.class
 com\ideaspark\model\Message$MessageType.class
 com\ideaspark\model\User.class
+com\ideaspark\repository\EmailOtpRepository.class
 com\ideaspark\dto\UserDTO.class
 com\ideaspark\controller\NotificationController.class
 com\ideaspark\service\MessageService.class
