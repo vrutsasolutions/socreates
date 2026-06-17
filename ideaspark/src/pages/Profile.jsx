@@ -156,23 +156,6 @@ export default function Profile() {
 
           {/* STATS */}
           <div className="flex text-center py-4 border-b border-[#BBDEFB]">
-            <div className="flex-1">
-              <div className="text-[#1565C0] font-bold">{myIdeas.length}</div>
-              <div className="text-xs text-[#90A4AE]">Ideas</div>
-            </div>
-
-            <div className="flex-1">
-              <div className="text-[#1565C0] font-bold">{saved.length}</div>
-              <div className="text-xs text-[#90A4AE]">Saved</div>
-            </div>
-
-            <div className="flex-1">
-              <div className="text-[#1565C0] font-bold">
-                {myIdeas.reduce((a, i) => a + (i.likeCount || 0), 0)}
-              </div>
-              <div className="text-xs text-[#90A4AE]">Likes</div>
-            </div>
-
             <button
               type="button"
               onClick={() => navigate("/profile/follows?tab=followers")}
@@ -190,6 +173,13 @@ export default function Profile() {
               <div className="text-[#1565C0] font-bold">{followStats.followingCount}</div>
               <div className="text-xs text-[#90A4AE]">Following</div>
             </button>
+
+            <div className="flex-1">
+              <div className="text-[#1565C0] font-bold">
+                {myIdeas.reduce((a, i) => a + (i.likeCount || 0), 0)}
+              </div>
+              <div className="text-xs text-[#90A4AE]">Likes</div>
+            </div>
           </div>
 
           {/* EDIT BUTTON */}
