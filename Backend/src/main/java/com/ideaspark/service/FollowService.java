@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,6 +26,16 @@ public class FollowService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository; // ✅ Added for direct save
+    private final EmailService emailService;
+
+    // ── Follower milestones: fire at each of these counts ────────────────────
+    private static final Set<Long> FOLLOWER_MILESTONES = Set.of(10L, 50L, 100L, 500L, 1000L, 5000L, 10000L);
+
+    private boolean isFollowerMilestone(long count) {
+        if (FOLLOWER_MILESTONES.contains(count)) return true;      // early milestones
+        if (count > 10000 && count % 10000 == 0) return true;      // every 10k after that
+        return false;
+    }
 
     // Follow a user
     public String follow(UUID currentUserId, UUID targetUserId) {
@@ -74,6 +85,23 @@ public class FollowService {
         } catch (Exception e) {
             System.out.println("❌ Follow notification failed: " + e.getMessage());
             e.printStackTrace();
+        }
+
+        // ── Follower milestone email ──────────────────────────────────────────
+        try {
+            long totalFollowers = followRepository.countByFollowing(targetUser);
+            if (isFollowerMilestone(totalFollowers)) {
+                String displayName = (targetUser.getName() != null && !targetUser.getName().isBlank())
+                        ? targetUser.getName()
+                        : (targetUser.getUsername() != null ? targetUser.getUsername() : "Creator");
+                emailService.sendFollowerMilestoneEmail(
+                        targetUser.getEmail(),
+                        displayName,
+                        totalFollowers
+                );
+            }
+        } catch (Exception e) {
+            System.out.println("Follower milestone email failed: " + e.getMessage());
         }
 
         return "Followed successfully";
