@@ -177,9 +177,9 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Floating AI assistant — sits above the bottom nav, opens the AI-assisted create flow */}
+      {/* Floating AI assistant — sits above the bottom nav, opens the SparkBot chat */}
       <button
-        onClick={() => navigate('/add-idea')}
+        onClick={() => navigate('/assistant')}
         aria-label="SoCreates AI"
         className="fixed right-4 bottom-24 z-40 w-14 h-14 rounded-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
         style={{

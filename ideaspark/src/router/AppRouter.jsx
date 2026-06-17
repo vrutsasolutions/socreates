@@ -39,6 +39,7 @@ import EditProfile     from '../pages/EditProfile';
 import FollowList      from '../pages/FollowList';
 import SavedIdeas      from '../pages/SavedIdeas';
 import Settings        from '../pages/Settings';
+import AIAssistant     from '../pages/AIAssistant';
 
 // ── Protected route wrapper ─────────────────────────────────────────────────
 function PrivateRoute({ children }) {
@@ -80,6 +81,7 @@ export default function AppRouter() {
 
         {/* Protected routes */}
         <Route path="/home"             element={<PrivateRoute><Home /></PrivateRoute>} />
+        <Route path="/assistant"        element={<PrivateRoute><AIAssistant /></PrivateRoute>} />
 
         {/* Messaging (figma "Messaging System UI") — static paths before :id.
             Inbox itself is PrivateRoute so non-premium users reach the upgrade
