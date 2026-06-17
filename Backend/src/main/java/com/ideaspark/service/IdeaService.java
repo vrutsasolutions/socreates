@@ -21,6 +21,8 @@ public class IdeaService {
     private final IdeaLikeRepository ideaLikeRepository;
     private final CommentRepository commentRepository;
     private final CloudflareImageService cloudflareImageService;
+    private final FollowRepository followRepository;
+    private final EmailService emailService;
 
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
         List<Idea> ideas = switch (sort != null ? sort : "latest") {
@@ -69,42 +71,62 @@ public class IdeaService {
 
         Idea savedIdea = ideaRepository.save(idea);
 
+        try {
+            List<Follow> followers = followRepository.findByFollowing(creator);
+
+            for (Follow follow : followers) {
+                User follower = follow.getFollower();
+
+                emailService.sendNewIdeaNotificationEmail(
+
+                        follower.getEmail(),
+                        creator.getName(),
+                        savedIdea.getTitle(),
+                        savedIdea.getDescription(),
+                        savedIdea.getCategory(),
+                        savedIdea.getId());
+
+            }
+        } catch (Exception e) {
+            System.out.println("New idea follower email failed: " + e.getMessage());
+        }
+
         return toDTO(savedIdea, creatorEmail);
     }
 
     @Transactional
-public void deleteIdea(UUID id, String userEmail) {
+    public void deleteIdea(UUID id, String userEmail) {
 
-    Idea idea = ideaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Idea not found"));
+        Idea idea = ideaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Idea not found"));
 
-    if (!idea.getCreator().getEmail().equals(userEmail)) {
-        throw new RuntimeException("Not authorized to delete this idea");
-    }
-
-    // Delete images from Cloudflare
-    if (idea.getImageUrls() != null && !idea.getImageUrls().isEmpty()) {
-        for (String url : idea.getImageUrls()) {
-            cloudflareImageService.deleteImage(url);
+        if (!idea.getCreator().getEmail().equals(userEmail)) {
+            throw new RuntimeException("Not authorized to delete this idea");
         }
-    } else if (idea.getImageUrl() != null && !idea.getImageUrl().isBlank()) {
-        cloudflareImageService.deleteImage(idea.getImageUrl());
+
+        // Delete images from Cloudflare
+        if (idea.getImageUrls() != null && !idea.getImageUrls().isEmpty()) {
+            for (String url : idea.getImageUrls()) {
+                cloudflareImageService.deleteImage(url);
+            }
+        } else if (idea.getImageUrl() != null && !idea.getImageUrl().isBlank()) {
+            cloudflareImageService.deleteImage(idea.getImageUrl());
+        }
+
+        // Delete bookmarks
+        savedIdeaRepository.deleteByIdeaId(id);
+
+        // Delete likes
+        ideaLikeRepository.deleteByIdeaId(id);
+
+        // Delete comments
+        commentRepository.deleteAll(
+                commentRepository.findByIdeaIdOrderByCreatedAtDesc(id));
+
+        // Delete idea
+        ideaRepository.delete(idea);
     }
 
-    // Delete bookmarks
-    savedIdeaRepository.deleteByIdeaId(id);
-
-    // Delete likes
-    ideaLikeRepository.deleteByIdeaId(id);
-
-    // Delete comments
-    commentRepository.deleteAll(
-            commentRepository.findByIdeaIdOrderByCreatedAtDesc(id)
-    );
-
-    // Delete idea
-    ideaRepository.delete(idea);
-}
     @Transactional
     public void saveIdea(UUID ideaId, String userEmail) {
         User user = userRepository.findByEmail(userEmail)

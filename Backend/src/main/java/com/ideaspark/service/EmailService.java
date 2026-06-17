@@ -65,7 +65,8 @@ public class EmailService {
                     <p style="color: #999; font-size: 12px;">If you did not request this, please ignore this email.</p>
                     <p style="color: #999; font-size: 12px;">— Team SoCreates</p>
                 </div>
-                """.formatted(otp);
+                """
+                .formatted(otp);
     }
 
     // HTML template for password reset email
@@ -86,7 +87,99 @@ public class EmailService {
                     <p style="color: #999; font-size: 12px;">If you did not request this, please ignore this email.</p>
                     <p style="color: #999; font-size: 12px;">— Team SoCreates</p>
                 </div>
-                """.formatted(otp);
+                """
+                .formatted(otp);
+    }
+
+    public void sendNewIdeaNotificationEmail(
+        String toEmail,
+        String creatorName,
+        String ideaTitle,
+        String ideaDescription,
+        String category,
+        java.util.UUID ideaId
+) {
+    try {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        helper.setFrom("your_gmail@gmail.com", "SoCreates");
+        helper.setTo(toEmail);
+        helper.setSubject("New Idea from " + creatorName);
+
+        String shortDescription = ideaDescription != null && ideaDescription.length() > 160
+                ? ideaDescription.substring(0, 160) + "..."
+                : ideaDescription;
+
+        String body = """
+                <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; padding: 28px; border-radius: 14px; background: #f4f7ff;">
+                    <h2 style="color: #1565C0;">New Idea Posted</h2>
+
+                    <p><strong>%s</strong> posted a new idea on SoCreates.</p>
+
+                    <p style="font-size: 13px; color: #1565C0; font-weight: bold;">
+                        Category: %s
+                    </p>
+
+                    <h3 style="color:#0D2137;">%s</h3>
+
+                    <p style="color:#455A64; line-height:1.5;">
+                        %s
+                    </p>
+
+                    <p>
+                        <a href="http://localhost:5173/ideas/%s"
+                           style="background:#1565C0;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;display:inline-block;">
+                           View Idea on SoCreates
+                        </a>
+                    </p>
+
+                    <p style="color:#777;font-size:12px;">
+                        You received this email because you follow %s.
+                    </p>
+
+                    <p style="color:#999;font-size:12px;">— Team SoCreates</p>
+                </div>
+                """.formatted(
+                creatorName,
+                category != null ? category : "General",
+                ideaTitle,
+                shortDescription != null ? shortDescription : "",
+                ideaId,
+                creatorName
+        );
+
+        helper.setText(body, true);
+        mailSender.send(message);
+
+    } catch (Exception e) {
+        System.out.println("New idea email failed: " + e.getMessage());
     }
 }
+    public void sendMilestoneEmail(String toEmail, long count, String type) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            helper.setFrom("your_gmail@gmail.com", "SoCreates");
+            helper.setTo(toEmail);
+            helper.setSubject("🎉 Congratulations! You reached " + count + " " + type);
+
+            String body = """
+                    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; padding: 28px; border-radius: 14px; background: #f4f7ff;">
+                        <h2 style="color:#1565C0;">Congratulations!</h2>
+                        <p>You reached <strong>%s %s</strong> on SoCreates.</p>
+                        <p>Keep sharing amazing ideas with the community.</p>
+                        <p style="color:#999;font-size:12px;">— Team SoCreates</p>
+                    </div>
+                    """
+                    .formatted(count, type);
+
+            helper.setText(body, true);
+            mailSender.send(message);
+
+        } catch (Exception e) {
+            System.out.println("Milestone email failed: " + e.getMessage());
+        }
+    }
+}

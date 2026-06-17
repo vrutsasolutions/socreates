@@ -17,7 +17,10 @@ export default function Profile() {
   const [tab, setTab] = useState("My Ideas");
   const [myIdeas, setMyIdeas] = useState([]);
   const [saved, setSaved] = useState([]);
-  const [followStats, setFollowStats] = useState({ followersCount: 0, followingCount: 0 });
+  const [followStats, setFollowStats] = useState({
+    followersCount: 0,
+    followingCount: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,10 +57,8 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-24">
-
       {/* HEADER (RINGS KEPT, STRUCTURE FIXED ONLY) */}
       <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-8 relative shadow-lg">
-
         {/* rings */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
@@ -67,33 +68,56 @@ export default function Profile() {
         {/* top bar (UNCHANGED) */}
         <div className="flex items-center justify-between relative z-10">
           <button
-              onClick={() => navigate(-1)}
-              aria-label="Go back"
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
           >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
           </button>
 
           <h1 className="text-white font-bold text-lg">Profile</h1>
 
           <button onClick={() => navigate("/settings")} className="text-white">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-      
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
           </button>
         </div>
 
-        
         <div className="relative z-10 mt-6 flex justify-center">
           <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-5 w-full max-w-sm text-center">
-
-            
             <div className="flex justify-center">
               {user?.profileImage ? (
                 <img
                   src={user.profileImage}
-                  alt={user?.name || 'Profile photo'}
+                  alt={user?.name || "Profile photo"}
                   className="w-16 h-16 rounded-2xl object-cover bg-white"
                 />
               ) : (
@@ -103,18 +127,25 @@ export default function Profile() {
               )}
             </div>
 
-            
-            <h2 className="text-white font-bold text-lg mt-3">
-              {user?.name}
-            </h2>
+            <h2 className="text-white font-bold text-lg mt-3">{user?.name}</h2>
 
             {/* Status badges — verified creator + paid tier (premium / creator pro) */}
             {(user?.verified || user?.isPremium || hasCreatorPro(user)) && (
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
                 {user?.verified && (
                   <span className="inline-flex items-center gap-1 bg-[#E7F8EE] text-[#15803D] text-xs font-bold px-3 py-1 rounded-full">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                     Verified Creator
                   </span>
@@ -126,15 +157,16 @@ export default function Profile() {
                     <Icon name="star" className="w-3.5 h-3.5" />
                     Creator Pro
                   </span>
-                ) : user?.isPremium && (
-                  <span className="inline-flex items-center gap-1 bg-[#FEF3C7] text-[#92400E] text-xs font-bold px-3 py-1 rounded-full">
-                    <Icon name="star" className="w-3.5 h-3.5" />
-                    Premium
-                  </span>
+                ) : (
+                  user?.isPremium && (
+                    <span className="inline-flex items-center gap-1 bg-[#FEF3C7] text-[#92400E] text-xs font-bold px-3 py-1 rounded-full">
+                      <Icon name="star" className="w-3.5 h-3.5" />
+                      Premium
+                    </span>
+                  )
                 )}
               </div>
             )}
-
 
             <p className="text-blue-200 text-sm">
               @{user?.username || user?.email?.split("@")[0]}
@@ -150,10 +182,8 @@ export default function Profile() {
         </div>
       </header>
 
-     
       <div className="bg-[#1565C0]">
         <div className="bg-white rounded-t-[32px] px-4 pt-6">
-
           {/* STATS */}
           <div className="flex text-center py-4 border-b border-[#BBDEFB]">
             <button
@@ -161,7 +191,9 @@ export default function Profile() {
               onClick={() => navigate("/profile/follows?tab=followers")}
               className="flex-1 active:scale-95 transition-transform"
             >
-              <div className="text-[#1565C0] font-bold">{followStats.followersCount}</div>
+              <div className="text-[#1565C0] font-bold">
+                {followStats.followersCount}
+              </div>
               <div className="text-xs text-[#90A4AE]">Followers</div>
             </button>
 
@@ -170,7 +202,9 @@ export default function Profile() {
               onClick={() => navigate("/profile/follows?tab=following")}
               className="flex-1 active:scale-95 transition-transform"
             >
-              <div className="text-[#1565C0] font-bold">{followStats.followingCount}</div>
+              <div className="text-[#1565C0] font-bold">
+                {followStats.followingCount}
+              </div>
               <div className="text-xs text-[#90A4AE]">Following</div>
             </button>
 
@@ -210,7 +244,7 @@ export default function Profile() {
             ))}
           </div>
 
-         {/* Ideas grid */}
+          {/* Ideas grid */}
           <div>
             {loading ? (
               <div className="grid grid-cols-2 gap-3">
@@ -232,15 +266,15 @@ export default function Profile() {
             ) : ideas.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 {ideas.map((i) => (
-                  <div key={i.id} className="relative">
+                  <div key={i.id}>
                     <IdeaCard idea={i} />
 
                     {tab === "My Ideas" && (
                       <button
                         onClick={() => handleDeleteIdea(i.id)}
-                        className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-lg shadow">
-                      
-                       Delete
+                        className="mt-2 w-full bg-red-400 text-white text-sm font-semibold py-2 rounded-lg shadow active:scale-[0.98] transition"
+                      >
+                        Delete Idea
                       </button>
                     )}
                   </div>
@@ -249,17 +283,22 @@ export default function Profile() {
             ) : (
               <div className="text-center py-16">
                 <div className="mb-3 flex justify-center text-[#BBDEFB]">
-                  {tab === "My Ideas"
-                    ? <Icon name="lightbulb" className="w-12 h-12" />
-                    : <Icon name="bookmark" className="w-12 h-12" />}
+                  {tab === "My Ideas" ? (
+                    <Icon name="lightbulb" className="w-12 h-12" />
+                  ) : (
+                    <Icon name="bookmark" className="w-12 h-12" />
+                  )}
                 </div>
                 <p className="text-[#1565C0] font-medium text-sm">
                   {tab === "My Ideas"
                     ? "No ideas published yet"
                     : "No saved ideas yet"}
                 </p>
-                {tab === 'My Ideas' && (
-                  <button onClick={() => navigate('/add-idea')} className="mt-3 text-[#1565C0] text-xs hover:text-[#BBDEFB] transition">
+                {tab === "My Ideas" && (
+                  <button
+                    onClick={() => navigate("/add-idea")}
+                    className="mt-3 text-[#1565C0] text-xs hover:text-[#BBDEFB] transition"
+                  >
                     + Share your first idea
                   </button>
                 )}
