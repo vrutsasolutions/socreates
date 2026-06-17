@@ -24,6 +24,15 @@ public class IdeaService {
     private final FollowRepository followRepository;
     private final EmailService emailService;
 
+    // ── Like milestones: fire at each of these counts ────────────────────────
+    private static final Set<Integer> LIKE_MILESTONES = Set.of(25, 100, 500, 1000, 5000, 10000);
+
+    private boolean isLikeMilestone(int count) {
+        if (LIKE_MILESTONES.contains(count)) return true;      // early milestones
+        if (count > 10000 && count % 10000 == 0) return true;  // every 10k after that
+        return false;
+    }
+
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
         List<Idea> ideas = switch (sort != null ? sort : "latest") {
             case "trending" -> ideaRepository.findAllByOrderByLikeCountDesc();
@@ -219,8 +228,26 @@ public class IdeaService {
                             .build());
 
             int currentCount = idea.getLikeCount();
-            idea.setLikeCount(currentCount + 1);
+            int newLikeCount = currentCount + 1;
+            idea.setLikeCount(newLikeCount);
             ideaRepository.save(idea);
+
+            // ── Like milestone email ──────────────────────────────────────────
+            if (isLikeMilestone(newLikeCount)) {
+                try {
+                    User creator = idea.getCreator();
+                    if (creator != null && creator.getEmail() != null) {
+                        emailService.sendLikeMilestoneEmail(
+                                creator.getEmail(),
+                                creator.getName() != null ? creator.getName() : "Creator",
+                                idea.getTitle(),
+                                newLikeCount
+                        );
+                    }
+                } catch (Exception e) {
+                    System.out.println("Like milestone email failed: " + e.getMessage());
+                }
+            }
 
             try {
                 if (idea.getCreator() != null &&
