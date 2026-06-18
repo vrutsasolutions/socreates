@@ -32,7 +32,10 @@ export const categorizeIdea = ({ title, description }) =>
     : api.post('/ai/categorize', { title, description });
 
 // POST /api/ai/chat       { messages: [{role, content}] } → { reply }
-export const chatWithAssistant = (messages) =>
+export const chatWithAssistant = (message, mode = "chat") =>
   USE_MOCK.ai
-    ? mockResponse(MOCK_AI.chat(messages?.[messages.length - 1]?.content))
-    : api.post('/ai/chat', { messages });
+    ? mockResponse(MOCK_AI.chat(message))
+    : api.post('/ai/chat', {
+        message,
+        mode
+      });

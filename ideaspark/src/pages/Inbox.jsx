@@ -362,7 +362,7 @@ export default function Inbox() {
             <p className="text-[11px] font-bold tracking-wider text-[#90A4AE]">RECENT</p>
             <button
               onClick={() => navigate('/messages/requests')}
-              className="text-[11px] font-bold tracking-wider text-[#1565C0] hover:text-[#0D47A1] active:opacity-70 transition-colors"
+              className="text-[11px] font-bold tracking-wider text-[#90A4AE] active:opacity-70 transition-colors"
             >
               REQUEST
             </button>
