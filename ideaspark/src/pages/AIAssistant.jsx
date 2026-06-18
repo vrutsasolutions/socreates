@@ -136,11 +136,7 @@ export default function AIAssistant() {
     setStep(3);
     setTyping(true);
     try {
-      const history = [...messages, userMsg].map((m) => ({
-        role: m.from === 'user' ? 'user' : 'assistant',
-        content: m.text,
-      }));
-      const { data } = await chatWithAssistant(history);
+      const { data } = await chatWithAssistant(text, "chat");
       pushBot({ text: data?.reply || "Here's a thought — start small and validate with real users first." });
     } catch {
       pushBot({ text: "Hmm, I couldn't reach my brain just now. Mind trying again in a moment?" });

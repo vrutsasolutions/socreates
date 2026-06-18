@@ -48,7 +48,7 @@ public class SecurityConfig {
     // Allow all CORS preflight requests
     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
     // Public endpoints — no token needed
-    .requestMatchers("/api/auth/**").permitAll()
+    .requestMatchers("/api/auth/**","/api/ai/**").permitAll()
     .requestMatchers("/api/ideas").permitAll()
     .requestMatchers("/api/ideas/{id}").permitAll()
     .requestMatchers("/api/search").permitAll()

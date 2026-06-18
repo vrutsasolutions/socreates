@@ -139,4 +139,68 @@ public class AiService {
             throw new RuntimeException("Failed to parse Groq response: " + e.getMessage(), e);
         }
     }
+    public Map<String, String> chat(String message, String mode) {
+
+    String safeMessage = message == null ? "" : message.trim();
+
+    String systemPrompt = """
+            You are SparkBot, the official AI assistant for SoCreates.
+            Help users generate, refine, validate, summarize, and improve startup or project ideas.
+            Keep replies clear, friendly, practical, and concise.
+            If the user asks for an idea, provide title, category, description, and next steps.
+            """;
+
+    String userPrompt = """
+            Mode: %s
+
+            User message:
+            %s
+            """.formatted(mode, safeMessage);
+
+    String requestBody;
+    try {
+        requestBody = objectMapper.writeValueAsString(Map.of(
+                "model", MODEL,
+                "messages", List.of(
+                        Map.of("role", "system", "content", systemPrompt),
+                        Map.of("role", "user", "content", userPrompt)
+                ),
+                "temperature", 0.7
+        ));
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to build Groq chat request body", e);
+    }
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.set("Authorization", "Bearer " + groqApiKey);
+
+    HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+    ResponseEntity<String> response;
+    try {
+        response = restTemplate.exchange(
+                GROQ_URL,
+                HttpMethod.POST,
+                entity,
+                String.class
+        );
+    } catch (Exception e) {
+        throw new RuntimeException("Groq chatbot API call failed: " + e.getMessage(), e);
+    }
+
+    try {
+        JsonNode root = objectMapper.readTree(response.getBody());
+        String reply = root
+                .path("choices").get(0)
+                .path("message")
+                .path("content")
+                .asText();
+
+        return Map.of("reply", reply);
+
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to parse Groq chatbot response: " + e.getMessage(), e);
+    }
+}
 }

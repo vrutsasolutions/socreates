@@ -51,4 +51,25 @@ public class AiController {
                     "AI service is temporarily unavailable. Please try again."));
         }
     }
+    @PostMapping("/chat")
+public ResponseEntity<?> chat(@RequestBody Map<String, String> request) {
+
+    String message = request.get("message");
+    String mode = request.getOrDefault("mode", "chat");
+
+    if (message == null || message.isBlank()) {
+        return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, "Message is required"));
+    }
+
+    try {
+        Map<String, String> response = aiService.chat(message, mode);
+        return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+        System.err.println("[AiController] Chat error: " + e.getMessage());
+        return ResponseEntity.status(503)
+                .body(new ApiResponse(false, "AI chatbot is temporarily unavailable."));
+    }
+}
 }
