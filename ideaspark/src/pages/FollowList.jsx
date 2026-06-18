@@ -147,9 +147,18 @@ export default function FollowList() {
       fetchSuggestedCreators().catch(() => ({ data: [] })),
     ])
       .then(([f, g, s]) => {
-        setFollowers(f.data || []);
-        setFollowing(g.data || []);
-        setSuggested(s.data || []);
+        const followersList = f.data || [];
+        const followingList = g.data || [];
+        // Don't suggest yourself or people you already follow. The backend
+        // already excludes these, but filter here too as a safety net in case
+        // its data is stale.
+        const followingIds = new Set(followingList.map((p) => p.userId));
+        const suggestions = (s.data || []).filter(
+          (c) => c.id !== user.id && !followingIds.has(c.id),
+        );
+        setFollowers(followersList);
+        setFollowing(followingList);
+        setSuggested(suggestions);
       })
       .finally(() => setLoading(false));
   }, [user?.id]);
@@ -318,7 +327,7 @@ export default function FollowList() {
                     <PersonRow
                       key={c.id}
                       variant="plain"
-                      person={{ ...c, profileImage: c.avatarUrl }}
+                      person={{ ...c, profileImage: c.profileImage || c.avatarUrl }}
                       action={
                         <FollowBtn
                           followed={followedIds.has(c.id)}

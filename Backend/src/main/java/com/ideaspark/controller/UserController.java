@@ -15,9 +15,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -92,12 +95,32 @@ public class UserController {
     }
 
     @GetMapping("/suggested-creators")
-    public ResponseEntity<List<UserDTO>> getSuggestedCreators() {
-        List<User> users = userRepository.findAll()
-                .stream()
+    public ResponseEntity<List<UserDTO>> getSuggestedCreators(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        User current = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        UUID currentId = current.getId();
+
+        // IDs the current user already follows — excluded from suggestions.
+        Set<UUID> followingIds = followRepository.findByFollower(current).stream()
+                .map(f -> f.getFollowing().getId())
+                .collect(Collectors.toSet());
+
+        List<User> candidates = userRepository.findAll().stream()
+                .filter(u -> !u.getId().equals(currentId))        // never suggest yourself
+                .filter(u -> !followingIds.contains(u.getId()))   // skip people you already follow
+                .collect(Collectors.toCollection(java.util.ArrayList::new));
+
+        // Dynamic: shuffle so the rail differs per user and per load instead of
+        // always returning the same first 10 rows.
+        Collections.shuffle(candidates);
+
+        List<UserDTO> suggestions = candidates.stream()
                 .limit(10)
+                .map(this::toDTO)
                 .toList();
-        return ResponseEntity.ok(users.stream().map(this::toDTO).toList());
+
+        return ResponseEntity.ok(suggestions);
     }
 
     @PostMapping("/follow-bulk")

@@ -50,6 +50,12 @@ password cannot be changed without proving OTP ownership. Frontend wizard:
 
 `Creator` = `{ id, name, bio, avatarUrl, followed }`
 
+> `GET /suggested-creators` is **auth-scoped** (uses the JWT principal): it
+> excludes the signed-in user and anyone they already follow, then **shuffles**
+> the remaining users and returns up to 10 — so the rail is dynamic per user /
+> per load rather than the same fixed first 10 for everyone. The frontend also
+> filters out self + already-following as a safety net (`FollowList.jsx`).
+
 ### Follow / social graph ✅  `/api/follow`  — frontend: `src/api/userApi.jsx`
 
 Identifies the acting user via an `X-User-Id` header (current user's UUID), not
