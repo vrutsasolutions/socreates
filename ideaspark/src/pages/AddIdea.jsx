@@ -74,7 +74,7 @@ function AIRefineModal({ original, onAccept, onClose }) {
               <SparkleIcon size={18} />
             </div>
             <div className="flex-1">
-              <p className="font-bold text-[#0D2137] text-[15px] leading-tight">IdeaSpark AI</p>
+              <p className="font-bold text-[#0D2137] text-[15px] leading-tight">SoCreates AI</p>
               <p className="text-[11px] text-[#90A4AE]">
                 {screen === 'select'
                   ? 'Choose how AI should help you'
@@ -350,20 +350,40 @@ export default function AddIdea() {
 
   const requestPremiumToggle = () => {
     if (form.isPremium) { setForm((f) => ({ ...f, isPremium: false })); return; }
-    saveIdeaDraft({ form, images, previews });
+    saveIdeaDraft({ form, images, previews, step });
     navigate('/create-premium');
   };
 
+  // Non-premium users tap "Upgrade to Creator Pro". Persist the in-progress
+  // draft first so their title/description/images survive the round-trip and
+  // are restored when they navigate back (see the restore effect below).
+  const goToCreatorPro = () => {
+    saveIdeaDraft({ form, images, previews, step });
+    navigate('/creator-pro');
+  };
+
   useEffect(() => {
-    if (params.get('premium') !== '1') return;
+    // Restore a draft stashed before any trip to the premium gate — whether the
+    // user came back via the `?premium=1` return (Creator Pro flow) or just hit
+    // back from the Creator Pro page. takeIdeaDraft() clears it after one read.
     const d = takeIdeaDraft();
+    const premiumReturn = params.get('premium') === '1';
+    if (!d && !premiumReturn) return;
     const p = params.get('price');
     setForm((f) => ({
       ...f,
       ...(d?.form || {}),
-      ...(creatorPro && verified ? { isPremium: true, price: p || d?.form?.price || f.price } : {}),
+      ...(premiumReturn && creatorPro && verified
+        ? { isPremium: true, price: p || d?.form?.price || f.price }
+        : {}),
     }));
-    if (d) { setImages(d.images || []); setPreviews(d.previews || []); }
+    if (d) {
+      setImages(d.images || []);
+      setPreviews(d.previews || []);
+      // Return the user to the step they left from (the Media / upload-image
+      // step where the premium toggle lives) instead of resetting to step 0.
+      if (typeof d.step === 'number') setStep(d.step);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -642,7 +662,7 @@ export default function AddIdea() {
                   </div>
                 </div>
                 <button
-                  onClick={() => navigate('/creator-pro')}
+                  onClick={goToCreatorPro}
                   className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all"
                 >
                   Upgrade to Creator Pro
