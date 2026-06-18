@@ -56,7 +56,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF] pb-24">
+    <div className="min-h-screen  pb-24">
       {/* HEADER (RINGS KEPT, STRUCTURE FIXED ONLY) */}
       <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-8 relative shadow-lg">
         {/* rings */}

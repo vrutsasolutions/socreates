@@ -31,7 +31,7 @@ export default function Premium() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF] pb-24 overflow-x-hidden">
+    <div className="min-h-screen  pb-24 overflow-x-hidden">
 
       {/* HEADER (NOW MATCHES HOME EXACTLY) */}
       <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10 overflow-hidden">

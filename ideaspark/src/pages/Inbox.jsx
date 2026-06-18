@@ -99,7 +99,7 @@ function PremiumGate({ navigate }) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF]">
+    <div className="min-h-screen">
 
       {/* HEADER — mirrors the inbox header so the page reads as "Messages" */}
       <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
@@ -260,7 +260,7 @@ export default function Inbox() {
   const isEmpty = !loading && !error && conversations.length === 0;
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF]">
+    <div className="min-h-screen">
 
       {/* HEADER */}
       <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">

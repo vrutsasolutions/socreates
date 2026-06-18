@@ -10,7 +10,7 @@ export default function CreatePremiumIdea() {
   const [price, setPrice] = useState('99');
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF]">
+    <div className="min-h-screen">
 
       {/* HEADER — Matches structural blueprint across global application headers */}
       <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
