@@ -21,6 +21,17 @@ public class IdeaService {
     private final IdeaLikeRepository ideaLikeRepository;
     private final CommentRepository commentRepository;
     private final CloudflareImageService cloudflareImageService;
+    private final FollowRepository followRepository;
+    private final EmailService emailService;
+
+    // ── Like milestones: fire at each of these counts ────────────────────────
+    private static final Set<Integer> LIKE_MILESTONES = Set.of(25, 100, 500, 1000, 5000, 10000);
+
+    private boolean isLikeMilestone(int count) {
+        if (LIKE_MILESTONES.contains(count)) return true;      // early milestones
+        if (count > 10000 && count % 10000 == 0) return true;  // every 10k after that
+        return false;
+    }
 
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
         List<Idea> ideas = switch (sort != null ? sort : "latest") {
@@ -69,42 +80,62 @@ public class IdeaService {
 
         Idea savedIdea = ideaRepository.save(idea);
 
+        try {
+            List<Follow> followers = followRepository.findByFollowing(creator);
+
+            for (Follow follow : followers) {
+                User follower = follow.getFollower();
+
+                emailService.sendNewIdeaNotificationEmail(
+
+                        follower.getEmail(),
+                        creator.getName(),
+                        savedIdea.getTitle(),
+                        savedIdea.getDescription(),
+                        savedIdea.getCategory(),
+                        savedIdea.getId());
+
+            }
+        } catch (Exception e) {
+            System.out.println("New idea follower email failed: " + e.getMessage());
+        }
+
         return toDTO(savedIdea, creatorEmail);
     }
 
     @Transactional
-public void deleteIdea(UUID id, String userEmail) {
+    public void deleteIdea(UUID id, String userEmail) {
 
-    Idea idea = ideaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Idea not found"));
+        Idea idea = ideaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Idea not found"));
 
-    if (!idea.getCreator().getEmail().equals(userEmail)) {
-        throw new RuntimeException("Not authorized to delete this idea");
-    }
-
-    // Delete images from Cloudflare
-    if (idea.getImageUrls() != null && !idea.getImageUrls().isEmpty()) {
-        for (String url : idea.getImageUrls()) {
-            cloudflareImageService.deleteImage(url);
+        if (!idea.getCreator().getEmail().equals(userEmail)) {
+            throw new RuntimeException("Not authorized to delete this idea");
         }
-    } else if (idea.getImageUrl() != null && !idea.getImageUrl().isBlank()) {
-        cloudflareImageService.deleteImage(idea.getImageUrl());
+
+        // Delete images from Cloudflare
+        if (idea.getImageUrls() != null && !idea.getImageUrls().isEmpty()) {
+            for (String url : idea.getImageUrls()) {
+                cloudflareImageService.deleteImage(url);
+            }
+        } else if (idea.getImageUrl() != null && !idea.getImageUrl().isBlank()) {
+            cloudflareImageService.deleteImage(idea.getImageUrl());
+        }
+
+        // Delete bookmarks
+        savedIdeaRepository.deleteByIdeaId(id);
+
+        // Delete likes
+        ideaLikeRepository.deleteByIdeaId(id);
+
+        // Delete comments
+        commentRepository.deleteAll(
+                commentRepository.findByIdeaIdOrderByCreatedAtDesc(id));
+
+        // Delete idea
+        ideaRepository.delete(idea);
     }
 
-    // Delete bookmarks
-    savedIdeaRepository.deleteByIdeaId(id);
-
-    // Delete likes
-    ideaLikeRepository.deleteByIdeaId(id);
-
-    // Delete comments
-    commentRepository.deleteAll(
-            commentRepository.findByIdeaIdOrderByCreatedAtDesc(id)
-    );
-
-    // Delete idea
-    ideaRepository.delete(idea);
-}
     @Transactional
     public void saveIdea(UUID ideaId, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
@@ -197,8 +228,26 @@ public void deleteIdea(UUID id, String userEmail) {
                             .build());
 
             int currentCount = idea.getLikeCount();
-            idea.setLikeCount(currentCount + 1);
+            int newLikeCount = currentCount + 1;
+            idea.setLikeCount(newLikeCount);
             ideaRepository.save(idea);
+
+            // ── Like milestone email ──────────────────────────────────────────
+            if (isLikeMilestone(newLikeCount)) {
+                try {
+                    User creator = idea.getCreator();
+                    if (creator != null && creator.getEmail() != null) {
+                        emailService.sendLikeMilestoneEmail(
+                                creator.getEmail(),
+                                creator.getName() != null ? creator.getName() : "Creator",
+                                idea.getTitle(),
+                                newLikeCount
+                        );
+                    }
+                } catch (Exception e) {
+                    System.out.println("Like milestone email failed: " + e.getMessage());
+                }
+            }
 
             try {
                 if (idea.getCreator() != null &&

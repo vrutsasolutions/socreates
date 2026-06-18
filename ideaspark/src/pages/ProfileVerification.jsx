@@ -140,7 +140,7 @@ export default function ProfileVerification() {
 
   /* ── FORM ── */
   if (view === 'form') return (
-    <div className="min-h-screen bg-[#F4F7FF]">
+    <div className="min-h-screen">
       <Header
         title="Creator Verification"
         subtitle="Apply for a verified creator badge"
@@ -282,7 +282,7 @@ export default function ProfileVerification() {
   if (view === 'processing') {
     const stages = ['Selfie Captured', 'Matching Face', 'Verifying Identity'];
     return (
-      <div className="min-h-screen bg-[#F4F7FF]">
+      <div className="min-h-screen">
         <Header title="Verification Processing" />
         <Sheet>
           <div className="flex flex-col items-center text-center pt-4">
@@ -325,7 +325,7 @@ export default function ProfileVerification() {
 
   /* ── SUCCESS ── */
   if (view === 'success') return (
-    <div className="min-h-screen bg-[#F4F7FF]">
+    <div className="min-h-screen">
       <Header title="Verification Complete" />
       <Sheet>
         <div className="flex flex-col items-center text-center pt-4">
@@ -351,7 +351,7 @@ export default function ProfileVerification() {
 
   /* ── PENDING ── */
   if (view === 'pending') return (
-    <div className="min-h-screen bg-[#F4F7FF]">
+    <div className="min-h-screen">
       <Header title="Application Submitted" subtitle="Your application is under review" />
       <Sheet>
         <div className="flex flex-col items-center text-center mb-8">
@@ -413,7 +413,7 @@ export default function ProfileVerification() {
   if (view === 'approved') {
     const perks = ['Premium Publishing', 'Creator Dashboard', 'Verified Badge', 'Featured Placement'];
     return (
-      <div className="min-h-screen bg-[#F4F7FF]">
+      <div className="min-h-screen">
         <Header title="Verification Approved" subtitle="Congratulations — you are now verified!" />
         <Sheet>
           <div className="flex flex-col items-center text-center mb-8">
@@ -448,7 +448,7 @@ export default function ProfileVerification() {
   if (view === 'rejected') {
     const reasons = ['Incomplete ID Proof', 'Portfolio Quality Issues', 'Insufficient Content History'];
     return (
-      <div className="min-h-screen bg-[#F4F7FF]">
+      <div className="min-h-screen">
         <Header title="Application Not Approved" subtitle="You may re-apply after updating your documents" />
         <Sheet>
           <div className="flex flex-col items-center text-center mb-8">
@@ -480,7 +480,7 @@ export default function ProfileVerification() {
 
   /* ── FAILED (camera error) ── */
   return (
-    <div className="min-h-screen bg-[#F4F7FF]">
+    <div className="min-h-screen">
       <Header title="Verification Failed" subtitle="We could not access your camera" />
       <Sheet>
         <div className="flex flex-col items-center text-center mb-8">

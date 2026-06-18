@@ -41,7 +41,7 @@ export default function Requests() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF]">
+    <div className="min-h-screen">
 
       {/* HEADER — matches Home */}
       <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
