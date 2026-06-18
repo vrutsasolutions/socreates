@@ -286,7 +286,7 @@ export default function AIAssistant() {
           {ACTIONS.map((a) => (
             <button
               key={a.label}
-              onClick={() => handleSend(`${a.icon} ${a.label}`)}
+            onClick={() => handleSend("💡 Generate idea")}
               className="shrink-0 flex items-center gap-1.5 px-3.5 py-2
                          rounded-full border-[1.5px] border-[#DBEAFE]
                          text-[12px] font-semibold bg-white
