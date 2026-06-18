@@ -90,7 +90,8 @@ export const MOCK_ACTIVE_USERS = [
 
 // Recent conversations (the figma "RECENT" list).
 export const MOCK_CONVERSATIONS = [
-  { id: 'c-aparna', name: 'Aparna S.',   initial: 'A', avatarColor: AVATAR_COLORS.blue,   lastMessage: 'Loved the new update!',   lastType: 'text',  time: '2m',  unread: 3, online: true  },
+  // verifiedCreator: true → free-tier messaging limit applies (5 text + 1 file)
+  { id: 'c-aparna', name: 'Aparna S.',   initial: 'A', avatarColor: AVATAR_COLORS.blue,   lastMessage: 'Loved the new update!',   lastType: 'text',  time: '2m',  unread: 3, online: true,  verifiedCreator: true },
   { id: 'c-krati',  name: 'Krati M.',    initial: 'K', avatarColor: AVATAR_COLORS.navy,   lastMessage: 'Can you review designs?', lastType: 'text',  time: '15m', unread: 1, online: false },
   { id: 'c-rahul',  name: 'Rahul K.',    initial: 'R', avatarColor: AVATAR_COLORS.teal,   lastMessage: 'Voice note  0:42',        lastType: 'voice', time: '1h',  unread: 0, online: false },
   { id: 'c-design', name: 'Design Team', initial: 'D', avatarColor: AVATAR_COLORS.green,  lastMessage: 'Sneha: Shipped!',         lastType: 'text',  time: '3h',  unread: 0, online: false },

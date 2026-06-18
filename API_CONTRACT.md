@@ -269,6 +269,19 @@ and `membership: null`.
 **Realtime:** new messages push over STOMP `/user/queue/messages` (sender gets no echo).
 Reactions and deletes are **not** pushed yet — the other party sees them on next load.
 
+**Free-tier messaging limit (frontend-only for now).** Chatting is free for everyone.
+When the other party is a **verified creator** and the current user is **not Premium**,
+a free allowance applies per conversation: **5 text messages + 1 file/media/voice share**.
+On exhaustion the composer locks and an "Upgrade to Premium" upsell is shown. Premium
+accounts and user↔user (non-creator) chats are **unlimited**.
+- The frontend reads a `verifiedCreator: boolean` flag off the conversation. `ConversationDTO`
+  should expose this — either `otherUserVerifiedCreator`, or the pair
+  `otherUserVerified` + `otherUserCreatorPro` (frontend ANDs them). Until the backend
+  sends it, it defaults to `false` (everyone unlimited), with a mock flag for demo.
+- Usage is currently derived client-side from the thread (count of the user's own TEXT
+  vs IMAGE/FILE/VOICE messages); enforcement is **UI-only** — a server-side counter must
+  back this before it's a real limit.
+
 **Still missing in backend (frontend mock/stub or 404):** message **Requests** inbox
 (`/requests`, accept/decline), **block**/**report** users, **delete conversation**
 (`DELETE /conversations/{id}`), and the `/active` rail (returns `[]`). These are wired

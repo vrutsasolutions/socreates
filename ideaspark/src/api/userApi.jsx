@@ -15,6 +15,10 @@ const MOCK_USER = {
 export const fetchMe = () =>
   USE_MOCK.users ? mockResponse(MOCK_USER) : api.get('/users/me');
 
+// GET /api/users/{id} → User (used to inspect another user, e.g. a chat partner)
+export const fetchUserById = (userId) =>
+  USE_MOCK.users ? mockResponse({ ...MOCK_USER, id: userId }) : api.get(`/users/${userId}`);
+
 // PUT /api/users/me  (multipart: "profile" JSON blob + optional "avatar")
 export const updateProfile = (profile, avatar) => {
   if (USE_MOCK.users) return mockResponse({ ...MOCK_USER, ...profile });

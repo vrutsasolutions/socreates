@@ -13,7 +13,6 @@ import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
 import { fetchConversations, fetchActiveUsers } from '../api/messagingApi';
 import Icon from '../components/common/Icon';
-import { useAuth } from '../context/AuthContext';
 
 const PREVIEW_ICON = { voice: 'mic', image: 'camera' };
 
@@ -87,121 +86,8 @@ function SkeletonRow() {
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  Premium gate — shown to non-premium users in place of the inbox.
-//  Messaging is a premium-only feature: warn the user and route them to
-//  the membership page to upgrade. (figma "Messages · Premium Lock")
-// ════════════════════════════════════════════════════════════════════════
-function PremiumGate({ navigate }) {
-  const PERKS = [
-    { icon: 'message-square', label: 'Unlimited messaging with creators' },
-    { icon: 'lock',           label: 'End-to-end encrypted conversations' },
-  ];
-
-  return (
-    <div className="min-h-screen">
-
-      {/* HEADER — mirrors the inbox header so the page reads as "Messages" */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
-          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
-        </div>
-
-        <div className="flex items-center gap-2 relative z-10">
-          <button
-            onClick={() => navigate(-1)}
-            aria-label="Go back"
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="flex-1 text-[28px] font-bold text-white leading-none">Messages</h1>
-          <button
-            onClick={() => navigate('/membership')}
-            aria-label="Go Premium"
-            className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg hover:bg-white/20 active:scale-95 transition-all"
-          >
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="relative z-10 mt-6">
-          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 shadow-md">
-            <div className="relative">
-              <svg className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                disabled
-                placeholder="Search messages..."
-                className="w-full pl-6 bg-transparent text-white text-sm placeholder-white/50 focus:outline-none cursor-not-allowed"
-              />
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* RECENT / REQUEST bar — kept for visual continuity with the inbox */}
-      <div className="px-4 pt-4 pb-1 flex items-center justify-between bg-white">
-        <p className="text-[11px] font-bold tracking-wider text-[#90A4AE]">RECENT</p>
-        <p className="text-[11px] font-bold tracking-wider text-[#1565C0]">REQUEST</p>
-      </div>
-
-      {/* LOCK CARD */}
-      <div className="bg-[#F4F7FF] px-6 pt-10 pb-16 flex justify-center">
-        <div className="w-full max-w-[360px] bg-white rounded-3xl border border-[#E3F2FD] shadow-xl shadow-blue-100/60 px-6 pt-8 pb-6 flex flex-col items-center text-center">
-
-          <div className="w-16 h-16 rounded-full bg-[#FFF3CD] flex items-center justify-center mb-5">
-            <Icon name="lock" className="w-8 h-8 text-[#D4A017]" />
-          </div>
-
-          <h2 className="text-xl font-bold text-[#0D2137] leading-snug">
-            Messages is a<br />Premium Feature
-          </h2>
-          <p className="mt-2 text-[13px] text-[#90A4AE] leading-relaxed">
-            Upgrade to Premium to send and receive messages from other creators.
-          </p>
-
-          <div className="w-full mt-6 space-y-2.5">
-            {PERKS.map((perk) => (
-              <div
-                key={perk.label}
-                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#EAF2FF] border border-[#DBEAFE]"
-              >
-                <Icon name={perk.icon} className="w-4 h-4 text-[#1565C0] shrink-0" />
-                <span className="text-[13px] font-medium text-[#0D2137]">{perk.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={() => navigate('/membership')}
-            className="w-full mt-7 py-3.5 rounded-2xl bg-[#1565C0] text-white text-[15px] font-bold flex items-center justify-center gap-2 hover:bg-[#0D47A1] active:scale-[0.98] transition-all shadow-md shadow-blue-200"
-          >
-            <Icon name="star" className="w-4 h-4 text-[#FBBF24]" strokeWidth={2} />
-            Go Premium
-          </button>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-3 text-[14px] text-[#90A4AE] font-medium hover:text-[#546E7A] transition-colors"
-          >
-            Maybe Later
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Inbox() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isPremium = !!user?.isPremium;
   const [conversations, setConversations] = useState([]);
   const [active, setActive] = useState([]);
   const [query, setQuery] = useState('');
@@ -209,12 +95,7 @@ export default function Inbox() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Non-premium users never load messages — they see the upgrade gate.
-    if (!isPremium) {
-      setLoading(false);
-      return;
-    }
-
+    // Messaging is free for everyone — always load the inbox.
     let alive = true;
 
     const loadConversations = async () => {
@@ -249,10 +130,7 @@ export default function Inbox() {
     loadActive();
 
     return () => { alive = false; };
-  }, [isPremium]);
-
-  // Messaging is a premium-only feature — gate everything behind the upsell.
-  if (!isPremium) return <PremiumGate navigate={navigate} />;
+  }, []);
 
   const filtered = conversations.filter((c) =>
     c.name.toLowerCase().includes(query.trim().toLowerCase()),

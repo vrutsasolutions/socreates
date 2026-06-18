@@ -13,6 +13,7 @@
 // ════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/messaging/Avatar';
 import { ChatActionsLayer, ShareAttachSheet } from '../components/messaging/ChatActions';
 import {
@@ -26,6 +27,7 @@ import {
   reactToMessage,
   deleteMessage,
 } from '../api/messagingApi';
+import { isVerifiedCreatorPartner } from '../config/messagingLimits';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -48,6 +50,11 @@ const QUICK_REACTIONS = [
 
 // Emoji reaction bar shown when exactly one message is selected
 const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '🙏', '👍'];
+
+// Free-tier messaging allowance when chatting with a verified creator
+// (non-Premium users only). Premium accounts and user↔user chats are unlimited.
+const TEXT_MSG_LIMIT   = 5;   // text messages
+const FILE_SHARE_LIMIT = 1;   // file / media / voice shares
 
 // Attachment validation (mirrors the backend upload limits)
 const MAX_MEDIA_SIZE = 5 * 1024 * 1024;  // 5 MB
@@ -303,6 +310,7 @@ function EmptyState({ onSayHello }) {
 export default function Chat() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user } = useAuth();
 
   const cameraRef  = useRef(null);
   const galleryRef = useRef(null);
@@ -349,6 +357,28 @@ export default function Chat() {
   const [forwardPicked,  setForwardPicked]  = useState([]);     // selected contact ids
   const [forwardSearch,  setForwardSearch]  = useState('');
 
+  // Free-tier messaging limit upsell modal
+  const [showLimitModal, setShowLimitModal] = useState(false);
+
+  // ── Free-tier messaging limit (verified creators only) ───────────────────
+  // Chatting is free for everyone. When the other party is a *verified creator*
+  // and the current user is not Premium, a free allowance applies:
+  //   • 5 text messages   • 1 file / media / voice share
+  // Premium removes the cap; user↔user chats are always unlimited.
+  // Who counts as a verified creator is decided in config/messagingLimits.js
+  // (frontend override until the backend exposes the flag).
+  const isPremium        = !!(user?.isPremium ?? user?.premium);
+  const partnerIsCreator = isVerifiedCreatorPartner(convo);
+  const limited          = partnerIsCreator && !isPremium;
+  const textUsed         = messages.filter((m) => m.fromMe && m.type === 'text').length;
+  const fileUsed         = messages.filter((m) => m.fromMe && ['image', 'file', 'voice'].includes(m.type)).length;
+  const textRemaining    = Math.max(0, TEXT_MSG_LIMIT - textUsed);
+  const textLimitReached = limited && textUsed >= TEXT_MSG_LIMIT;
+  const fileLimitReached = limited && fileUsed >= FILE_SHARE_LIMIT;
+  const limitLocked      = textLimitReached;  // composer fully locked once text is exhausted
+
+  const goPremium = () => { setShowLimitModal(false); navigate('/membership'); };
+
   // ── Load conversation + messages ────────────────────────────────────────
   useEffect(() => {
     let alive = true;
@@ -362,6 +392,7 @@ export default function Chat() {
         if (!alive) return;
         setConvo(c);
         setMessages(msgs);
+
         // Seed reactions saved on the server so they persist across reloads
         const seeded = {};
         msgs.forEach((m) => { if (m.reaction) seeded[m.id] = m.reaction; });
@@ -529,12 +560,14 @@ export default function Chat() {
   const handleSendText = () => {
     const value = text.trim();
     if (!value) return;
+    if (limitLocked) { setShowLimitModal(true); return; }
     pushSent({ type: 'text', text: value, replyTo: replySnippet() });
     setText('');
     setReplyTo(null);
   };
 
   const sendQuickReaction = (q) => {
+    if (limitLocked) { setShowLimitModal(true); return; }
     pushSent({ type: 'text', text: q.emoji, replyTo: replySnippet() });
     setReplyTo(null);
   };
@@ -575,6 +608,7 @@ export default function Chat() {
 
   const handleSendCompose = () => {
     if (!compose) return;
+    if (fileLimitReached) { setShowLimitModal(true); return; }
     compose.items.forEach((it, i) => {
       pushSent({
         type: 'image',
@@ -593,6 +627,7 @@ export default function Chat() {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
+    if (fileLimitReached) { setShowLimitModal(true); return; }
     for (const file of files) {
       if (file.size > MAX_DOC_SIZE) {
         showToast('File size must be less than 10MB.');
@@ -622,6 +657,8 @@ export default function Chat() {
 
   const startRecording = async () => {
     setMicError(null);
+
+    if (fileLimitReached) { setShowLimitModal(true); return; }
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setMicError('Microphone not supported on this browser.');
@@ -924,6 +961,37 @@ export default function Chat() {
         </div>
       )}
 
+      {/* ── Messaging-limit banner (verified-creator free tier) ── */}
+      {limited && textLimitReached ? (
+        <div className="shrink-0 bg-[#FEF2F2] border-t border-[#FECACA] px-4 py-2.5 flex items-center gap-3">
+          <svg className="w-5 h-5 text-[#EF4444] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold text-[#DC2626]">Message limit reached</p>
+            <p className="text-[11px] text-[#EF4444]">Upgrade to continue this conversation</p>
+          </div>
+          <button onClick={goPremium}
+            className="shrink-0 bg-[#EF4444] hover:bg-[#DC2626] text-white text-[13px] font-bold px-4 py-1.5 rounded-full active:scale-95 transition-all flex items-center gap-1">
+            <span>⭐</span> Go Premium
+          </button>
+        </div>
+      ) : limited && textRemaining > 0 && textRemaining <= 3 ? (
+        <div className="shrink-0 bg-[#FEF3C7] border-t border-[#FDE68A] px-4 py-2.5 flex items-center gap-3">
+          <svg className="w-5 h-5 text-[#D97706] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold text-[#92400E]">Only {textRemaining} message{textRemaining === 1 ? '' : 's'} left</p>
+            <p className="text-[11px] text-[#B45309]">Upgrade to Premium for unlimited messaging</p>
+          </div>
+          <button onClick={goPremium}
+            className="shrink-0 bg-[#F59E0B] hover:bg-[#D97706] text-white text-[13px] font-bold px-4 py-1.5 rounded-full active:scale-95 transition-all">
+            Upgrade ✨
+          </button>
+        </div>
+      ) : null}
+
       {/* ── Composer ── */}
       {(isRecording || isUploading) ? (
         /* ── RECORDING / UPLOADING BAR ─────────────────────────────────── */
@@ -960,6 +1028,29 @@ export default function Chat() {
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z" /></svg>
           </button>
         </div>
+      ) : limitLocked ? (
+        /* ── LOCKED COMPOSER (free-tier limit reached) ───────────────────── */
+        <div className="shrink-0 bg-white border-t border-[#DBEAFE] px-3 pt-2 pb-2.5">
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowLimitModal(true)} aria-label="Upgrade to send"
+              className="w-10 h-10 rounded-full bg-[#F0F6FF] text-[#90A4AE] flex items-center justify-center shrink-0 active:scale-95 transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+            <button onClick={() => setShowLimitModal(true)}
+              className="flex-1 flex items-center gap-2 bg-[#F0F6FF] border border-[#BBDEFB] rounded-full px-4 py-2.5 text-left active:scale-[0.99] transition-all">
+              <svg className="w-4 h-4 text-[#90A4AE] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" />
+              </svg>
+              <span className="flex-1 text-[14px] text-[#90A4AE]">Messaging limit reached</span>
+            </button>
+            <button disabled aria-label="Send disabled"
+              className="w-10 h-10 rounded-full bg-[#90A4AE] text-white flex items-center justify-center shrink-0 opacity-70 cursor-not-allowed">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z" /></svg>
+            </button>
+          </div>
+        </div>
       ) : (
         /* ── NORMAL COMPOSER ────────────────────────────────────────────── */
         <div className="shrink-0 bg-white border-t border-[#DBEAFE] px-3 pt-2 pb-2.5">
@@ -992,7 +1083,7 @@ export default function Chat() {
           )}
 
           <div className="flex items-center gap-2">
-            <button onClick={() => setAttachOpen(true)} aria-label="Attach"
+            <button onClick={() => { if (fileLimitReached) setShowLimitModal(true); else setAttachOpen(true); }} aria-label="Attach"
               className="w-10 h-10 rounded-full bg-[#1565C0] text-white flex items-center justify-center shrink-0 hover:opacity-90 active:scale-95 transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
@@ -1311,6 +1402,42 @@ export default function Chat() {
           </div>
         );
       })()}
+
+      {/* ── Message-limit upsell modal ── */}
+      {showLimitModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-[#0D2137]/45" onClick={() => setShowLimitModal(false)} />
+          <div className="relative w-full max-w-[360px] bg-white rounded-3xl shadow-2xl p-6 text-center">
+            <span className="block mx-auto mb-4 h-1.5 w-10 rounded-full bg-[#BBDEFB]" />
+            <div className="w-20 h-20 rounded-full bg-[#FEF3C7] border-4 border-[#FDE68A] flex items-center justify-center mx-auto mb-4">
+              <svg className="w-9 h-9 text-[#D97706]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" />
+              </svg>
+            </div>
+            <h2 className="text-[20px] font-bold text-[#0D2137]">Message Limit Reached</h2>
+            <p className="text-[13px] text-[#90A4AE] mt-1 leading-snug">
+              You've used all your free messages.<br />Upgrade to Premium to keep chatting.
+            </p>
+            <div className="mt-4 h-2 rounded-full bg-[#FEE2E2] overflow-hidden">
+              <div className="h-full bg-[#EF4444]" style={{ width: '100%' }} />
+            </div>
+            <p className="text-[12px] font-bold text-[#EF4444] mt-1.5 text-left">
+              {Math.min(textUsed, TEXT_MSG_LIMIT)} / {TEXT_MSG_LIMIT} messages used
+            </p>
+            <button onClick={goPremium}
+              className="mt-4 w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-3.5 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2">
+              <span>⭐</span> Upgrade to Premium
+            </button>
+            <div className="mt-3 bg-[#F0F6FF] border border-[#E3F2FD] rounded-xl px-3 py-2 text-[11px] text-[#546E7A]">
+              💬 Unlimited messages · ⚡ Read receipts · 🔒 E2E encrypted
+            </div>
+            <button onClick={() => setShowLimitModal(false)}
+              className="mt-3 text-[13px] font-semibold text-[#90A4AE] hover:text-[#546E7A]">
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] bg-[#0D2137] text-white text-sm px-4 py-2.5 rounded-full shadow-lg max-w-[90%] text-center">

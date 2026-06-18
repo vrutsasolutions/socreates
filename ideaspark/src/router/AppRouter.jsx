@@ -53,15 +53,6 @@ function PublicOnly({ children }) {
   return user ? <Navigate to="/home" replace /> : children;
 }
 
-// ── Premium-only route ──────────────────────────────────────────────────────
-// Messaging is a premium feature. Non-premium users are sent to /messages,
-// where the Inbox renders the "Go Premium" upgrade gate.
-function PremiumRoute({ children }) {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
-  return user.isPremium ? children : <Navigate to="/messages" replace />;
-}
-
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -84,13 +75,13 @@ export default function AppRouter() {
         <Route path="/assistant"        element={<PrivateRoute><AIAssistant /></PrivateRoute>} />
 
         {/* Messaging (figma "Messaging System UI") — static paths before :id.
-            Inbox itself is PrivateRoute so non-premium users reach the upgrade
-            gate; the inner chat surfaces are PremiumRoute (premium-only). */}
+            Messaging is free for everyone; per-conversation limits with verified
+            creators are enforced inside the Chat page, not by route gating. */}
         <Route path="/messages"          element={<PrivateRoute><Inbox /></PrivateRoute>} />
-        <Route path="/messages/requests" element={<PremiumRoute><Requests /></PremiumRoute>} />
-        <Route path="/messages/new"      element={<PremiumRoute><NewChat /></PremiumRoute>} />
-        <Route path="/messages/:id/profile" element={<PremiumRoute><ChatProfile /></PremiumRoute>} />
-        <Route path="/messages/:id"      element={<PremiumRoute><Chat /></PremiumRoute>} />
+        <Route path="/messages/requests" element={<PrivateRoute><Requests /></PrivateRoute>} />
+        <Route path="/messages/new"      element={<PrivateRoute><NewChat /></PrivateRoute>} />
+        <Route path="/messages/:id/profile" element={<PrivateRoute><ChatProfile /></PrivateRoute>} />
+        <Route path="/messages/:id"      element={<PrivateRoute><Chat /></PrivateRoute>} />
 
         <Route path="/add-idea"         element={<PrivateRoute><AddIdea /></PrivateRoute>} />
         <Route path="/premium"          element={<PrivateRoute><Premium /></PrivateRoute>} />

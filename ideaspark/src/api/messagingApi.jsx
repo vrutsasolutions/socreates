@@ -77,6 +77,13 @@ const normalizeConversation = (dto) => ({
   ? formatTime(dto.createdAt)
   : dto.time ?? '',
   unread:       dto.unreadCount    ?? dto.unread        ?? 0,
+  // Whether the other party is a verified creator. Drives the free-tier
+  // messaging limit on the Chat page. Backend may send a single flag or the
+  // verified + creator-pro pair; support both, default false.
+  verifiedCreator:
+    dto.otherUserVerifiedCreator ??
+    dto.verifiedCreator ??
+    !!((dto.otherUserVerified ?? false) && (dto.otherUserCreatorPro ?? false)),
 });
 
 /**
