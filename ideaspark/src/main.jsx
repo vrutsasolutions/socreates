@@ -9,7 +9,7 @@ import './styles/design-tokens.css';
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <GoogleOAuthProvider
-      clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
+      clientId="143175221285-r60bduti3khrb7570b7a254i7vk45198.apps.googleusercontent.com"
     >
       <App />
     </GoogleOAuthProvider>
