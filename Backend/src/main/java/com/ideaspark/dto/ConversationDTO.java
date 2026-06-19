@@ -14,6 +14,11 @@ public class ConversationDTO {
     private String otherUserAvatar;
     private boolean otherUserOnline; // placeholder, always false for now
 
+    // True when the other participant has Creator Pro (User.isPremium).
+    // Drives the free-tier messaging limit (5 texts + 1 file) on the
+    // frontend — see config/messagingLimits.js, Chat.jsx.
+    private boolean otherUserVerifiedCreator;
+
     private String lastMessage;      // text preview or "Sent a photo" / "Voice note"
     private String lastMessageType;  // "TEXT", "IMAGE", "VOICE"
     private LocalDateTime lastMessageAt;
