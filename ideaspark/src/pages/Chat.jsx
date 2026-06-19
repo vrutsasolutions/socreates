@@ -26,6 +26,7 @@ import {
   uploadFile,
   reactToMessage,
   deleteMessage,
+  isLimitReachedError,
 } from '../api/messagingApi';
 import { isVerifiedCreatorPartner } from '../config/messagingLimits';
 
@@ -449,6 +450,12 @@ export default function Chat() {
       await sendMessage(id, payload);
     } catch (err) {
       console.error('sendMessage failed:', err);
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      if (isLimitReachedError(err)) {
+        setShowLimitModal(true);
+      } else {
+        showToast('Message could not be sent.');
+      }
     }
   };
 
@@ -641,12 +648,16 @@ export default function Chat() {
         { id: tmpId, conversationId: id, fromMe: true, time: '', type: 'file', fileName: f.name },
       ]);
       try {
-        const url = await uploadFile(f);
+        const url = await uploadFile(f, id);
         await sendMessage(id, { type: 'file', content: url, fileName: f.name });
       } catch (err) {
         console.error('File send failed:', err);
-        showToast(`Could not send ${f.name}.`);
         setMessages((prev) => prev.filter((m) => m.id !== tmpId));
+        if (isLimitReachedError(err)) {
+          setShowLimitModal(true);
+        } else {
+          showToast(`Could not send ${f.name}.`);
+        }
       }
     }
   };
@@ -725,7 +736,7 @@ export default function Chat() {
       audioChunksRef.current = [];
 
       try {
-        const url = await uploadVoice(blob, mimeType);
+        const url = await uploadVoice(blob, mimeType, id);
         pushSent({
           type: 'voice',
           content: url,
@@ -733,8 +744,12 @@ export default function Chat() {
           replyTo: replySnippet(),
         });
         setReplyTo(null);
-      } catch (_) {
-        showToast('Voice upload failed. Please try again.');
+      } catch (err) {
+        if (isLimitReachedError(err)) {
+          setShowLimitModal(true);
+        } else {
+          showToast('Voice upload failed. Please try again.');
+        }
       } finally {
         setRecordingState(null);
         setSeconds(0);
