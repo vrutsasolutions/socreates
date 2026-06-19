@@ -24,6 +24,7 @@ import {
   sendMessage,
   uploadVoice,
   uploadFile,
+  uploadImage,
   reactToMessage,
   deleteMessage,
   isLimitReachedError,
@@ -598,6 +599,7 @@ export default function Chat() {
       url: URL.createObjectURL(f),
       isVideo: f.type.startsWith('video'),
       name: f.name,
+      file: f,
     }));
     if (!compose) setCaption('');
     setCompose((prev) => prev ? { ...prev, items: [...prev.items, ...items] } : { items, index: 0 });
@@ -613,20 +615,50 @@ export default function Chat() {
     });
   };
 
-  const handleSendCompose = () => {
+  const handleSendCompose = async () => {
     if (!compose) return;
     if (fileLimitReached) { setShowLimitModal(true); return; }
-    compose.items.forEach((it, i) => {
-      pushSent({
-        type: 'image',
-        imageUrl: it.url,
-        content: it.url,
-        isVideo: it.isVideo,
-        text: i === 0 ? (caption.trim() || undefined) : undefined,
-        replyTo: i === 0 ? replySnippet() : undefined,
-      });
-    });
+
+    const items = compose.items;
     setCompose(null); setCaption(''); setReplyTo(null);
+
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const tmpId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+      // Optimistic bubble using the local blob preview (fine for the sender's
+      // own screen only — never persisted or sent to the backend/receiver).
+      setMessages((prev) => [
+        ...prev.filter((m) => m.type !== 'typing'),
+        {
+          id: tmpId, conversationId: id, fromMe: true, time: '', type: 'image',
+          imageUrl: it.url, isVideo: it.isVideo,
+          text: i === 0 ? (caption.trim() || undefined) : undefined,
+          replyTo: i === 0 ? replySnippet() : undefined,
+        },
+      ]);
+      try {
+        // Upload the real file to R2 first — sending the blob: URL directly
+        // is what was breaking images for both sender and receiver, since
+        // blob: URLs only resolve inside the tab that created them.
+        const url = await uploadImage(it.file, id);
+        await sendMessage(id, {
+          type: 'image',
+          content: url,
+          isVideo: it.isVideo,
+          text: i === 0 ? (caption.trim() || undefined) : undefined,
+          replyTo: i === 0 ? replySnippet() : undefined,
+        });
+        try { URL.revokeObjectURL(it.url); } catch (_) {}
+      } catch (err) {
+        console.error('Image send failed:', err);
+        setMessages((prev) => prev.filter((m) => m.id !== tmpId));
+        if (isLimitReachedError(err)) {
+          setShowLimitModal(true);
+        } else {
+          showToast('Could not send image.');
+        }
+      }
+    }
   };
 
   // Upload each picked file to R2, then send it as a persisted FILE message
