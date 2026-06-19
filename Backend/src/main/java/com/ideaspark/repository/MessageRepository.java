@@ -2,6 +2,7 @@ package com.ideaspark.repository;
 
 import com.ideaspark.model.Conversation;
 import com.ideaspark.model.Message;
+import com.ideaspark.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -18,4 +19,10 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     List<Message> findByConversationId(UUID conversationId);
 
     void deleteByConversationId(UUID conversationId);
+
+    // ── Free-tier messaging limit (user → creator chats) ────────────────────
+    long countByConversationAndSenderAndType(Conversation conversation, User sender, Message.MessageType type);
+
+    long countByConversationAndSenderAndTypeIn(Conversation conversation, User sender,
+            List<Message.MessageType> types);
 }
