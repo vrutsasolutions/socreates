@@ -30,6 +30,13 @@ public class MessageService {
         private final NotificationRepository notificationRepository;
         private final SimpMessagingTemplate messagingTemplate;
 
+        // ── Free-tier messaging limit (user → Creator Pro chats only) ───────────
+        // Applies only when the RECIPIENT is Creator Pro (isPremium) and the
+        // SENDER is not Premium themselves. Creator replies and user↔user chats
+        // stay unlimited. Lifetime cap per conversation (never resets).
+        private static final int FREE_TEXT_LIMIT = 5;
+        private static final int FREE_FILE_LIMIT = 1;
+
         // ── Get current user ────────────────────────────────────────────────────
         private User getUser(String email) {
                 return userRepository.findByEmail(email)
@@ -141,6 +148,8 @@ public class MessageService {
 
                 MessageType type = MessageType.valueOf(typeStr.toUpperCase());
 
+                checkFreeLimit(conv, me, type);
+
                 Message message = messageRepository.save(
                                 Message.builder()
                                                 .conversation(conv)
@@ -243,6 +252,48 @@ public class MessageService {
                         throw new RuntimeException("Access denied");
         }
 
+        // ── Free-tier messaging limit ───────────────────────────────────────────
+        // Triggers when the recipient is Premium (Creator Pro) OR has the
+        // verified badge, and the sender is not Premium themselves. Throws
+        // (caught by GlobalExceptionHandler → 400) once the relevant cap is
+        // hit. Message is prefixed "LIMIT_REACHED:" so the frontend can
+        // detect it and show the upsell modal instead of a generic error toast.
+        private void checkFreeLimit(Conversation conv, User sender, MessageType type) {
+                User recipient = conv.getParticipant1().getId().equals(sender.getId())
+                                ? conv.getParticipant2()
+                                : conv.getParticipant1();
+
+                boolean recipientIsLimited = recipient.isPremium() || recipient.isVerified();
+                if (!recipientIsLimited || sender.isPremium())
+                        return; // not a limited chat: normal user, or sender already Premium
+
+                if (type == MessageType.TEXT) {
+                        long used = messageRepository.countByConversationAndSenderAndType(
+                                        conv, sender, MessageType.TEXT);
+                        if (used >= FREE_TEXT_LIMIT) {
+                                throw new RuntimeException("LIMIT_REACHED: You've used all " + FREE_TEXT_LIMIT
+                                                + " free messages with this creator. Upgrade to Premium for unlimited messaging.");
+                        }
+                } else {
+                        long used = messageRepository.countByConversationAndSenderAndTypeIn(
+                                        conv, sender, List.of(MessageType.IMAGE, MessageType.VOICE, MessageType.FILE));
+                        if (used >= FREE_FILE_LIMIT) {
+                                throw new RuntimeException("LIMIT_REACHED: You've used your free file/media share with this creator. "
+                                                + "Upgrade to Premium to share more.");
+                        }
+                }
+        }
+
+        // Public entry point used by MessageUploadController to block an R2
+        // upload BEFORE it happens, once the free-tier file cap is hit.
+        public void assertWithinFreeLimit(UUID conversationId, String email, MessageType type) {
+                User me = getUser(email);
+                Conversation conv = conversationRepository.findById(conversationId)
+                                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+                assertParticipant(conv, me);
+                checkFreeLimit(conv, me, type);
+        }
+
         // ── Mappers ─────────────────────────────────────────────────────────────
         private ConversationDTO toConversationDTO(Conversation c, User me) {
                 User other = c.getParticipant1().getId().equals(me.getId())
@@ -277,6 +328,9 @@ public class MessageService {
                 dto.setOtherUserName(other.getName());
                 dto.setOtherUserAvatar(other.getProfileImage());
                 dto.setOtherUserOnline(false);
+                // Trigger flag for the free-tier messaging limit: receiver is
+                // either Premium (Creator Pro) or has the verified badge.
+                dto.setOtherUserVerifiedCreator(other.isPremium() || other.isVerified());
                 dto.setLastMessage(lastMsg);
                 dto.setLastMessageType(lastType);
                 dto.setLastMessageAt(lastAt);
