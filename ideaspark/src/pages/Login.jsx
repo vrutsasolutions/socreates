@@ -1,49 +1,50 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { loginUser } from '../api/authApi';
-import { ValidationError, FormError } from '../components/common/ErrorStates.premium';
+import api from '../api/axiosInstance';
 import Icon from '../components/common/Icon';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
 const REMEMBER_KEY = 'ideaspark_remember_email';
 
 export default function Login() {
-  const navigate    = useNavigate();
-  const location    = useLocation();
-  const { login }   = useAuth();
-  const submitting  = useRef(false);
-  const emailRef    = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const submitting = useRef(false);
+  const emailRef = useRef(null);
 
   const [form, setForm] = useState({ email: '', password: '' });
-  const [showPwd, setShowPwd]     = useState(false);
-  const [remember, setRemember]   = useState(false);
-  const [touched, setTouched]     = useState({ email: false, password: false });
-  const [error, setError]         = useState('');
-  const [loading, setLoading]     = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [touched, setTouched] = useState({ email: false, password: false });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(REMEMBER_KEY);
     if (saved) {
-      setForm(f => ({ ...f, email: saved }));
+      setForm((f) => ({ ...f, email: saved }));
       setRemember(true);
     }
     emailRef.current?.focus();
   }, []);
 
-  const emailEmpty   = touched.email && !form.email.trim();
+  const emailEmpty = touched.email && !form.email.trim();
   const emailInvalid = touched.email && form.email.trim() && !EMAIL_REGEX.test(form.email.trim());
-  const pwdEmpty     = touched.password && !form.password;
-  const pwdTooShort  = touched.password && form.password.length > 0 && form.password.length < 6;
+  const pwdEmpty = touched.password && !form.password;
+  const pwdTooShort = touched.password && form.password.length > 0 && form.password.length < 6;
 
-  const emailHasError    = emailEmpty || emailInvalid;
+  const emailHasError = emailEmpty || emailInvalid;
   const passwordHasError = pwdEmpty || pwdTooShort;
 
-  const canSubmit = form.email.trim()
-                 && EMAIL_REGEX.test(form.email.trim())
-                 && form.password.length >= 6
-                 && !loading;
+  const canSubmit =
+    form.email.trim() &&
+    EMAIL_REGEX.test(form.email.trim()) &&
+    form.password.length >= 6 &&
+    !loading;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -56,51 +57,67 @@ export default function Login() {
     e.preventDefault();
     setTouched({ email: true, password: true });
     if (!canSubmit || submitting.current) return;
+
     submitting.current = true;
     setError('');
     setLoading(true);
+
     try {
       const { data } = await loginUser({
-        email:    form.email.trim().toLowerCase(),
+        email: form.email.trim().toLowerCase(),
         password: form.password,
       });
+
       if (remember) localStorage.setItem(REMEMBER_KEY, form.email.trim().toLowerCase());
-      else          localStorage.removeItem(REMEMBER_KEY);
+      else localStorage.removeItem(REMEMBER_KEY);
+
       login(data.user, data.token);
+
       const redirectTo = location.state?.from?.pathname || '/home';
       navigate(redirectTo, { replace: true });
     } catch (err) {
       const status = err.response?.status;
-      const msg    = err.response?.data?.message || err.message || 'Login failed.';
-      if (!err.response)
-        setError('Cannot connect to server. Is the backend running on port 8081?');
-      else if (status === 401 || status === 400)
-        setError('Wrong email or password. Please try again.');
-      else if (status === 404)
-        setError('No account found with that email.');
-      else if (status === 429)
-        setError('Too many attempts. Please wait a moment and try again.');
-      else
-        setError(msg);
+      const msg = err.response?.data?.message || err.message || 'Login failed.';
+
+      if (!err.response) setError('Cannot connect to server. Is the backend running on port 8081?');
+      else if (status === 401 || status === 400) setError('Wrong email or password. Please try again.');
+      else if (status === 404) setError('No account found with that email.');
+      else if (status === 429) setError('Too many attempts. Please wait a moment and try again.');
+      else setError(msg);
     } finally {
       setLoading(false);
       submitting.current = false;
     }
   };
 
-  const handleGoogleLogin = () => {
-    setError('Google Sign-In is coming soon. Please use email login for now.');
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setError('');
+      setLoading(true);
+
+      const res = await api.post('/auth/google', {
+        token: credentialResponse.credential,
+      });
+
+      login(res.data.user, res.data.token);
+
+      const redirectTo = location.state?.from?.pathname || '/home';
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Google login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] flex flex-col">
-
-      {/* Blue header — matches Home/Welcome */}
       <div className="bg-[#1565C0] px-6 pt-14 pb-24 text-center relative overflow-hidden shadow-lg border-b border-white/10">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
           <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         </div>
+
         <div className="relative z-10">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl mb-4 shadow-lg">
             <Icon name="lightbulb" className="w-8 h-8 text-amber-300" />
@@ -110,11 +127,9 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Content wrapper — matches Home's rounded-t-[32px] white card */}
       <div className="bg-[#1565C0]">
         <div className="bg-white rounded-t-[32px] pt-6 flex-1">
           <div className="px-6 pb-10 max-w-sm md:max-w-md mx-auto w-full">
-
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-2xl px-4 py-3 mb-5 flex items-start gap-2.5">
                 <Icon name="alert-triangle" className="w-4 h-4 shrink-0 mt-0.5" />
@@ -130,7 +145,6 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-
               <div>
                 <label htmlFor="email" className="block text-[#1565C0] text-xs font-semibold uppercase tracking-widest mb-2">
                   Email
@@ -147,12 +161,13 @@ export default function Login() {
                   required
                   autoComplete="email"
                   aria-invalid={emailHasError}
-                  className={`w-full bg-[#F0F6FF] border rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:ring-2 transition
-                    ${emailHasError
+                  className={`w-full bg-[#F0F6FF] border rounded-2xl px-4 py-3.5 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:ring-2 transition ${
+                    emailHasError
                       ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-                      : 'border-[#BBDEFB] focus:border-[#1565C0] focus:ring-[#1565C0]/20'}`}
+                      : 'border-[#BBDEFB] focus:border-[#1565C0] focus:ring-[#1565C0]/20'
+                  }`}
                 />
-                {emailEmpty   && <p className="text-xs text-red-400 mt-1.5 pl-1">Email is required</p>}
+                {emailEmpty && <p className="text-xs text-red-400 mt-1.5 pl-1">Email is required</p>}
                 {emailInvalid && <p className="text-xs text-red-400 mt-1.5 pl-1">Enter a valid email address</p>}
               </div>
 
@@ -165,6 +180,7 @@ export default function Login() {
                     Forgot password?
                   </Link>
                 </div>
+
                 <div className="relative">
                   <input
                     id="password"
@@ -177,20 +193,23 @@ export default function Login() {
                     required
                     autoComplete="current-password"
                     aria-invalid={passwordHasError}
-                    className={`w-full bg-[#F0F6FF] border rounded-2xl px-4 py-3.5 pr-12 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:ring-2 transition
-                      ${passwordHasError
+                    className={`w-full bg-[#F0F6FF] border rounded-2xl px-4 py-3.5 pr-12 text-[#0D2137] placeholder-[#90A4AE] text-sm focus:outline-none focus:ring-2 transition ${
+                      passwordHasError
                         ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-                        : 'border-[#BBDEFB] focus:border-[#1565C0] focus:ring-[#1565C0]/20'}`}
+                        : 'border-[#BBDEFB] focus:border-[#1565C0] focus:ring-[#1565C0]/20'
+                    }`}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPwd(v => !v)}
+                    onClick={() => setShowPwd((v) => !v)}
                     aria-label={showPwd ? 'Hide password' : 'Show password'}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#90A4AE] hover:text-[#1565C0] transition-colors">
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#90A4AE] hover:text-[#1565C0] transition-colors"
+                  >
                     <Icon name={showPwd ? 'eye-off' : 'eye'} className="w-5 h-5" />
                   </button>
                 </div>
-                {pwdEmpty    && <p className="text-xs text-red-400 mt-1.5 pl-1">Password is required</p>}
+
+                {pwdEmpty && <p className="text-xs text-red-400 mt-1.5 pl-1">Password is required</p>}
                 {pwdTooShort && <p className="text-xs text-red-400 mt-1.5 pl-1">Password must be at least 6 characters</p>}
               </div>
 
@@ -216,13 +235,16 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-300/40 text-sm mt-3">
+                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-300/40 text-sm mt-3"
+              >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
                     Signing in...
                   </span>
-                ) : 'Sign In'}
+                ) : (
+                  'Sign In'
+                )}
               </button>
             </form>
 
@@ -232,19 +254,13 @@ export default function Login() {
               <div className="flex-1 h-px bg-[#E3F2FD]" />
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full bg-[#F0F6FF] hover:bg-[#DBEAFE] border border-[#BBDEFB] hover:border-[#1565C0] text-[#0D2137] font-semibold py-3.5 rounded-2xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 text-sm">
-              <svg width="20" height="20" viewBox="0 0 48 48">
-                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
-                <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
-                <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
-                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
-              </svg>
-              Continue with Google
-            </button>
+            <div className="w-full flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Google login failed. Please try again.')}
+                useOneTap={false}
+              />
+            </div>
 
             <p className="text-center text-[#546E7A] text-sm mt-6 mb-2">
               Don't have an account?{' '}
@@ -252,11 +268,9 @@ export default function Login() {
                 Create one
               </Link>
             </p>
-
           </div>
         </div>
       </div>
-
     </div>
   );
 }

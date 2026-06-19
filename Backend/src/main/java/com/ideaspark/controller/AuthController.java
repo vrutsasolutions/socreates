@@ -27,8 +27,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(req));
     }
 
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleAuthRequest request) {
+        return ResponseEntity.ok(authService.googleLogin(request.getToken()));
+    }
+
     // GET /api/auth/check-username?username=mayank
-    // success=true  → available; success=false → taken or invalid.
+    // success=true → available; success=false → taken or invalid.
     @GetMapping("/check-username")
     public ResponseEntity<ApiResponse> checkUsername(@RequestParam String username) {
         boolean available = authService.isUsernameAvailable(username);
