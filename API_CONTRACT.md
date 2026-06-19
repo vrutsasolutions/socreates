@@ -257,10 +257,15 @@ and `membership: null`.
 | DELETE | `/messages/{id}?scope=me\|everyone` ✅ | — | `{ message }` |
 | GET | `/contacts` | — | `UserDTO[]` |
 | POST | `/upload/image` · `/upload/voice` · `/upload/file` ✅ | multipart `file` | `{ url }` |
-| POST | `/share-post` | `{ postId, title, userIds[] }` | `{ shared, count }` |
+| POST | `/share-post` | `{ postId, title, imageUrl?, isPremium?, userIds[] }` | `{ shared, count }` |
 
 `MessageDTO` = `{ id, conversationId, senderId, senderName, senderAvatar, type, content, isRead, reaction, createdAt }`
-- `type` ∈ `TEXT | IMAGE | VOICE | FILE`. `content` = text for TEXT, else the R2 URL.
+- `type` ∈ `TEXT | IMAGE | VOICE | FILE | IDEA`. `content` = text for TEXT, the R2 URL for media.
+- **Share an idea** (`/share-post`): the backend persists **one `IDEA` message per recipient**
+  whose `content` is a JSON snapshot `{ ideaId, title, imageUrl, isPremium }`. The chat renders
+  it as a tappable card that opens `/ideas/{ideaId}` (or `/premium/{ideaId}` when `isPremium`).
+  Conversation preview/notification read "Shared an idea"; counts against the free **text** cap.
+  Frontend parses the snapshot in `normalizeMessage()` → `message.idea`.
 - `reaction` = the **viewing** user's emoji on this message (null if none); one emoji per user.
 - **Delete:** `everyone` is sender-only (hard delete); `me` hides it just for the caller
   (per-user `deletedFor` set, filtered out of `GET …/messages`).

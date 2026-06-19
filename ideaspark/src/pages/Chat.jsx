@@ -36,6 +36,7 @@ const quotedLabel = (m) => {
   if (!m) return '';
   if (m.type === 'image') return 'Photo';
   if (m.type === 'voice') return 'Voice message';
+  if (m.type === 'idea')  return m.idea?.title ? `💡 ${m.idea.title}` : 'Shared an idea';
   return m.text || '';
 };
 
@@ -121,7 +122,7 @@ function ReplyBtn({ onClick }) {
   );
 }
 
-function Bubble({ m, onImageClick, onReply, selectMode, selected, onToggleSelect, onLongPress, reaction, showReactionBar, onReact }) {
+function Bubble({ m, onImageClick, onReply, selectMode, selected, onToggleSelect, onLongPress, reaction, showReactionBar, onReact, onOpenIdea }) {
   const pressTimer = useRef(null);
   const startPress = () => {
     if (selectMode) return;
@@ -202,6 +203,38 @@ function Bubble({ m, onImageClick, onReply, selectMode, selected, onToggleSelect
           />
         )}
       </div>
+    );
+
+  } else if (m.type === 'idea') {
+    // Shared idea — a tappable card that opens the idea detail page.
+    const idea = m.idea || {};
+    content = (
+      <button
+        onClick={() => { if (!selectMode) onOpenIdea?.(idea); }}
+        className={`block text-left w-[230px] rounded-[18px] overflow-hidden shadow-sm ${mine ? 'bg-[#1565C0]' : 'bg-white'}`}
+      >
+        {idea.imageUrl ? (
+          <img src={idea.imageUrl} alt="" className="w-full h-[120px] object-cover" />
+        ) : (
+          <div className="w-full h-[120px] bg-[#EAF2FF] flex items-center justify-center text-[#1565C0] text-[11px] font-bold tracking-widest">
+            IDEA
+          </div>
+        )}
+        <div className="px-3 py-2.5">
+          <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest ${mine ? 'text-white/70' : 'text-[#1565C0]'}`}>
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.5.4.85.9.99 1.46l.12.74h4.98l.12-.74c.14-.56.49-1.06.99-1.46A6 6 0 0012 3z" />
+            </svg>
+            Shared an idea
+          </div>
+          <p className={`mt-1 text-[13px] font-semibold truncate ${mine ? 'text-white' : 'text-[#0D2137]'}`}>
+            {idea.title || 'Untitled idea'}
+          </p>
+          <span className={`mt-1.5 inline-block text-[11px] font-semibold ${mine ? 'text-white/80' : 'text-[#1565C0]'}`}>
+            View idea →
+          </span>
+        </div>
+      </button>
     );
 
   } else {
@@ -959,6 +992,10 @@ export default function Chat() {
                 reaction={reactions[m.id]}
                 showReactionBar={selectMode && selectedIds.length === 1 && selectedIds[0] === m.id}
                 onReact={applyReaction}
+                onOpenIdea={(idea) => {
+                  if (!idea?.id) return;
+                  navigate(idea.isPremium ? `/premium/${idea.id}` : `/ideas/${idea.id}`);
+                }}
               />
             ))
           )}

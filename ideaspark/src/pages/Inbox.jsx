@@ -14,7 +14,7 @@ import Avatar from '../components/messaging/Avatar';
 import { fetchConversations, fetchActiveUsers } from '../api/messagingApi';
 import Icon from '../components/common/Icon';
 
-const PREVIEW_ICON = { voice: 'mic', image: 'camera' };
+const PREVIEW_ICON = { voice: 'mic', image: 'camera', idea: 'lightbulb' };
 
 function ConversationRow({ c, onClick }) {
   const muted = c.unread === 0 || c.lastType !== 'text';

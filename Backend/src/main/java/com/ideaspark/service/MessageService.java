@@ -177,6 +177,7 @@ public class MessageService {
                         case IMAGE -> me.getName() + " sent you a photo";
                         case VOICE -> me.getName() + " sent you a voice note";
                         case FILE -> me.getName() + " sent you a file";
+                        case IDEA -> me.getName() + " shared an idea";
                         default -> me.getName() + " sent you a message: " +
                                         (content.length() > 40 ? content.substring(0, 40) + "…" : content);
                 };
@@ -267,7 +268,7 @@ public class MessageService {
                 if (!recipientIsLimited || sender.isPremium())
                         return; // not a limited chat: normal user, or sender already Premium
 
-                if (type == MessageType.TEXT) {
+                if (type == MessageType.TEXT || type == MessageType.IDEA) {
                         long used = messageRepository.countByConversationAndSenderAndType(
                                         conv, sender, MessageType.TEXT);
                         if (used >= FREE_TEXT_LIMIT) {
@@ -314,6 +315,7 @@ public class MessageService {
                                 case IMAGE -> "Sent a photo";
                                 case VOICE -> "Voice note";
                                 case FILE -> "Sent a file";
+                                case IDEA -> "Shared an idea";
                                 default -> last.getContent();
                         };
                 }
