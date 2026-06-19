@@ -245,18 +245,29 @@ export const deleteMessage = (messageId, scope = 'me') => {
   return api.delete(`/messages/messages/${messageId}`, { params: { scope } });
 };
 
+// ── Free-tier limit error detection ──────────────────────────────────────────
+// Backend throws RuntimeException("LIMIT_REACHED: ...") once the free-tier
+// text/file cap is hit on a user→creator chat; GlobalExceptionHandler turns
+// that into a 400 with { message: "LIMIT_REACHED: ..." }. Callers use this to
+// show the upsell modal instead of a generic error toast.
+export const isLimitReachedError = (err) =>
+  !!err?.response?.data?.message?.startsWith?.('LIMIT_REACHED');
+
 // ════════════════════════════════════════════════════════════════════════
 //  FILE UPLOADS
 // ════════════════════════════════════════════════════════════════════════
-export const uploadFile = async (file) => {
+// conversationId lets the backend enforce the free-tier 1-file cap (user→
+// creator chats) BEFORE the file reaches R2. Always pass it on live calls.
+export const uploadFile = async (file, conversationId) => {
   if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(file));
   const form = new FormData();
   form.append('file', file);
+  if (conversationId) form.append('conversationId', conversationId);
   const { data } = await api.post('/messages/upload/file', form);
   return data.url;
 };
 
-export const uploadVoice = async (blob, mimeType = 'audio/webm') => {
+export const uploadVoice = async (blob, mimeType = 'audio/webm', conversationId) => {
   if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(blob));
   const ext = mimeType.includes('ogg') ? 'ogg'
     : mimeType.includes('mp4')         ? 'mp4'
@@ -264,14 +275,16 @@ export const uploadVoice = async (blob, mimeType = 'audio/webm') => {
     : 'webm';
   const form = new FormData();
   form.append('file', blob, `voice-${Date.now()}.${ext}`);
+  if (conversationId) form.append('conversationId', conversationId);
   const { data } = await api.post('/messages/upload/voice', form);
   return data.url;
 };
 
-export const uploadImage = async (file) => {
+export const uploadImage = async (file, conversationId) => {
   if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(file));
   const form = new FormData();
   form.append('file', file);
+  if (conversationId) form.append('conversationId', conversationId);
   const { data } = await api.post('/messages/upload/image', form);
   return data.url;
 };
