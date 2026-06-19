@@ -48,7 +48,7 @@ public class AuthService {
         .email(email)
         .password(passwordEncoder.encode(req.getPassword()))
         .isPremium(false)
-        .isVerified(true)
+        .isVerified(false) // real verification badge — no approval flow yet, flips via a future admin/review feature
         .build();
 
         userRepository.save(user);
