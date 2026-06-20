@@ -32,8 +32,8 @@ export default function FollowCreators() {
     try {
       if (followed.length > 0) await api.post('/users/follow-bulk', { userIds: followed });
     } catch (_) {}
-    // Final onboarding step: optional profile verification (skippable from there).
-    navigate('/verify-profile?from=onboarding');
+    // Final onboarding step: Get Verified (links to Membership; skippable).
+    navigate('/get-verified');
   };
 
   return (
@@ -48,10 +48,11 @@ export default function FollowCreators() {
 
         {/* step indicator in top bar */}
         <div className="flex items-center gap-3 relative z-10">
-          <span className="text-blue-200 text-xs font-bold tracking-widest uppercase">Step 2 of 2</span>
+          <span className="text-blue-200 text-xs font-bold tracking-widest uppercase">Step 2 of 3</span>
           <div className="flex gap-1.5 flex-1">
             <div className="flex-1 h-1 bg-white rounded-full" />
             <div className="flex-1 h-1 bg-white rounded-full" />
+            <div className="flex-1 h-1 bg-white/25 rounded-full" />
           </div>
         </div>
 

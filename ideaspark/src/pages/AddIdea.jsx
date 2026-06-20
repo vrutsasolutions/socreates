@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav.premium';
 import api from '../api/axiosInstance';
 import { useAuth } from '../context/AuthContext';
-import { hasCreatorPro } from '../api/paymentApi';
+import { hasCreatorPro, isVerified } from '../api/paymentApi';
 import { AIAssistantBar, AIThinkingBubble } from '../components/common/AIInteractions.premium';
 import { saveIdeaDraft, takeIdeaDraft } from '../state/ideaDraft';
 
@@ -315,7 +315,8 @@ export default function AddIdea() {
   const fileRef = useRef();
   const { user } = useAuth();
   const creatorPro = hasCreatorPro(user);
-  const verified = !!user?.verified;
+  // Verified is now granted by any paid membership (no separate flow).
+  const verified = isVerified(user);
 
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({

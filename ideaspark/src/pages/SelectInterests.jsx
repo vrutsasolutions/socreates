@@ -52,10 +52,11 @@ export default function SelectInterests() {
         </div>
         <div className="relative z-10">
           <div className="text-white/60 text-xs font-semibold tracking-widest uppercase mb-3">
-            Step 1 of 2
+            Step 1 of 3
           </div>
           <div className="flex gap-2 mb-5">
             <div className="flex-1 h-1 bg-white rounded-full" />
+            <div className="flex-1 h-1 bg-white/25 rounded-full" />
             <div className="flex-1 h-1 bg-white/25 rounded-full" />
           </div>
           <h1 className="text-white text-2xl font-bold tracking-tight mb-2">
