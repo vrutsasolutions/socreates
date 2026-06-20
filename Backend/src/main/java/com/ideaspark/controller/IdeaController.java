@@ -64,6 +64,16 @@ public class IdeaController {
         return ResponseEntity.ok(ideaService.getSavedIdeas(user.getUsername()));
     }
 
+    // Public ideas for any user's profile page (e.g. /users/{id} viewed by anyone).
+    @GetMapping("/by-user/{userId}")
+    public ResponseEntity<List<IdeaDTO>> getByUser(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal UserDetails user) {
+
+        String viewerEmail = user != null ? user.getUsername() : null;
+        return ResponseEntity.ok(ideaService.getIdeasByUser(userId, viewerEmail));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<IdeaDTO> getById(
             @PathVariable UUID id,
