@@ -158,6 +158,11 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
   const handleClick = () =>
     navigate(idea.isPremium ? `/premium/${idea.id}` : `/ideas/${idea.id}`);
 
+  const handleCreatorClick = (e) => {
+    e.stopPropagation();
+    if (idea.creatorId) navigate(`/users/${idea.creatorId}`);
+  };
+
   const handleComment = (e) => {
     e.stopPropagation();
     navigate(idea.isPremium ? `/premium/${idea.id}` : `/ideas/${idea.id}`);
@@ -317,6 +322,10 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
       >
         {/* Creator row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div
+            onClick={handleCreatorClick}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: idea.creatorId ? 'pointer' : 'default', minWidth: 0 }}
+          >
           {idea.creatorImage ? (
             <img
               src={idea.creatorImage}
@@ -344,6 +353,7 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
           }}>
             {idea.creatorName}
           </span>
+          </div>
           <span style={{ fontSize: 11, color: '#90A4AE', flexShrink: 0, fontFamily: 'Inter, sans-serif' }}>
             · {formatDate(idea.createdAt)}
           </span>
@@ -526,6 +536,10 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
 
         {/* Creator row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+          <div
+            onClick={handleCreatorClick}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 1, minWidth: 0, cursor: idea.creatorId ? 'pointer' : 'default' }}
+          >
           {/* Improved creator avatar — rounded square */}
           {idea.creatorImage ? (
             <img
@@ -556,6 +570,7 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
           }}>
             {idea.creatorName}
           </span>
+          </div>
           <span style={{ fontSize: 10, color: '#90A4AE', flexShrink: 0, fontFamily: 'Inter, sans-serif' }}>
             {formatDate(idea.createdAt)}
           </span>
