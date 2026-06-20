@@ -61,12 +61,18 @@ function Avatar({ name, image, seed }) {
 }
 
 function PersonRow({ person, variant = 'card', action }) {
+  const navigate = useNavigate();
   const wrap =
     variant === 'card'
       ? 'bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl p-3.5'
       : 'px-1 py-3 border-b border-[#EAF2FF] last:border-0';
+  const targetId = person.userId || person.id;
+
   return (
-    <div className={`flex items-center gap-3 ${wrap}`}>
+    <div
+      className={`flex items-center gap-3 ${wrap} ${targetId ? 'cursor-pointer active:scale-[0.99] transition-transform' : ''}`}
+      onClick={() => targetId && navigate(`/users/${targetId}`)}
+    >
       <Avatar name={person.name} image={person.profileImage} seed={person.id || person.userId} />
       <div className="flex-1 min-w-0">
         <div className="text-[#0D2137] font-semibold text-[15px] truncate">{person.name || 'User'}</div>
@@ -76,7 +82,8 @@ function PersonRow({ person, variant = 'card', action }) {
           </div>
         )}
       </div>
-      {action}
+      {/* Stop the action button's click from also triggering row navigation */}
+      <div onClick={(e) => e.stopPropagation()}>{action}</div>
     </div>
   );
 }

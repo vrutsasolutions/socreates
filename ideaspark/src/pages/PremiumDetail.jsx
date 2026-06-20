@@ -123,13 +123,19 @@ export default function PremiumDetail() {
         <div className="relative z-10 mt-6">
           <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-4 shadow-md">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/20 border border-white/15 flex items-center justify-center text-white font-bold text-base shrink-0">
-                {idea?.creatorName?.[0] ?? '?'}
-              </div>
-              <div>
-                <div className="text-white font-semibold text-sm">{idea?.creatorName}</div>
-                <div className="text-blue-200 text-xs">{idea?.category}</div>
-              </div>
+              <button
+                type="button"
+                onClick={() => idea?.creatorId && navigate(`/users/${idea.creatorId}`)}
+                className="flex items-center gap-3 text-left"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-white/20 border border-white/15 flex items-center justify-center text-white font-bold text-base shrink-0">
+                  {idea?.creatorName?.[0] ?? '?'}
+                </div>
+                <div>
+                  <div className="text-white font-semibold text-sm">{idea?.creatorName}</div>
+                  <div className="text-blue-200 text-xs">{idea?.category}</div>
+                </div>
+              </button>
             </div>
             <h1 className="text-white text-lg font-bold leading-snug">{idea?.title}</h1>
           </div>

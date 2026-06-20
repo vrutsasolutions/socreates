@@ -94,6 +94,14 @@ public class MessageService {
                                 .forEach(m -> m.setRead(true));
                 messageRepository.saveAll(messages);
 
+                messages.stream()
+                                .filter(m -> m.isRead())
+                                .filter(m -> !m.getSender().getId().equals(me.getId()))
+                                .forEach(m -> messagingTemplate.convertAndSendToUser(
+                                                m.getSender().getEmail(),
+                                                "/queue/read-receipts",
+                                                m.getId()));
+
                 // Hide messages the current user deleted only for themselves.
                 return messages.stream()
                                 .filter(m -> !m.getDeletedFor().contains(me.getId()))
@@ -110,7 +118,7 @@ public class MessageService {
 
                 String current = m.getReactions().get(me.getId());
                 if (emoji == null || emoji.isBlank() || emoji.equals(current)) {
-                        m.getReactions().remove(me.getId());   // toggle off / clear
+                        m.getReactions().remove(me.getId()); // toggle off / clear
                 } else {
                         m.getReactions().put(me.getId(), emoji);
                 }
@@ -279,8 +287,9 @@ public class MessageService {
                         long used = messageRepository.countByConversationAndSenderAndTypeIn(
                                         conv, sender, List.of(MessageType.IMAGE, MessageType.VOICE, MessageType.FILE));
                         if (used >= FREE_FILE_LIMIT) {
-                                throw new RuntimeException("LIMIT_REACHED: You've used your free file/media share with this creator. "
-                                                + "Upgrade to Premium to share more.");
+                                throw new RuntimeException(
+                                                "LIMIT_REACHED: You've used your free file/media share with this creator. "
+                                                                + "Upgrade to Premium to share more.");
                         }
                 }
         }
@@ -329,7 +338,8 @@ public class MessageService {
                 dto.setOtherUserId(other.getId());
                 dto.setOtherUserName(other.getName());
                 dto.setOtherUserAvatar(other.getProfileImage());
-                dto.setOtherUserOnline(false);
+                dto.setOtherUserOnline(Boolean.TRUE.equals(other.getOnline()));
+                dto.setOtherUserLastSeen(other.getLastSeen());
                 // Trigger flag for the free-tier messaging limit: receiver is
                 // either Premium (Creator Pro) or has the verified badge.
                 dto.setOtherUserVerifiedCreator(other.isPremium() || other.isVerified());
