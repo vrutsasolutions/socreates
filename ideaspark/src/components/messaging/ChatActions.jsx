@@ -399,7 +399,7 @@ export function ChatActionsLayer({ convo, view, setView, navigate, onAfterDelete
         <UserActionMenu
           convo={convo}
           onClose={() => setView(null)}
-          onViewProfile={() => { setView(null); navigate(`/messages/${convo.id}/profile`); }}
+          onViewProfile={() => { setView(null); if (convo.otherUserId) navigate(`/users/${convo.otherUserId}`); }}
           onReport={() => setView('report')}
           onBlock={() => setView('block')}
           onDelete={() => setView('delete')}
