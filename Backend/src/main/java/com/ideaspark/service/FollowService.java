@@ -70,6 +70,7 @@ public class FollowService {
             Notification notification = Notification.builder()
                     .message(followerName + " started following you!")
                     .readStatus(false)
+                    .type(Notification.NotificationType.FOLLOW)
                     .referenceId(currentUser.getId()) // ✅ lets the frontend deep-link to the follower's profile
                     .createdAt(LocalDateTime.now())
                     .user(targetUser)

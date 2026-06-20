@@ -98,6 +98,17 @@ export default function ChatProfile() {
       <div className="bg-[#1565C0]">
         <div className="bg-white rounded-t-[32px] pt-6">
 
+          {/* Profile Page row */}
+          <button
+            onClick={() => convo?.otherUserId && navigate(`/users/${convo.otherUserId}`)}
+            className="w-full flex items-center justify-between px-5 py-4 border-b border-[#F0F6FF] hover:bg-[#F0F6FF] active:bg-[#E3F2FD] transition-colors"
+          >
+            <span className="text-[15px] font-semibold text-[#0D2137]">Profile Page</span>
+            <svg className="w-4 h-4 text-[#90A4AE]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
+
           {/* Media row */}
           <button className="w-full flex items-center justify-between px-5 py-4 border-b border-[#F0F6FF] hover:bg-[#F0F6FF] active:bg-[#E3F2FD] transition-colors">
             <span className="text-[15px] font-semibold text-[#0D2137]">Media, Links &amp; Docs</span>
