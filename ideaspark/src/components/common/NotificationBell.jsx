@@ -13,7 +13,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import Icon from './Icon';
 
 const TYPE_ICON = {
-  like: 'heart', bookmark: 'bookmark',
+  like: 'heart', bookmark: 'bookmark', idea: 'lightbulb',
   follow: 'user', comment: 'message-square', system: 'bell',
 };
 
