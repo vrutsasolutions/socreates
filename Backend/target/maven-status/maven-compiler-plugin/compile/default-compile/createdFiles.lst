@@ -47,6 +47,7 @@ com\ideaspark\controller\OtpController.class
 com\ideaspark\model\User$UserBuilder.class
 com\ideaspark\repository\SavedIdeaRepository.class
 com\ideaspark\security\JwtFilter.class
+com\ideaspark\service\PresenceService.class
 com\ideaspark\dto\AuthResponse.class
 com\ideaspark\dto\SubscribeRequest.class
 com\ideaspark\model\Idea.class
@@ -69,6 +70,7 @@ com\ideaspark\model\Message$MessageType.class
 com\ideaspark\model\User.class
 com\ideaspark\repository\EmailOtpRepository.class
 com\ideaspark\dto\UserDTO.class
+com\ideaspark\config\WebSocketPresenceEventListener.class
 com\ideaspark\controller\NotificationController.class
 com\ideaspark\service\MessageService.class
 com\ideaspark\dto\FollowResponse$FollowResponseBuilder.class

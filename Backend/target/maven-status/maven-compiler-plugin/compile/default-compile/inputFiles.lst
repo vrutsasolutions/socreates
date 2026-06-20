@@ -20,6 +20,7 @@ D:\Socreates\Backend\src\main\java\com\ideaspark\dto\RegisterRequest.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\controller\AuthController.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\repository\EmailOtpRepository.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\config\WebSocketAuthConfig.java
+D:\Socreates\Backend\src\main\java\com\ideaspark\config\WebSocketPresenceEventListener.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\model\SavedIdea.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\security\UserDetailsServiceImpl.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\model\Membership.java
@@ -29,6 +30,7 @@ D:\Socreates\Backend\src\main\java\com\ideaspark\dto\GoogleAuthRequest.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\dto\PlagiarismResult.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\service\MessageService.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\security\JwtUtil.java
+D:\Socreates\Backend\src\main\java\com\ideaspark\service\PresenceService.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\model\Message.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\repository\MessageRepository.java
 D:\Socreates\Backend\src\main\java\com\ideaspark\model\Conversation.java
