@@ -28,8 +28,10 @@ public class IdeaService {
     private static final Set<Integer> LIKE_MILESTONES = Set.of(25, 100, 500, 1000, 5000, 10000);
 
     private boolean isLikeMilestone(int count) {
-        if (LIKE_MILESTONES.contains(count)) return true;      // early milestones
-        if (count > 10000 && count % 10000 == 0) return true;  // every 10k after that
+        if (LIKE_MILESTONES.contains(count))
+            return true; // early milestones
+        if (count > 10000 && count % 10000 == 0)
+            return true; // every 10k after that
         return false;
     }
 
@@ -40,7 +42,25 @@ public class IdeaService {
             default -> ideaRepository.findAllByOrderByCreatedAtDesc();
         };
 
-        return ideas.stream().map(i -> toDTO(i, currentUserEmail)).toList();
+        User currentUser = currentUserEmail != null
+                ? userRepository.findByEmail(currentUserEmail).orElse(null)
+                : null;
+
+        Set<UUID> savedIdeaIds = currentUser != null
+                ? savedIdeaRepository.findByUserIdOrderBySavedAtDesc(currentUser.getId())
+                        .stream().map(s -> s.getIdea().getId()).collect(java.util.stream.Collectors.toSet())
+                : Set.of();
+
+        Set<UUID> likedIdeaIds = currentUser != null
+                ? ideaLikeRepository.findAll().stream()
+                        .filter(l -> l.getUser() != null && l.getUser().getId().equals(currentUser.getId()))
+                        .map(l -> l.getIdea().getId())
+                        .collect(java.util.stream.Collectors.toSet())
+                : Set.of();
+
+        return ideas.stream()
+                .map(i -> toDTOFast(i, currentUser, savedIdeaIds, likedIdeaIds))
+                .toList();
     }
 
     public List<IdeaDTO> getPremiumIdeas(String currentUserEmail) {
@@ -212,7 +232,8 @@ public class IdeaService {
     }
 
     // Public ideas for any user's profile page (e.g. viewing a follower's profile).
-    // currentUserEmail is the viewer (for savedByCurrentUser / likedByCurrentUser flags),
+    // currentUserEmail is the viewer (for savedByCurrentUser / likedByCurrentUser
+    // flags),
     // not the profile owner.
     public List<IdeaDTO> getIdeasByUser(UUID profileUserId, String currentUserEmail) {
         userRepository.findById(profileUserId)
@@ -255,8 +276,7 @@ public class IdeaService {
                                 creator.getEmail(),
                                 creator.getName() != null ? creator.getName() : "Creator",
                                 idea.getTitle(),
-                                newLikeCount
-                        );
+                                newLikeCount);
                     }
                 } catch (Exception e) {
                     System.out.println("Like milestone email failed: " + e.getMessage());
@@ -389,6 +409,30 @@ public class IdeaService {
         return dto;
     }
 
+    private IdeaDTO toDTOFast(Idea idea, User currentUser, Set<UUID> savedIdeaIds, Set<UUID> likedIdeaIds) {
+        IdeaDTO dto = new IdeaDTO();
+        dto.setId(idea.getId());
+        dto.setTitle(idea.getTitle());
+        dto.setDescription(idea.getDescription());
+        dto.setImageUrl(idea.getImageUrl());
+        dto.setImageUrls(idea.getImageUrls());
+        dto.setCategory(idea.getCategory());
+        dto.setPremium(idea.isPremium());
+        dto.setLikeCount(idea.getLikeCount());
+        dto.setCommentCount(commentRepository.countByIdeaId(idea.getId()));
+        dto.setCreatedAt(idea.getCreatedAt());
+        if (idea.getCreator() != null) {
+            dto.setCreatorId(idea.getCreator().getId());
+            dto.setCreatorName(idea.getCreator().getName());
+            dto.setCreatorImage(idea.getCreator().getProfileImage());
+        }
+        if (currentUser != null) {
+            dto.setSavedByCurrentUser(savedIdeaIds.contains(idea.getId()));
+            dto.setLikedByCurrentUser(likedIdeaIds.contains(idea.getId()));
+        }
+        return dto;
+    }
+
     private IdeaDTO toDTO(Idea idea, String currentUserEmail) {
         IdeaDTO dto = new IdeaDTO();
 
@@ -421,4 +465,6 @@ public class IdeaService {
 
         return dto;
     }
+
+   
 }
