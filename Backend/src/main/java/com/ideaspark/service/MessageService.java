@@ -194,6 +194,8 @@ public class MessageService {
                                 .user(recipient)
                                 .message(preview)
                                 .readStatus(false)
+                                .type(Notification.NotificationType.MESSAGE)
+                                .conversationId(conv.getId())
                                 .createdAt(LocalDateTime.now())
                                 .build();
                 notificationRepository.save(notification);
