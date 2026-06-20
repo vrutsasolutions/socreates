@@ -25,6 +25,7 @@ import NewChat         from '../pages/NewChat';
 import AddIdea         from '../pages/AddIdea';
 import Premium         from '../pages/Premium';
 import Membership      from '../pages/Membership';
+import Checkout        from '../pages/Checkout';
 import MembershipSuccess from '../pages/MembershipSuccess';
 import MembershipFailed  from '../pages/MembershipFailed';
 import CreatorDashboard from '../pages/CreatorDashboard';
@@ -87,6 +88,7 @@ export default function AppRouter() {
         <Route path="/add-idea"         element={<PrivateRoute><AddIdea /></PrivateRoute>} />
         <Route path="/premium"          element={<PrivateRoute><Premium /></PrivateRoute>} />
         <Route path="/membership"         element={<PrivateRoute><Membership /></PrivateRoute>} />
+        <Route path="/membership/checkout" element={<PrivateRoute><Checkout /></PrivateRoute>} />
         <Route path="/membership/success" element={<PrivateRoute><MembershipSuccess /></PrivateRoute>} />
         <Route path="/membership/failure" element={<PrivateRoute><MembershipFailed /></PrivateRoute>} />
         <Route path="/creator-dashboard" element={<PrivateRoute><CreatorDashboard /></PrivateRoute>} />

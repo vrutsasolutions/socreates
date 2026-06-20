@@ -128,6 +128,13 @@
     <version>4.0.0</version>
 </dependency>
 
+<!-- Razorpay server SDK: order creation + payment-signature verification. -->
+<dependency>
+    <groupId>com.razorpay</groupId>
+    <artifactId>razorpay-java</artifactId>
+    <version>1.4.8</version>
+</dependency>
+
   </dependencies>
 
   

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { USE_MOCK } from '../api/config';
-import { createOrder, subscribe, stripeCheckout, cancelMembership } from '../api/paymentApi';
+import { cancelMembership } from '../api/paymentApi';
 import Icon from '../components/common/Icon';
 
 /* ── Plans ─────────────────────────────────────────────────────
@@ -74,76 +73,18 @@ export default function Membership() {
     return () => clearTimeout(t);
   }, [emphasizedPlan]);
 
-  // Everything the success / active views need to render the plan.
-  const checkoutPayload = (gateway) => ({
-    plan:      selected,
-    billing:   period,
-    gateway,
-    planLabel: selectedPlan.label,
-    price:     selectedPlan[period].price,
-  });
-
-  const onPaymentSuccess = (data, gateway) => {
-    login(data.user, localStorage.getItem('token'));
-    navigate('/membership/success', { state: { membership: data.user?.membership } });
-  };
-
-  const onPaymentFailure = (err) => {
-    navigate('/membership/failure', {
-      state: { message: err?.response?.data?.message },
+  // Plan selection hands off to the Checkout page, which confirms the order and
+  // runs the chosen gateway. We pass the selected plan + billing via route state.
+  const goCheckout = () => {
+    navigate('/membership/checkout', {
+      state: {
+        plan:      selected,
+        billing:   period,
+        planLabel: selectedPlan.label,
+        price:     selectedPlan[period].price,
+        features:  selectedPlan.features,
+      },
     });
-  };
-
-  const handlePayment = async (gateway) => {
-    setLoading(true); setError('');
-    const payload = checkoutPayload(gateway);
-    try {
-      // Mock mode (or Stripe) — no live gateway popup, go straight through.
-      if (USE_MOCK.payment) {
-        const { data } = await subscribe(payload);
-        onPaymentSuccess(data, gateway);
-        return;
-      }
-
-      if (gateway === 'razorpay') {
-        const { data: order } = await createOrder(payload);
-        const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-          amount: order.amount,
-          currency: 'INR',
-          name: 'SoCreates',
-          description: `${selectedPlan.label} · ${period === 'yearly' ? 'Yearly' : 'Monthly'}`,
-          order_id: order.orderId,
-          handler: async (response) => {
-            try {
-              const { data } = await subscribe({
-                ...payload,
-                paymentId: response.razorpay_payment_id,
-                orderId:   response.razorpay_order_id,
-                signature: response.razorpay_signature,
-              });
-              onPaymentSuccess(data, gateway);
-            } catch (err) {
-              onPaymentFailure(err);
-            }
-          },
-          prefill: { name: user?.name, email: user?.email },
-          theme: { color: '#1565C0' },
-          modal: { ondismiss: () => setLoading(false) },
-        };
-        const rzp = new window.Razorpay(options);
-        rzp.on('payment.failed', (resp) =>
-          onPaymentFailure({ response: { data: { message: resp?.error?.description } } }));
-        rzp.open();
-      } else {
-        const { data } = await stripeCheckout(payload);
-        window.location.href = data.checkoutUrl;
-      }
-    } catch (err) {
-      onPaymentFailure(err);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleCancel = async () => {
@@ -287,24 +228,15 @@ export default function Membership() {
           <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>
         )}
 
-        {/* Payment buttons */}
-        <div className="space-y-3 pt-1">
-          <p className="text-[#90A4AE] text-xs text-center uppercase tracking-widest">
-            {selectedPlan.label} · {period === 'yearly' ? 'Yearly' : 'Monthly'}
-          </p>
-
-          <button onClick={() => handlePayment('razorpay')} disabled={loading}
-            className="w-full text-white font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2 text-sm"
-            style={{ background: 'linear-gradient(135deg, #4F8EF7, #3B6FE0)' }}>
-            {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-            Pay with Razorpay
-          </button>
-
-          <button onClick={() => handlePayment('stripe')} disabled={loading}
-            className="w-full text-white font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
-            style={{ background: 'linear-gradient(135deg, #7C5CFC, #6246EA)' }}>
-            {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-            Pay with Stripe
+        {/* Continue → Checkout */}
+        <div className="pt-1">
+          <button onClick={goCheckout}
+            className="w-full text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2 text-base"
+            style={{ background: '#1565C0' }}>
+            Continue
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
           </button>
         </div>
 

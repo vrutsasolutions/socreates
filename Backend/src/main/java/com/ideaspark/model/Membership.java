@@ -20,7 +20,19 @@ public class Membership {
     private User user;
 
     @Column(nullable = false, length = 20)
-    private String plan; // "monthly" | "yearly"
+    private String plan; // "reader" | "creator"
+
+    @Column(length = 20)
+    private String billing; // "monthly" | "yearly"
+
+    @Column(length = 20)
+    private String gateway; // "razorpay" | "stripe"
+
+    @Column(name = "plan_label")
+    private String planLabel; // display, e.g. "Creators Pro"
+
+    @Column(length = 20)
+    private String price; // display, e.g. "₹999"
 
     @Column(length = 20)
     private String status = "active";

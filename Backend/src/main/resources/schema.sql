@@ -41,7 +41,11 @@ CREATE TABLE IF NOT EXISTS saved_ideas (
 CREATE TABLE IF NOT EXISTS membership (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
-  plan       VARCHAR(20) NOT NULL,
+  plan       VARCHAR(20) NOT NULL,   -- "reader" | "creator"
+  billing    VARCHAR(20),            -- "monthly" | "yearly"
+  gateway    VARCHAR(20),            -- "razorpay" | "stripe"
+  plan_label VARCHAR(255),           -- display, e.g. "Creators Pro"
+  price      VARCHAR(20),            -- display, e.g. "₹999"
   status     VARCHAR(20) DEFAULT 'active',
   payment_id TEXT,
   start_date TIMESTAMP DEFAULT NOW(),
@@ -68,3 +72,11 @@ CREATE INDEX IF NOT EXISTS idx_membership_user  ON membership(user_id);
 ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_type_check;
 ALTER TABLE messages ADD CONSTRAINT messages_type_check
   CHECK (type IN ('TEXT', 'IMAGE', 'VOICE', 'FILE', 'IDEA'));
+
+-- Membership gained billing/gateway/plan_label/price columns when the Razorpay
+-- checkout flow shipped. Hibernate (ddl-auto=update) adds these automatically,
+-- but run these for any DB managed outside Hibernate.
+ALTER TABLE membership ADD COLUMN IF NOT EXISTS billing    VARCHAR(20);
+ALTER TABLE membership ADD COLUMN IF NOT EXISTS gateway    VARCHAR(20);
+ALTER TABLE membership ADD COLUMN IF NOT EXISTS plan_label VARCHAR(255);
+ALTER TABLE membership ADD COLUMN IF NOT EXISTS price      VARCHAR(20);

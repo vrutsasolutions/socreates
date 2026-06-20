@@ -39,7 +39,8 @@ export function buildMembership({ plan, billing, gateway, planLabel, price }) {
   };
 }
 
-/** Create a payment order (amount in paise for Razorpay). */
+/** Create a payment order (amount in paise for Razorpay). The live response
+ *  also carries `keyId` so the checkout can open without a frontend env var. */
 export const createOrder = (payload) =>
   USE_MOCK.payment
     ? mockResponse({
