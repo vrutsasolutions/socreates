@@ -395,8 +395,12 @@ export const fetchShareTargets = async () => {
   };
 };
 
+// Returns { data: { shared, count, results: [{ userId, conversationId }], message } }.
+// `results` lets the caller jump into the conversation after a single-recipient
+// share so the sender sees the idea card immediately.
 export const sharePost = ({ postId, title, imageUrl = '', isPremium = false }, userIds = []) => {
   if (USE_MOCK.messaging) {
+    const results = [];
     userIds.forEach((uid) => {
       if (threads[uid]) {
         threads[uid] = [
@@ -414,8 +418,9 @@ export const sharePost = ({ postId, title, imageUrl = '', isPremium = false }, u
           c.id === uid ? { ...c, lastType: 'idea', lastMessage: 'Shared an idea', time: 'now' } : c,
         );
       }
+      results.push({ userId: uid, conversationId: uid });
     });
-    return mockResponse({ shared: postId, count: userIds.length }, 250);
+    return mockResponse({ shared: postId, count: userIds.length, results }, 250);
   }
   return api.post('/messages/share-post', { postId, title, imageUrl, isPremium, userIds });
 };

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -120,7 +121,13 @@ public class MessageController {
             snapshot.put("isPremium", isPremium);
             String ideaJson = new ObjectMapper().writeValueAsString(snapshot);
 
-            // Send a message to each selected user
+            // Send a message to each selected user. Track which sends actually
+            // succeed so we never report success when nothing was delivered, and
+            // collect the conversation id per recipient so the client can jump
+            // straight into the chat after a single-recipient share.
+            int succeeded = 0;
+            String firstError = null;
+            List<Map<String, String>> results = new ArrayList<>();
             for (String userId : userIds) {
                 try {
                     UUID targetUserId = UUID.fromString(userId);
@@ -134,14 +141,29 @@ public class MessageController {
                             auth.getName(),
                             "IDEA",
                             ideaJson);
+                    succeeded++;
+                    results.add(Map.of(
+                            "userId", userId,
+                            "conversationId", conversation.getId().toString()));
                 } catch (Exception e) {
+                    if (firstError == null) firstError = e.getMessage();
                     System.out.println("Failed to share with user " + userId + ": " + e.getMessage());
                 }
             }
 
+            // If not a single recipient received the post, surface the real
+            // error instead of falsely reporting success. The frontend's catch
+            // (and LIMIT_REACHED upsell handling) then kicks in correctly.
+            if (succeeded == 0) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message",
+                                firstError != null ? firstError : "Could not share post"));
+            }
+
             return ResponseEntity.ok(Map.of(
                     "shared", postId,
-                    "count", userIds.size(),
+                    "count", succeeded,
+                    "results", results,
                     "message", "Post shared successfully"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
