@@ -44,7 +44,13 @@ export default function UserProfile() {
       ]);
       setProfile(userData);
       setIdeas(ideaData);
-      setFollowStats(statsData);
+      setFollowStats({
+        followersCount: statsData?.followersCount ?? 0,
+        followingCount: statsData?.followingCount ?? 0,
+        // Defensive fallback to `following` — some API responses/older
+        // caches may serialize the boolean under that key instead.
+        isFollowing: Boolean(statsData?.isFollowing ?? statsData?.following),
+      });
     } catch (err) {
       console.error('[UserProfile] failed to load', err);
       setProfile(null);
