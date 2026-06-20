@@ -14,6 +14,7 @@ com\ideaspark\repository\ConversationRepository.class
 com\ideaspark\service\RazorpayService.class
 com\ideaspark\config\WebSocketConfig.class
 com\ideaspark\service\IdeaService.class
+com\ideaspark\controller\MessageController.class
 com\ideaspark\security\JwtUtil.class
 com\ideaspark\service\LocalFileStorageService.class
 com\ideaspark\exception\GlobalExceptionHandler.class
@@ -34,6 +35,7 @@ com\ideaspark\dto\FollowRequest.class
 com\ideaspark\model\Conversation.class
 com\ideaspark\controller\PlagiarismController.class
 com\ideaspark\controller\MessageUploadController.class
+com\ideaspark\repository\MessageRepository.class
 com\ideaspark\repository\IdeaLikeRepository.class
 com\ideaspark\dto\FollowStatsResponse.class
 com\ideaspark\model\Message$MessageType.class
@@ -50,6 +52,7 @@ com\ideaspark\security\UserDetailsServiceImpl.class
 com\ideaspark\controller\AuthController.class
 com\ideaspark\service\AuthService.class
 com\ideaspark\dto\IdeaDTO.class
+com\ideaspark\controller\UserController.class
 com\ideaspark\model\Message$MessageBuilder.class
 com\ideaspark\dto\MembershipDTO.class
 com\ideaspark\config\StaticResourceConfig.class
@@ -81,6 +84,7 @@ com\ideaspark\model\User.class
 com\ideaspark\repository\EmailOtpRepository.class
 com\ideaspark\dto\UserDTO.class
 com\ideaspark\controller\NotificationController.class
+com\ideaspark\service\MessageService.class
 com\ideaspark\service\PlagiarismService.class
 com\ideaspark\model\Comment$CommentBuilder.class
 com\ideaspark\dto\ApiResponse.class
