@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav.premium';
 import NotificationBell from '../components/common/NotificationBell';
+import MessageBell from '../components/common/MessageBell';
 import DrawerMenu from '../components/common/DrawerMenu.premium';
 import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
 import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
 import api from '../api/axiosInstance';
 import { EmptyFeed, EmptyForYou } from '../components/common/EmptyStates.premium';
 import Icon from '../components/common/Icon';
@@ -24,7 +24,6 @@ const MOCK_IDEAS = [
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { unreadMessages, clearMessageNotifications } = useNotifications();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Trending');
   const [ideas, setIdeas] = useState([]);
@@ -84,19 +83,7 @@ export default function Home() {
 
           <NotificationBell />
 
-          <button
-            onClick={() => { clearMessageNotifications(); navigate('/messages'); }}
-            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all relative"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.83L3 20l1.17-3.5A7.86 7.86 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            {unreadMessages > 0 && (
-              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-[3px] flex items-center justify-center rounded-full bg-[#EF4444] text-white text-[10px] font-bold leading-none ring-1 ring-[#1565C0]">
-                {unreadMessages > 99 ? '99+' : unreadMessages}
-              </span>
-            )}
-          </button>
+          <MessageBell />
         </div>
 
         {/* floating greeting card */}
