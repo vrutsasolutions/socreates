@@ -430,8 +430,9 @@ export const fetchShareTargets = async () => {
   };
 };
 
-export const sharePost = ({ postId, title }, userIds = []) => {
+export const sharePost = ({ postId, title, imageUrl = '', isPremium = false }, userIds = []) => {
   if (USE_MOCK.messaging) {
+    const results = [];
     userIds.forEach((uid) => {
       if (threads[uid]) {
         threads[uid] = [
@@ -456,8 +457,9 @@ export const sharePost = ({ postId, title }, userIds = []) => {
             : c,
         );
       }
+      results.push({ userId: uid, conversationId: uid });
     });
-    return mockResponse({ shared: postId, count: userIds.length }, 250);
+    return mockResponse({ shared: postId, count: userIds.length, results }, 250);
   }
   return api.post("/messages/share-post", { postId, title, userIds });
 };

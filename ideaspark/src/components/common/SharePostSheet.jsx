@@ -5,10 +5,12 @@
 // ════════════════════════════════════════════════════════════════════════
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import Avatar from '../messaging/Avatar';
 import { fetchShareTargets, sharePost } from '../../api/messagingApi';
 
 export default function SharePostSheet({ post, onClose, onToast }) {
+  const navigate = useNavigate();
   const [people, setPeople] = useState([]);
   const [selected, setSelected] = useState(() => new Set());
   const [query, setQuery] = useState('');
@@ -69,12 +71,21 @@ export default function SharePostSheet({ post, onClose, onToast }) {
     setSending(true);
 
     try {
-      await sharePost(
+      const ids = Array.from(selected);
+      const { data } = await sharePost(
         { postId: post.id, title: post.title, imageUrl: post.imageUrl || '', isPremium: !!post.isPremium },
-        Array.from(selected),
+        ids,
       );
       onToast?.(`Post shared with ${count} ${count === 1 ? 'person' : 'people'}`);
       onClose();
+
+      // Single-recipient share: jump straight into the conversation so the
+      // sender sees the idea card right away (the backend gives no realtime
+      // echo to the sender, and Chat only loads messages on mount).
+      const convoId = data?.results?.[0]?.conversationId;
+      if (count === 1 && convoId) {
+        navigate(`/messages/${convoId}`);
+      }
     } catch (err) {
       onToast?.('Could not share post. Please try again.');
     } finally {

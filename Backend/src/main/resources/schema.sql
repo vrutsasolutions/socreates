@@ -55,3 +55,16 @@ CREATE INDEX IF NOT EXISTS idx_ideas_premium    ON ideas(is_premium);
 CREATE INDEX IF NOT EXISTS idx_ideas_likes      ON ideas(like_count DESC);
 CREATE INDEX IF NOT EXISTS idx_saved_user       ON saved_ideas(user_id);
 CREATE INDEX IF NOT EXISTS idx_membership_user  ON membership(user_id);
+
+-- ============================================================
+-- MIGRATIONS
+-- ============================================================
+-- The `messages` table is created by Hibernate (ddl-auto=update). Hibernate 6
+-- auto-generates a CHECK constraint for the EnumType.STRING `type` column from
+-- whatever enum values exist when the column is first created, and never
+-- updates it afterward. When a new MessageType is added (e.g. IDEA for shared
+-- ideas, after FILE), existing databases keep the stale constraint and reject
+-- the new value. Re-run this whenever MessageType gains a value.
+ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_type_check;
+ALTER TABLE messages ADD CONSTRAINT messages_type_check
+  CHECK (type IN ('TEXT', 'IMAGE', 'VOICE', 'FILE', 'IDEA'));
