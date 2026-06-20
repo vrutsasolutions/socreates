@@ -24,7 +24,6 @@ import {
   sendMessage,
   uploadVoice,
   uploadFile,
-  uploadImage,
   reactToMessage,
   deleteMessage,
   isLimitReachedError,
@@ -37,7 +36,6 @@ const quotedLabel = (m) => {
   if (!m) return '';
   if (m.type === 'image') return 'Photo';
   if (m.type === 'voice') return 'Voice message';
-  if (m.type === 'idea')  return m.idea?.title ? `💡 ${m.idea.title}` : 'Shared an idea';
   return m.text || '';
 };
 
@@ -123,7 +121,7 @@ function ReplyBtn({ onClick }) {
   );
 }
 
-function Bubble({ m, onImageClick, onReply, selectMode, selected, onToggleSelect, onLongPress, reaction, showReactionBar, onReact, onOpenIdea }) {
+function Bubble({ m, onImageClick, onReply, selectMode, selected, onToggleSelect, onLongPress, reaction, showReactionBar, onReact }) {
   const pressTimer = useRef(null);
   const startPress = () => {
     if (selectMode) return;
@@ -204,38 +202,6 @@ function Bubble({ m, onImageClick, onReply, selectMode, selected, onToggleSelect
           />
         )}
       </div>
-    );
-
-  } else if (m.type === 'idea') {
-    // Shared idea — a tappable card that opens the idea detail page.
-    const idea = m.idea || {};
-    content = (
-      <button
-        onClick={() => { if (!selectMode) onOpenIdea?.(idea); }}
-        className={`block text-left w-[230px] rounded-[18px] overflow-hidden shadow-sm ${mine ? 'bg-[#1565C0]' : 'bg-white'}`}
-      >
-        {idea.imageUrl ? (
-          <img src={idea.imageUrl} alt="" className="w-full h-[120px] object-cover" />
-        ) : (
-          <div className="w-full h-[120px] bg-[#EAF2FF] flex items-center justify-center text-[#1565C0] text-[11px] font-bold tracking-widest">
-            IDEA
-          </div>
-        )}
-        <div className="px-3 py-2.5">
-          <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest ${mine ? 'text-white/70' : 'text-[#1565C0]'}`}>
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.5.4.85.9.99 1.46l.12.74h4.98l.12-.74c.14-.56.49-1.06.99-1.46A6 6 0 0012 3z" />
-            </svg>
-            Shared an idea
-          </div>
-          <p className={`mt-1 text-[13px] font-semibold truncate ${mine ? 'text-white' : 'text-[#0D2137]'}`}>
-            {idea.title || 'Untitled idea'}
-          </p>
-          <span className={`mt-1.5 inline-block text-[11px] font-semibold ${mine ? 'text-white/80' : 'text-[#1565C0]'}`}>
-            View idea →
-          </span>
-        </div>
-      </button>
     );
 
   } else {
@@ -632,7 +598,6 @@ export default function Chat() {
       url: URL.createObjectURL(f),
       isVideo: f.type.startsWith('video'),
       name: f.name,
-      file: f,
     }));
     if (!compose) setCaption('');
     setCompose((prev) => prev ? { ...prev, items: [...prev.items, ...items] } : { items, index: 0 });
@@ -648,50 +613,20 @@ export default function Chat() {
     });
   };
 
-  const handleSendCompose = async () => {
+  const handleSendCompose = () => {
     if (!compose) return;
     if (fileLimitReached) { setShowLimitModal(true); return; }
-
-    const items = compose.items;
+    compose.items.forEach((it, i) => {
+      pushSent({
+        type: 'image',
+        imageUrl: it.url,
+        content: it.url,
+        isVideo: it.isVideo,
+        text: i === 0 ? (caption.trim() || undefined) : undefined,
+        replyTo: i === 0 ? replySnippet() : undefined,
+      });
+    });
     setCompose(null); setCaption(''); setReplyTo(null);
-
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      const tmpId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-      // Optimistic bubble using the local blob preview (fine for the sender's
-      // own screen only — never persisted or sent to the backend/receiver).
-      setMessages((prev) => [
-        ...prev.filter((m) => m.type !== 'typing'),
-        {
-          id: tmpId, conversationId: id, fromMe: true, time: '', type: 'image',
-          imageUrl: it.url, isVideo: it.isVideo,
-          text: i === 0 ? (caption.trim() || undefined) : undefined,
-          replyTo: i === 0 ? replySnippet() : undefined,
-        },
-      ]);
-      try {
-        // Upload the real file to R2 first — sending the blob: URL directly
-        // is what was breaking images for both sender and receiver, since
-        // blob: URLs only resolve inside the tab that created them.
-        const url = await uploadImage(it.file, id);
-        await sendMessage(id, {
-          type: 'image',
-          content: url,
-          isVideo: it.isVideo,
-          text: i === 0 ? (caption.trim() || undefined) : undefined,
-          replyTo: i === 0 ? replySnippet() : undefined,
-        });
-        try { URL.revokeObjectURL(it.url); } catch (_) {}
-      } catch (err) {
-        console.error('Image send failed:', err);
-        setMessages((prev) => prev.filter((m) => m.id !== tmpId));
-        if (isLimitReachedError(err)) {
-          setShowLimitModal(true);
-        } else {
-          showToast('Could not send image.');
-        }
-      }
-    }
   };
 
   // Upload each picked file to R2, then send it as a persisted FILE message
@@ -920,8 +855,8 @@ export default function Chat() {
               </svg>
             </button>
 
-            {/* Identity pill — tapping the name opens the chat info / profile */}
-            <button onClick={() => navigate(`/messages/${id}/profile`)} aria-label="View profile"
+            {/* Identity pill — tapping the name opens the user's profile */}
+            <button onClick={() => convo?.otherUserId && navigate(`/users/${convo.otherUserId}`)} aria-label="View profile"
               className="flex-1 min-w-0 flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2 text-left hover:bg-white/15 active:scale-[0.98] transition-all">
               {loading ? (
                 <div className="w-9 h-9 rounded-full bg-white/20 animate-pulse shrink-0" />
@@ -1024,10 +959,6 @@ export default function Chat() {
                 reaction={reactions[m.id]}
                 showReactionBar={selectMode && selectedIds.length === 1 && selectedIds[0] === m.id}
                 onReact={applyReaction}
-                onOpenIdea={(idea) => {
-                  if (!idea?.id) return;
-                  navigate(idea.isPremium ? `/premium/${idea.id}` : `/ideas/${idea.id}`);
-                }}
               />
             ))
           )}
