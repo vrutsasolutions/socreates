@@ -50,41 +50,54 @@ export const normalizeNotification = (n = {}) => {
   const message = n.message ?? "";
   const lower = message.toLowerCase();
 
-  let type = "system";
+  // ── Prefer the backend's real type (LIKE/FOLLOW/COMMENT/BOOKMARK/MESSAGE/SYSTEM) ──
+  // Only fall back to guessing from the message text for legacy rows saved
+  // before the backend started sending `type` (so old data still renders).
+  const backendType =
+    typeof n.type === "string" ? n.type.toLowerCase() : null;
+  const KNOWN_TYPES = new Set([
+    "like",
+    "follow",
+    "comment",
+    "bookmark",
+    "message",
+    "system",
+  ]);
 
-  if (lower.includes("message") || lower.includes("sent you")) type = "message";
-  else if (lower.includes("like")) type = "like";
-  else if (lower.includes("bookmark") || lower.includes("saved"))
-    type = "bookmark";
-  else if (
-    lower.includes("publish") ||
-    lower.includes("posted") ||
-    lower.includes("idea")
-  )
-    type = "idea";
-  else if (lower.includes("follow")) type = "follow";
-  else if (lower.includes("comment")) type = "comment";
+  let type = KNOWN_TYPES.has(backendType) ? backendType : null;
+
+  if (!type) {
+    if (lower.includes("message") || lower.includes("sent you") || lower.includes("shared an idea"))
+      type = "message";
+    else if (lower.includes("like")) type = "like";
+    else if (lower.includes("bookmark") || lower.includes("saved"))
+      type = "bookmark";
+    else if (lower.includes("follow")) type = "follow";
+    else if (lower.includes("comment")) type = "comment";
+    else type = "system";
+  }
 
   const TITLES = {
     message: "New message",
     like: "New like",
     bookmark: "New bookmark",
-    idea: "New idea",
     follow: "New follower",
     comment: "New comment",
     system: "Notification",
   };
 
-  const IDEA_LINK_TYPES = new Set(["like", "bookmark", "comment", "idea"]);
+  const IDEA_LINK_TYPES = new Set(["like", "bookmark", "comment"]);
 
   const defaultLink =
-    IDEA_LINK_TYPES.has(type) && n.referenceId
-      ? `/ideas/${n.referenceId}`
-      : type === "follow" && n.referenceId
-        ? `/users/${n.referenceId}`
-        : type === 'message'
-          ? '/messages'
-          : '/home';
+    type === "message"
+      ? n.conversationId
+        ? `/messages/${n.conversationId}`
+        : "/messages"
+      : IDEA_LINK_TYPES.has(type) && n.referenceId
+        ? `/ideas/${n.referenceId}`
+        : type === "follow" && n.referenceId
+          ? `/users/${n.referenceId}`
+          : "/home";
 
   return {
     id:
@@ -95,6 +108,7 @@ export const normalizeNotification = (n = {}) => {
     read: n.read ?? n.readStatus ?? false,
     createdAt: n.createdAt ?? new Date().toISOString(),
     referenceId: n.referenceId ?? null,
+    conversationId: n.conversationId ?? null,
     link: n.link ?? defaultLink,
   };
 };
@@ -108,6 +122,7 @@ const messageToNotification = (msgDto) => ({
     : "You have a new message",
   read: false,
   createdAt: msgDto.createdAt ?? new Date().toISOString(),
+  conversationId: msgDto.conversationId ?? null,
   link: msgDto.conversationId
     ? `/messages/${msgDto.conversationId}`
     : "/messages",
