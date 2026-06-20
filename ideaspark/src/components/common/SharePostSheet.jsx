@@ -69,7 +69,10 @@ export default function SharePostSheet({ post, onClose, onToast }) {
     setSending(true);
 
     try {
-      await sharePost({ postId: post.id, title: post.title }, Array.from(selected));
+      await sharePost(
+        { postId: post.id, title: post.title, imageUrl: post.imageUrl || '', isPremium: !!post.isPremium },
+        Array.from(selected),
+      );
       onToast?.(`Post shared with ${count} ${count === 1 ? 'person' : 'people'}`);
       onClose();
     } catch (err) {

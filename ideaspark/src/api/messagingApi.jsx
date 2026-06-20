@@ -93,6 +93,23 @@ const fileNameFromUrl = (url = "") => {
   return decodeURIComponent(seg.replace(/^[0-9a-fA-F-]{36}-/, ""));
 };
 
+// For an IDEA message the backend stores a JSON snapshot in `content`:
+// { ideaId, title, imageUrl, isPremium }. Parse it into a tidy idea object the
+// chat can render as a card; fall back gracefully if it isn't valid JSON.
+const parseSharedIdea = (content) => {
+  try {
+    const o = JSON.parse(content ?? '{}');
+    return {
+      id:        String(o.ideaId ?? o.id ?? ''),
+      title:     o.title ?? 'Shared idea',
+      imageUrl:  o.imageUrl ?? '',
+      isPremium: !!o.isPremium,
+    };
+  } catch {
+    return { id: '', title: 'Shared idea', imageUrl: '', isPremium: false };
+  }
+};
+
 const normalizeMessage = (dto, myId) => {
   const type = (dto.type ?? "TEXT").toLowerCase();
   return {
@@ -102,20 +119,15 @@ const normalizeMessage = (dto, myId) => {
     senderName: dto.senderName ?? "",
     senderAvatar: dto.senderAvatar ?? "",
     type,
-    text: type === "text" ? (dto.content ?? "") : undefined,
-    imageUrl: type === "image" ? (dto.content ?? "") : undefined,
-    content:
-      type === "voice" || type === "file" ? (dto.content ?? "") : undefined,
-    fileName: type === "file" ? fileNameFromUrl(dto.content) : undefined,
-    reaction: dto.reaction ?? undefined,
-    isRead: dto.isRead ?? dto.read ?? false,
-    createdAt: dto.createdAt ?? null,
-    time: dto.createdAt
-      ? new Date(dto.createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : (dto.time ?? ""),
+    text:           type === 'text'  ? (dto.content ?? '') : undefined,
+    imageUrl:       type === 'image' ? (dto.content ?? '') : undefined,
+    content:        (type === 'voice' || type === 'file') ? (dto.content ?? '') : undefined,
+    fileName:       type === 'file'  ? fileNameFromUrl(dto.content) : undefined,
+    reaction:       dto.reaction ?? undefined,
+    isRead:         dto.isRead ?? dto.read ?? false,
+    time:           dto.createdAt
+                      ? new Date(dto.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : dto.time ?? '',
   };
 };
 
@@ -412,34 +424,20 @@ export const fetchShareTargets = async () => {
   };
 };
 
-export const sharePost = ({ postId, title }, userIds = []) => {
+export const sharePost = ({ postId, title, imageUrl = '', isPremium = false }, userIds = []) => {
   if (USE_MOCK.messaging) {
     userIds.forEach((uid) => {
       if (threads[uid]) {
         threads[uid] = [
           ...threads[uid],
-          {
-            id: "m-" + Date.now() + "-" + uid,
-            conversationId: uid,
-            fromMe: true,
-            type: "text",
-            text: `📨 Shared a post: ${title}`,
-            time: clock(),
-          },
+          { id: 'm-' + Date.now() + '-' + uid, conversationId: uid, fromMe: true, type: 'text', text: `📨 Shared a post: ${title}`, time: clock() },
         ];
         conversations = conversations.map((c) =>
-          c.id === uid
-            ? {
-                ...c,
-                lastType: "text",
-                lastMessage: `📨 ${title}`,
-                time: "now",
-              }
-            : c,
+          c.id === uid ? { ...c, lastType: 'text', lastMessage: `📨 ${title}`, time: 'now' } : c,
         );
       }
     });
     return mockResponse({ shared: postId, count: userIds.length }, 250);
   }
-  return api.post("/messages/share-post", { postId, title, userIds });
+  return api.post('/messages/share-post', { postId, title, userIds });
 };

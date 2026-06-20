@@ -23,6 +23,10 @@ export const fetchMyIdeas = () =>
 export const fetchSavedIdeas = () =>
   USE_MOCK.ideas ? mockResponse(MOCK_IDEAS.filter((i) => i.savedByCurrentUser)) : api.get('/ideas/saved');
 
+// GET /api/ideas/by-user/{userId} → IdeaDTO[] (public ideas for any user's profile page)
+export const fetchIdeasByUser = (userId) =>
+  USE_MOCK.ideas ? mockResponse(MOCK_IDEAS) : api.get(`/ideas/by-user/${userId}`);
+
 export const fetchIdeaById = (id) =>
   USE_MOCK.ideas ? mockResponse(MOCK_IDEAS.find((i) => i.id === id)) : api.get(`/ideas/${id}`);
 

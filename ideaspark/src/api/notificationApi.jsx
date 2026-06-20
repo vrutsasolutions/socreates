@@ -80,9 +80,9 @@ export const normalizeNotification = (n = {}) => {
   const defaultLink =
     IDEA_LINK_TYPES.has(type) && n.referenceId
       ? `/ideas/${n.referenceId}`
-      : type === "message"
-        ? "/messages"
-        : "/home";
+      : type === 'message'
+        ? '/messages'
+        : '/home';
 
   return {
     id:

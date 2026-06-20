@@ -27,7 +27,6 @@ import {
   sendMessage,
   uploadVoice,
   uploadFile,
-  uploadImage,
   reactToMessage,
   deleteMessage,
   isLimitReachedError,
@@ -901,7 +900,6 @@ export default function Chat() {
       url: URL.createObjectURL(f),
       isVideo: f.type.startsWith("video"),
       name: f.name,
-      file: f,
     }));
     if (!compose) setCaption("");
     setCompose((prev) =>
@@ -925,35 +923,24 @@ export default function Chat() {
     });
   };
 
-  const handleSendCompose = async () => {
+  const handleSendCompose = () => {
     if (!compose) return;
-    if (fileLimitReached) {
-      setShowLimitModal(true);
-      return;
-    }
+    if (fileLimitReached) { setShowLimitModal(true); return; }
 
     const items = compose.items;
-    setCompose(null);
-    setCaption("");
-    setReplyTo(null);
+    setCompose(null); setCaption(''); setReplyTo(null);
 
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      const tmpId =
-        "tmp-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+      const tmpId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
       // Optimistic bubble using the local blob preview (fine for the sender's
       // own screen only — never persisted or sent to the backend/receiver).
       setMessages((prev) => [
-        ...prev.filter((m) => m.type !== "typing"),
+        ...prev.filter((m) => m.type !== 'typing'),
         {
-          id: tmpId,
-          conversationId: id,
-          fromMe: true,
-          time: "",
-          type: "image",
-          imageUrl: it.url,
-          isVideo: it.isVideo,
-          text: i === 0 ? caption.trim() || undefined : undefined,
+          id: tmpId, conversationId: id, fromMe: true, time: '', type: 'image',
+          imageUrl: it.url, isVideo: it.isVideo,
+          text: i === 0 ? (caption.trim() || undefined) : undefined,
           replyTo: i === 0 ? replySnippet() : undefined,
         },
       ]);
@@ -963,24 +950,20 @@ export default function Chat() {
         // blob: URLs only resolve inside the tab that created them.
         const url = await uploadImage(it.file, id);
         await sendMessage(id, {
-          type: "image",
+          type: 'image',
           content: url,
           isVideo: it.isVideo,
-          text: i === 0 ? caption.trim() || undefined : undefined,
+          text: i === 0 ? (caption.trim() || undefined) : undefined,
           replyTo: i === 0 ? replySnippet() : undefined,
         });
-        try {
-          URL.revokeObjectURL(it.url);
-        } catch {
-          // ignore cleanup errors
-        }
+        try { URL.revokeObjectURL(it.url); } catch (_) {}
       } catch (err) {
-        console.error("Image send failed:", err);
+        console.error('Image send failed:', err);
         setMessages((prev) => prev.filter((m) => m.id !== tmpId));
         if (isLimitReachedError(err)) {
           setShowLimitModal(true);
         } else {
-          showToast("Could not send image.");
+          showToast('Could not send image.');
         }
       }
     }
@@ -1344,11 +1327,8 @@ export default function Chat() {
             </button>
 
             {/* Identity pill — tapping the name opens the chat info / profile */}
-            <button
-              onClick={() => navigate(`/messages/${id}/profile`)}
-              aria-label="View profile"
-              className="flex-1 min-w-0 flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2 text-left hover:bg-white/15 active:scale-[0.98] transition-all"
-            >
+            <button onClick={() => navigate(`/messages/${id}/profile`)} aria-label="View profile"
+              className="flex-1 min-w-0 flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2 text-left hover:bg-white/15 active:scale-[0.98] transition-all">
               {loading ? (
                 <div className="w-9 h-9 rounded-full bg-white/20 animate-pulse shrink-0" />
               ) : (

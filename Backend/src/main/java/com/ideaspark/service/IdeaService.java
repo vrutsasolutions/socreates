@@ -210,6 +210,19 @@ public class IdeaService {
                 .toList();
     }
 
+    // Public ideas for any user's profile page (e.g. viewing a follower's profile).
+    // currentUserEmail is the viewer (for savedByCurrentUser / likedByCurrentUser flags),
+    // not the profile owner.
+    public List<IdeaDTO> getIdeasByUser(UUID profileUserId, String currentUserEmail) {
+        userRepository.findById(profileUserId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ideaRepository.findByCreatorIdOrderByCreatedAtDesc(profileUserId)
+                .stream()
+                .map(i -> toDTO(i, currentUserEmail))
+                .toList();
+    }
+
     @Transactional
     public void likeIdea(UUID ideaId, String userEmail) {
 

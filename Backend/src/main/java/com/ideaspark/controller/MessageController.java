@@ -1,5 +1,6 @@
 package com.ideaspark.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ideaspark.dto.ConversationDTO;
 import com.ideaspark.dto.MessageDTO;
 import com.ideaspark.dto.UserDTO;
@@ -10,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -98,6 +100,8 @@ public class MessageController {
         try {
             String title = (String) body.get("title");
             String postId = String.valueOf(body.get("postId"));
+            String imageUrl = (String) body.get("imageUrl");
+            boolean isPremium = Boolean.TRUE.equals(body.get("isPremium"));
 
             @SuppressWarnings("unchecked")
             List<String> userIds = (List<String>) body.get("userIds");
@@ -107,6 +111,15 @@ public class MessageController {
                         .body(Map.of("message", "No users selected"));
             }
 
+            // Serialize an idea snapshot into the IDEA message's content so the
+            // chat can render a tappable card that links back to the idea.
+            Map<String, Object> snapshot = new HashMap<>();
+            snapshot.put("ideaId", postId);
+            snapshot.put("title", title);
+            snapshot.put("imageUrl", imageUrl);
+            snapshot.put("isPremium", isPremium);
+            String ideaJson = new ObjectMapper().writeValueAsString(snapshot);
+
             // Send a message to each selected user
             for (String userId : userIds) {
                 try {
@@ -115,12 +128,12 @@ public class MessageController {
                     ConversationDTO conversation = messageService
                             .startConversation(targetUserId, auth.getName());
 
-                    // Send the shared post as a message
+                    // Send the shared idea as an IDEA-type message
                     messageService.sendMessage(
                             conversation.getId(),
                             auth.getName(),
-                            "TEXT",
-                            "📨 Shared a post: " + title);
+                            "IDEA",
+                            ideaJson);
                 } catch (Exception e) {
                     System.out.println("Failed to share with user " + userId + ": " + e.getMessage());
                 }

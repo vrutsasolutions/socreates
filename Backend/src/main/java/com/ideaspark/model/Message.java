@@ -29,12 +29,15 @@ public class Message {
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
-    // "TEXT", "IMAGE", "VOICE", "FILE"
+    // "TEXT", "IMAGE", "VOICE", "FILE", "IDEA"
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private MessageType type;
 
     // For TEXT: the message text. For IMAGE/VOICE/FILE: the R2 file URL.
+    // For IDEA: a JSON snapshot of the shared idea
+    // ({ ideaId, title, imageUrl, isPremium }) so the chat can render a
+    // tappable card that links to the idea.
     @Column(columnDefinition = "TEXT")
     private String content;
 
@@ -65,6 +68,6 @@ public class Message {
     }
 
     public enum MessageType {
-        TEXT, IMAGE, VOICE, FILE
+        TEXT, IMAGE, VOICE, FILE, IDEA
     }
 }
