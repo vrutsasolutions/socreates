@@ -34,15 +34,32 @@ public class IdeaService {
     }
 
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
-        List<Idea> ideas = switch (sort != null ? sort : "latest") {
-            case "trending" -> ideaRepository.findAllByOrderByLikeCountDesc();
-            case "recommended" -> ideaRepository.findAllByOrderByCreatedAtDesc();
-            default -> ideaRepository.findAllByOrderByCreatedAtDesc();
-        };
+    List<Idea> ideas = switch (sort != null ? sort : "latest") {
+        case "trending" -> ideaRepository.findAllByOrderByLikeCountDesc();
+        case "recommended" -> ideaRepository.findAllByOrderByCreatedAtDesc();
+        default -> ideaRepository.findAllByOrderByCreatedAtDesc();
+    };
 
-        return ideas.stream().map(i -> toDTO(i, currentUserEmail)).toList();
-    }
+    User currentUser = currentUserEmail != null
+            ? userRepository.findByEmail(currentUserEmail).orElse(null)
+            : null;
 
+    Set<UUID> savedIdeaIds = currentUser != null
+            ? savedIdeaRepository.findByUserIdOrderBySavedAtDesc(currentUser.getId())
+                    .stream().map(s -> s.getIdea().getId()).collect(java.util.stream.Collectors.toSet())
+            : Set.of();
+
+    Set<UUID> likedIdeaIds = currentUser != null
+            ? ideaLikeRepository.findAll().stream()
+                    .filter(l -> l.getUser() != null && l.getUser().getId().equals(currentUser.getId()))
+                    .map(l -> l.getIdea().getId())
+                    .collect(java.util.stream.Collectors.toSet())
+            : Set.of();
+
+    return ideas.stream()
+            .map(i -> toDTOFast(i, currentUser, savedIdeaIds, likedIdeaIds))
+            .toList();
+}
     public List<IdeaDTO> getPremiumIdeas(String currentUserEmail) {
         return ideaRepository.findByIsPremiumOrderByCreatedAtDesc(true)
                 .stream()
@@ -385,6 +402,30 @@ public class IdeaService {
 
         return dto;
     }
+
+    private IdeaDTO toDTOFast(Idea idea, User currentUser, Set<UUID> savedIdeaIds, Set<UUID> likedIdeaIds) {
+    IdeaDTO dto = new IdeaDTO();
+    dto.setId(idea.getId());
+    dto.setTitle(idea.getTitle());
+    dto.setDescription(idea.getDescription());
+    dto.setImageUrl(idea.getImageUrl());
+    dto.setImageUrls(idea.getImageUrls());
+    dto.setCategory(idea.getCategory());
+    dto.setPremium(idea.isPremium());
+    dto.setLikeCount(idea.getLikeCount());
+    dto.setCommentCount(commentRepository.countByIdeaId(idea.getId()));
+    dto.setCreatedAt(idea.getCreatedAt());
+    if (idea.getCreator() != null) {
+        dto.setCreatorId(idea.getCreator().getId());
+        dto.setCreatorName(idea.getCreator().getName());
+        dto.setCreatorImage(idea.getCreator().getProfileImage());
+    }
+    if (currentUser != null) {
+        dto.setSavedByCurrentUser(savedIdeaIds.contains(idea.getId()));
+        dto.setLikedByCurrentUser(likedIdeaIds.contains(idea.getId()));
+    }
+    return dto;
+}
 
     private IdeaDTO toDTO(Idea idea, String currentUserEmail) {
         IdeaDTO dto = new IdeaDTO();
