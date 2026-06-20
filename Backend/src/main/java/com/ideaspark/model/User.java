@@ -44,6 +44,11 @@ public class User {
     @Column(name = "is_verified")
     private boolean isVerified = false;
 
+    @Column(name = "is_online")
+    private Boolean online = false;
+
+    @Column(name = "last_seen")
+    private LocalDateTime lastSeen;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

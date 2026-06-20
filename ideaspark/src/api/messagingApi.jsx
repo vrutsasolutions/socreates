@@ -6,8 +6,8 @@
 //  KEY FIX: normalizeConversation(), normalizeMessage(), normalizeContact()
 //  bridge the gap between backend field names and the frontend's expected shape.
 // ════════════════════════════════════════════════════════════════════════
-import api from './axiosInstance';
-import { USE_MOCK, mockResponse } from './config';
+import api from "./axiosInstance";
+import { USE_MOCK, mockResponse } from "./config";
 import {
   MOCK_ACTIVE_USERS,
   MOCK_CONVERSATIONS,
@@ -15,7 +15,7 @@ import {
   MOCK_REQUESTS,
   MOCK_CONTACTS,
   MOCK_SHARE_TARGETS,
-} from './mockData';
+} from "./mockData";
 
 // Mutable copies so mock mutations (send message, accept request) reflect in UI.
 let conversations = MOCK_CONVERSATIONS.map((c) => ({ ...c }));
@@ -29,12 +29,12 @@ const threads = Object.fromEntries(
 
 const formatTime = (date) =>
   new Date(date).toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
+    hour: "numeric",
+    minute: "2-digit",
     hour12: true,
   });
 const clock = () =>
-  new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 // ════════════════════════════════════════════════════════════════════════
 //  NORMALIZERS — convert backend DTO shapes → frontend shape
 // ════════════════════════════════════════════════════════════════════════
@@ -42,7 +42,7 @@ const clock = () =>
 /** Get the logged-in user's ID from localStorage */
 const getMyId = () => {
   try {
-    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    const u = JSON.parse(localStorage.getItem("user") || "{}");
     return u.id || u.userId || null;
   } catch {
     return null;
@@ -50,9 +50,9 @@ const getMyId = () => {
 };
 
 /** Derive a 1–2 letter initial from a name string */
-const initialFrom = (name = '') => {
+const initialFrom = (name = "") => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
+  if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0][0].toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
 };
@@ -65,18 +65,16 @@ const initialFrom = (name = '') => {
  *                   lastMessageAt, unreadCount
  */
 const normalizeConversation = (dto) => ({
-  id:           String(dto.id),
-  name:         dto.otherUserName  ?? dto.name         ?? 'Unknown',
-  initial:      dto.initial        ?? initialFrom(dto.otherUserName ?? dto.name ?? ''),
-  avatarColor:  dto.avatarColor    ?? dto.otherUserName ?? '#1565C0',
-  online:       dto.otherUserOnline ?? dto.online       ?? false,
-  otherUserId:  dto.otherUserId,
-  lastMessage:  dto.lastMessage    ?? '',
-  lastType:     (dto.lastMessageType ?? dto.lastType ?? 'TEXT').toLowerCase(),
-  time: dto.createdAt
-  ? formatTime(dto.createdAt)
-  : dto.time ?? '',
-  unread:       dto.unreadCount    ?? dto.unread        ?? 0,
+  id: String(dto.id),
+  name: dto.otherUserName ?? dto.name ?? "Unknown",
+  initial: dto.initial ?? initialFrom(dto.otherUserName ?? dto.name ?? ""),
+  avatarColor: dto.avatarColor ?? dto.otherUserName ?? "#1565C0",
+  online: dto.otherUserOnline ?? dto.online ?? false,
+  otherUserId: dto.otherUserId,
+  lastMessage: dto.lastMessage ?? "",
+  lastType: (dto.lastMessageType ?? dto.lastType ?? "TEXT").toLowerCase(),
+  time: dto.createdAt ? formatTime(dto.createdAt) : (dto.time ?? ""),
+  unread: dto.unreadCount ?? dto.unread ?? 0,
   // Whether the other party is a verified creator. Drives the free-tier
   // messaging limit on the Chat page. Backend may send a single flag or the
   // verified + creator-pro pair; support both, default false.
@@ -90,29 +88,34 @@ const normalizeConversation = (dto) => ({
  * Normalize a backend MessageDTO → frontend message shape.
  */
 /** Derive a human filename from an R2 upload URL (.../{uuid}-{originalName}) */
-const fileNameFromUrl = (url = '') => {
-  const seg = String(url).split('/').pop() || 'File';
-  return decodeURIComponent(seg.replace(/^[0-9a-fA-F-]{36}-/, ''));
+const fileNameFromUrl = (url = "") => {
+  const seg = String(url).split("/").pop() || "File";
+  return decodeURIComponent(seg.replace(/^[0-9a-fA-F-]{36}-/, ""));
 };
 
 const normalizeMessage = (dto, myId) => {
-  const type = (dto.type ?? 'TEXT').toLowerCase();
+  const type = (dto.type ?? "TEXT").toLowerCase();
   return {
-    id:             String(dto.id),
+    id: String(dto.id),
     conversationId: String(dto.conversationId),
-    fromMe:         myId ? String(dto.senderId) === String(myId) : false,
-    senderName:     dto.senderName ?? '',
-    senderAvatar:   dto.senderAvatar ?? '',
+    fromMe: myId ? String(dto.senderId) === String(myId) : false,
+    senderName: dto.senderName ?? "",
+    senderAvatar: dto.senderAvatar ?? "",
     type,
-    text:           type === 'text'  ? (dto.content ?? '') : undefined,
-    imageUrl:       type === 'image' ? (dto.content ?? '') : undefined,
-    content:        (type === 'voice' || type === 'file') ? (dto.content ?? '') : undefined,
-    fileName:       type === 'file'  ? fileNameFromUrl(dto.content) : undefined,
-    reaction:       dto.reaction ?? undefined,
-    isRead:         dto.isRead ?? dto.read ?? false,
-    time:           dto.createdAt
-                      ? new Date(dto.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : dto.time ?? '',
+    text: type === "text" ? (dto.content ?? "") : undefined,
+    imageUrl: type === "image" ? (dto.content ?? "") : undefined,
+    content:
+      type === "voice" || type === "file" ? (dto.content ?? "") : undefined,
+    fileName: type === "file" ? fileNameFromUrl(dto.content) : undefined,
+    reaction: dto.reaction ?? undefined,
+    isRead: dto.isRead ?? dto.read ?? false,
+    createdAt: dto.createdAt ?? null,
+    time: dto.createdAt
+      ? new Date(dto.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : (dto.time ?? ""),
   };
 };
 
@@ -125,18 +128,18 @@ const normalizeMessage = (dto, myId) => {
  * FIX: Backend contacts have no initial/avatarColor/handle — derive them.
  */
 const normalizeContact = (dto) => ({
-  id:          String(dto.id),
-  name:        dto.name       ?? 'Unknown',
-  initial:     initialFrom(dto.name ?? ''),
+  id: String(dto.id),
+  name: dto.name ?? "Unknown",
+  initial: initialFrom(dto.name ?? ""),
   // Use name as seed for deterministic gradient color (same as Avatar.jsx)
-  avatarColor: dto.name       ?? '#1565C0',
+  avatarColor: dto.name ?? "#1565C0",
   // Use @username if present, else @email prefix
-  handle:      dto.username
-                 ? `@${dto.username}`
-                 : dto.email
-                   ? `@${dto.email.split('@')[0]}`
-                   : '',
-  online:      false, // backend doesn't track online status for contacts
+  handle: dto.username
+    ? `@${dto.username}`
+    : dto.email
+      ? `@${dto.email.split("@")[0]}`
+      : "",
+  online: false, // backend doesn't track online status for contacts
   profileImage: dto.profileImage ?? null,
 });
 
@@ -144,12 +147,13 @@ const normalizeContact = (dto) => ({
 export const fetchActiveUsers = () =>
   USE_MOCK.messaging
     ? mockResponse(MOCK_ACTIVE_USERS.map((u) => ({ ...u })))
-    : api.get('/messages/active');
+    : api.get("/messages/active");
 
 // ── Conversations (inbox list) ───────────────────────────────────────────────
 export const fetchConversations = async () => {
-  if (USE_MOCK.messaging) return mockResponse(conversations.map((c) => ({ ...c })));
-  const res = await api.get('/messages/conversations');
+  if (USE_MOCK.messaging)
+    return mockResponse(conversations.map((c) => ({ ...c })));
+  const res = await api.get("/messages/conversations");
   return { data: (res.data ?? []).map(normalizeConversation) };
 };
 
@@ -157,7 +161,11 @@ export const fetchConversation = async (id) => {
   if (USE_MOCK.messaging) {
     return mockResponse({
       ...(conversations.find((c) => c.id === id) || {
-        id, name: 'Chat', initial: '?', avatarColor: '#1565C0', online: false,
+        id,
+        name: "Chat",
+        initial: "?",
+        avatarColor: "#1565C0",
+        online: false,
       }),
     });
   }
@@ -171,7 +179,9 @@ export const fetchMessages = async (conversationId) => {
     return mockResponse((threads[conversationId] || []).map((m) => ({ ...m })));
   }
   const myId = getMyId();
-  const res = await api.get(`/messages/conversations/${conversationId}/messages`);
+  const res = await api.get(
+    `/messages/conversations/${conversationId}/messages`,
+  );
   return { data: (res.data ?? []).map((m) => normalizeMessage(m, myId)) };
 };
 
@@ -179,7 +189,7 @@ export const fetchMessages = async (conversationId) => {
 export const sendMessage = async (conversationId, payload) => {
   if (USE_MOCK.messaging) {
     const msg = {
-      id: 'm-' + Date.now(),
+      id: "m-" + Date.now(),
       conversationId,
       fromMe: true,
       time: clock(),
@@ -192,11 +202,16 @@ export const sendMessage = async (conversationId, payload) => {
             ...c,
             lastType: payload.type,
             lastMessage:
-              payload.type === 'image' ? (payload.isVideo ? 'Shared a video' : 'Shared a photo')
-              : payload.type === 'voice' ? `Voice note  ${payload.duration || ''}`.trim()
-              : payload.type === 'file'  ? `📄 ${payload.fileName || 'File'}`
-              : payload.text,
-            time: 'now',
+              payload.type === "image"
+                ? payload.isVideo
+                  ? "Shared a video"
+                  : "Shared a photo"
+                : payload.type === "voice"
+                  ? `Voice note  ${payload.duration || ""}`.trim()
+                  : payload.type === "file"
+                    ? `📄 ${payload.fileName || "File"}`
+                    : payload.text,
+            time: "now",
             unread: 0,
           }
         : c,
@@ -206,10 +221,7 @@ export const sendMessage = async (conversationId, payload) => {
 
   const backendPayload = {
     type: payload.type.toUpperCase(),
-    content:
-      payload.type === 'text'
-        ? payload.text
-        : payload.content,
+    content: payload.type === "text" ? payload.text : payload.content,
   };
 
   const myId = getMyId();
@@ -226,7 +238,9 @@ export const reactToMessage = (messageId, emoji) => {
   if (USE_MOCK.messaging) {
     Object.keys(threads).forEach((tid) => {
       threads[tid] = threads[tid].map((m) =>
-        m.id === messageId ? { ...m, reaction: m.reaction === emoji ? undefined : emoji } : m,
+        m.id === messageId
+          ? { ...m, reaction: m.reaction === emoji ? undefined : emoji }
+          : m,
       );
     });
     return mockResponse({ reaction: emoji }, 120);
@@ -235,7 +249,7 @@ export const reactToMessage = (messageId, emoji) => {
 };
 
 // DELETE /messages/messages/{id}?scope=me|everyone
-export const deleteMessage = (messageId, scope = 'me') => {
+export const deleteMessage = (messageId, scope = "me") => {
   if (USE_MOCK.messaging) {
     Object.keys(threads).forEach((tid) => {
       threads[tid] = threads[tid].filter((m) => m.id !== messageId);
@@ -251,7 +265,7 @@ export const deleteMessage = (messageId, scope = 'me') => {
 // that into a 400 with { message: "LIMIT_REACHED: ..." }. Callers use this to
 // show the upsell modal instead of a generic error toast.
 export const isLimitReachedError = (err) =>
-  !!err?.response?.data?.message?.startsWith?.('LIMIT_REACHED');
+  !!err?.response?.data?.message?.startsWith?.("LIMIT_REACHED");
 
 // ════════════════════════════════════════════════════════════════════════
 //  FILE UPLOADS
@@ -261,31 +275,38 @@ export const isLimitReachedError = (err) =>
 export const uploadFile = async (file, conversationId) => {
   if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(file));
   const form = new FormData();
-  form.append('file', file);
-  if (conversationId) form.append('conversationId', conversationId);
-  const { data } = await api.post('/messages/upload/file', form);
+  form.append("file", file);
+  if (conversationId) form.append("conversationId", conversationId);
+  const { data } = await api.post("/messages/upload/file", form);
   return data.url;
 };
 
-export const uploadVoice = async (blob, mimeType = 'audio/webm', conversationId) => {
+export const uploadVoice = async (
+  blob,
+  mimeType = "audio/webm",
+  conversationId,
+) => {
   if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(blob));
-  const ext = mimeType.includes('ogg') ? 'ogg'
-    : mimeType.includes('mp4')         ? 'mp4'
-    : mimeType.includes('wav')         ? 'wav'
-    : 'webm';
+  const ext = mimeType.includes("ogg")
+    ? "ogg"
+    : mimeType.includes("mp4")
+      ? "mp4"
+      : mimeType.includes("wav")
+        ? "wav"
+        : "webm";
   const form = new FormData();
-  form.append('file', blob, `voice-${Date.now()}.${ext}`);
-  if (conversationId) form.append('conversationId', conversationId);
-  const { data } = await api.post('/messages/upload/voice', form);
+  form.append("file", blob, `voice-${Date.now()}.${ext}`);
+  if (conversationId) form.append("conversationId", conversationId);
+  const { data } = await api.post("/messages/upload/voice", form);
   return data.url;
 };
 
 export const uploadImage = async (file, conversationId) => {
   if (USE_MOCK.messaging) return Promise.resolve(URL.createObjectURL(file));
   const form = new FormData();
-  form.append('file', file);
-  if (conversationId) form.append('conversationId', conversationId);
-  const { data } = await api.post('/messages/upload/image', form);
+  form.append("file", file);
+  if (conversationId) form.append("conversationId", conversationId);
+  const { data } = await api.post("/messages/upload/image", form);
   return data.url;
 };
 
@@ -293,7 +314,7 @@ export const uploadImage = async (file, conversationId) => {
 export const fetchRequests = () =>
   USE_MOCK.messaging
     ? mockResponse(requests.map((r) => ({ ...r })))
-    : api.get('/messages/requests');
+    : api.get("/messages/requests");
 
 export const acceptRequest = (id) => {
   if (USE_MOCK.messaging) {
@@ -313,8 +334,9 @@ export const declineRequest = (id) => {
 
 // ── New chat (contacts) ──────────────────────────────────────────────────────
 export const fetchContacts = async () => {
-  if (USE_MOCK.messaging) return mockResponse(MOCK_CONTACTS.map((c) => ({ ...c })));
-  const res = await api.get('/messages/contacts');
+  if (USE_MOCK.messaging)
+    return mockResponse(MOCK_CONTACTS.map((c) => ({ ...c })));
+  const res = await api.get("/messages/contacts");
   // FIX: normalize backend UserDTO → frontend contact shape (adds initial, avatarColor, handle)
   return { data: (res.data ?? []).map(normalizeContact) };
 };
@@ -322,17 +344,27 @@ export const fetchContacts = async () => {
 export const startConversation = async (userId) => {
   if (USE_MOCK.messaging) {
     const contact = MOCK_CONTACTS.find((c) => c.id === userId);
-    const id = 'c-' + userId;
+    const id = "c-" + userId;
     if (!conversations.some((c) => c.id === id) && contact) {
       conversations = [
-        { id, name: contact.name, initial: contact.initial, avatarColor: contact.avatarColor, lastMessage: '', lastType: 'text', time: 'now', unread: 0, online: contact.online },
+        {
+          id,
+          name: contact.name,
+          initial: contact.initial,
+          avatarColor: contact.avatarColor,
+          lastMessage: "",
+          lastType: "text",
+          time: "now",
+          unread: 0,
+          online: contact.online,
+        },
         ...conversations,
       ];
       threads[id] = [];
     }
     return mockResponse({ id });
   }
-  const res = await api.post('/messages/conversations', { userId });
+  const res = await api.post("/messages/conversations", { userId });
   return { data: normalizeConversation(res.data) };
 };
 
@@ -343,7 +375,9 @@ export const deleteConversation = (id, alsoDeleteForRecipient = false) => {
     delete threads[id];
     return mockResponse({ deleted: id, alsoDeleteForRecipient }, 200);
   }
-  return api.delete(`/messages/conversations/${id}`, { data: { alsoDeleteForRecipient } });
+  return api.delete(`/messages/conversations/${id}`, {
+    data: { alsoDeleteForRecipient },
+  });
 };
 
 export const blockUser = (id) => {
@@ -362,18 +396,19 @@ export const reportUser = (id, reason) => {
 
 // ── Share a post ─────────────────────────────────────────────────────────────
 export const fetchShareTargets = async () => {
-  if (USE_MOCK.messaging) return mockResponse(MOCK_SHARE_TARGETS.map((t) => ({ ...t })));
+  if (USE_MOCK.messaging)
+    return mockResponse(MOCK_SHARE_TARGETS.map((t) => ({ ...t })));
   // ✅ Use user search API instead of missing share-targets endpoint
-  const res = await api.get('/users/search?q=');
+  const res = await api.get("/users/search?q=");
   return {
     data: (res.data ?? []).map((u) => ({
       id: String(u.id),
-      name: u.name ?? 'Unknown',
-      subtitle: u.username ? `@${u.username}` : u.email ?? '',
-      initial: u.name ? u.name[0].toUpperCase() : '?',
-      avatarColor: u.name ?? '#1565C0',
+      name: u.name ?? "Unknown",
+      subtitle: u.username ? `@${u.username}` : (u.email ?? ""),
+      initial: u.name ? u.name[0].toUpperCase() : "?",
+      avatarColor: u.name ?? "#1565C0",
       profileImage: u.profileImage ?? null,
-    }))
+    })),
   };
 };
 
@@ -383,14 +418,28 @@ export const sharePost = ({ postId, title }, userIds = []) => {
       if (threads[uid]) {
         threads[uid] = [
           ...threads[uid],
-          { id: 'm-' + Date.now() + '-' + uid, conversationId: uid, fromMe: true, type: 'text', text: `📨 Shared a post: ${title}`, time: clock() },
+          {
+            id: "m-" + Date.now() + "-" + uid,
+            conversationId: uid,
+            fromMe: true,
+            type: "text",
+            text: `📨 Shared a post: ${title}`,
+            time: clock(),
+          },
         ];
         conversations = conversations.map((c) =>
-          c.id === uid ? { ...c, lastType: 'text', lastMessage: `📨 ${title}`, time: 'now' } : c,
+          c.id === uid
+            ? {
+                ...c,
+                lastType: "text",
+                lastMessage: `📨 ${title}`,
+                time: "now",
+              }
+            : c,
         );
       }
     });
     return mockResponse({ shared: postId, count: userIds.length }, 250);
   }
-  return api.post('/messages/share-post', { postId, title, userIds });
+  return api.post("/messages/share-post", { postId, title, userIds });
 };

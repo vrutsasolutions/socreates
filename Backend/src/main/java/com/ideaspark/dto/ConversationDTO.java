@@ -13,6 +13,7 @@ public class ConversationDTO {
     private String otherUserName;
     private String otherUserAvatar;
     private boolean otherUserOnline; // placeholder, always false for now
+    private LocalDateTime otherUserLastSeen;
 
     // True when the other participant has Creator Pro (User.isPremium).
     // Drives the free-tier messaging limit (5 texts + 1 file) on the
