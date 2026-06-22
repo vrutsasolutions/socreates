@@ -44,7 +44,7 @@ export default function GetVerified() {
 
         <h2 className="text-[#0D2137] text-2xl font-bold mb-2">Get verified</h2>
         <p className="text-[#546E7A] text-sm leading-relaxed max-w-xs">
-          Verified creators get a blue badge, more visibility, and build trust with
+          Verified users get a blue badge, more visibility, and build trust with
           their audience instantly.
         </p>
 
