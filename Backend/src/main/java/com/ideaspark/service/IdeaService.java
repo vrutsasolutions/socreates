@@ -87,6 +87,22 @@ public class IdeaService {
         User creator = userRepository.findByEmail(creatorEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+
+        // Plagiarism check only for Premium users
+        if (creator.isPremium()) {
+    System.out.println("Premium User Detected");
+
+    PlagiarismResult result =
+            plagiarismService.check(req.getDescription());
+
+    System.out.println("Plagiarized: " + result.isPlagiarized());
+    System.out.println("Message: " + result.getMessage());
+
+    if (result.isPlagiarized()) {
+        throw new RuntimeException(result.getMessage());
+    }
+}
+
         Idea idea = Idea.builder()
                 .title(req.getTitle())
                 .description(req.getDescription())
@@ -466,5 +482,4 @@ public class IdeaService {
         return dto;
     }
 
-   
 }

@@ -138,14 +138,12 @@ function CropOverlay({ imgRect, crop, onCropChange }) {
 
   const startDrag = useCallback(
     (corner, e) => {
-      if (e.cancelable) e.preventDefault();
       e.stopPropagation();
       const cx0 = e.touches ? e.touches[0].clientX : e.clientX;
       const cy0 = e.touches ? e.touches[0].clientY : e.clientY;
       startRef.current = { corner, cx0, cy0, crop: { ...crop } };
 
       const onMove = (ev) => {
-        if (ev.cancelable) ev.preventDefault();
         if (!startRef.current) return;
         const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
         const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
@@ -1135,10 +1133,6 @@ export default function ImageEditor() {
                       dragIdx.current = pos;
                     }}
                     onTouchMove={(e) => {
-                      if (e.cancelable) {
-                        e.preventDefault();
-                      }
-
                       const touch = e.touches[0];
                       const el = document.elementFromPoint(
                         touch.clientX,
