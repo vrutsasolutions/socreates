@@ -289,12 +289,20 @@ export default function ImageEditor() {
   // drag state for thumbnail reorder
   const dragIdx  = useRef(null);   // position being dragged
   const dragOver = useRef(null);   // position being hovered
+  // Tracks every object URL we've ever created (originals + crop swaps)
+  // so we can revoke all of them on unmount, even ones created later
+  // by handleApplyCrop.
+  const allUrlsRef = useRef([]);
 
   // Build object URLs once
   useEffect(() => {
     const urls = (files || []).map((f) => URL.createObjectURL(f));
     setPreviews(urls);
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+    allUrlsRef.current.push(...urls);
+    return () => {
+      allUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+      allUrlsRef.current = [];
+    };
   }, []);
 
   const measureImg = useCallback(() => {
@@ -350,19 +358,61 @@ export default function ImageEditor() {
     });
   };
 
-  // Confirm the crop for the current image, exit crop mode,
-  // and auto-advance to the next unconfirmed image if any.
-  const handleApplyCrop = () => {
+  // Confirm the crop for the current image: actually render the crop
+  // (+ any rotate/flip already applied) to a canvas, swap the preview
+  // URL to the cropped result, exit crop mode, and auto-advance to the
+  // next unconfirmed image if any.
+  const handleApplyCrop = async () => {
+    const idx = current;
+    const imgEl = imgRef.current;
+
+    try {
+      if (imgEl && edit.crop) {
+        const blob = await renderEditedImage(
+          imgEl,
+          edit,
+          files[idx].type || 'image/jpeg'
+        );
+        const newUrl = URL.createObjectURL(blob);
+        const oldUrl = previews[idx];
+        allUrlsRef.current.push(newUrl);
+
+        setPreviews((prev) => {
+          const next = [...prev];
+          next[idx] = newUrl;
+          return next;
+        });
+        // Release the old object URL only after the browser has had a
+        // chance to paint the new <img src>, avoiding a flash/broken
+        // image mid-swap.
+        if (oldUrl) {
+          requestAnimationFrame(() => URL.revokeObjectURL(oldUrl));
+        }
+
+        // The crop/rotate/flip are now baked into the new preview image,
+        // so reset this image's edit state to identity. The crop box
+        // will be re-measured against the new image's dimensions once
+        // it loads (see measureImg / onLoad).
+        setEdits((prev) => {
+          const next = [...prev];
+          next[idx] = { rotation: 0, flipH: false, flipV: false, crop: null };
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Apply crop failed:', err);
+    }
+
     setCropConfirmed((prev) => {
       const next = [...prev];
-      next[current] = true;
+      next[idx] = true;
       return next;
     });
     setCropActive(false);
     // Find next image in order that hasn't been confirmed yet
     const remaining = order
       .map((origIdx) => origIdx)
-      .filter((origIdx) => origIdx !== current && !cropConfirmed[origIdx]);
+      .filter((origIdx) => origIdx !== idx && !cropConfirmed[origIdx]);
     if (remaining.length > 0) {
       setCurrent(remaining[0]);
     }

@@ -15,7 +15,7 @@ import Icon from '../components/common/Icon';
 // What each tier's order summary lists (matches the checkout design).
 const INCLUDES = {
   creator: [
-    'Verified Creator badge',
+    'Verified badge',
     'Creator Pro badge on profile',
     'Unlimited Premium Ideas',
     'Exclusive Creator Content',
