@@ -35,7 +35,7 @@ import Profile         from '../pages/Profile';
 import UserProfile     from '../pages/UserProfile';
 import IdeaDetail      from '../pages/IdeaDetail';
 import PremiumDetail    from '../pages/PremiumDetail';
-import ProfileVerification from '../pages/ProfileVerification';
+import GetVerified      from '../pages/GetVerified';
 import CreatePremiumIdea  from '../pages/CreatePremiumIdea';
 import EditProfile     from '../pages/EditProfile';
 import FollowList      from '../pages/FollowList';
@@ -71,6 +71,7 @@ export default function AppRouter() {
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/select-interests" element={<PrivateRoute><SelectInterests /></PrivateRoute>} />
         <Route path="/follow-creators"  element={<PrivateRoute><FollowCreators /></PrivateRoute>} />
+        <Route path="/get-verified"     element={<PrivateRoute><GetVerified /></PrivateRoute>} />
 
         {/* Protected routes */}
         <Route path="/home"             element={<PrivateRoute><Home /></PrivateRoute>} />
@@ -102,7 +103,6 @@ export default function AppRouter() {
         <Route path="/ideas/:id"        element={<PrivateRoute><IdeaDetail /></PrivateRoute>} />
         <Route path="/premium/:id"      element={<PrivateRoute><PremiumDetail /></PrivateRoute>} />
         <Route path="/settings"         element={<PrivateRoute><Settings /></PrivateRoute>} />
-        <Route path="/verify-profile"   element={<PrivateRoute><ProfileVerification /></PrivateRoute>} />
         <Route path="/create-premium"   element={<PrivateRoute><CreatePremiumIdea /></PrivateRoute>} />
 
         {/* Catch-all */}
