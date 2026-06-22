@@ -83,6 +83,7 @@ com\ideaspark\model\Comment.class
 com\ideaspark\model\User.class
 com\ideaspark\repository\EmailOtpRepository.class
 com\ideaspark\dto\UserDTO.class
+com\ideaspark\model\Notification$NotificationType.class
 com\ideaspark\controller\NotificationController.class
 com\ideaspark\service\MessageService.class
 com\ideaspark\service\PlagiarismService.class

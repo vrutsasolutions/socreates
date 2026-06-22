@@ -99,10 +99,14 @@ const fileNameFromUrl = (url = "") => {
 const parseSharedIdea = (content) => {
   try {
     const o = JSON.parse(content ?? '{}');
+    // Cover = explicit imageUrl, else first of an imageUrls[] snapshot.
+    const cover = o.imageUrl
+      || (Array.isArray(o.imageUrls) ? o.imageUrls.find(Boolean) : '')
+      || '';
     return {
       id:        String(o.ideaId ?? o.id ?? ''),
       title:     o.title ?? 'Shared idea',
-      imageUrl:  o.imageUrl ?? '',
+      imageUrl:  cover,
       isPremium: !!o.isPremium,
     };
   } catch {
@@ -461,5 +465,7 @@ export const sharePost = ({ postId, title, imageUrl = '', isPremium = false }, u
     });
     return mockResponse({ shared: postId, count: userIds.length, results }, 250);
   }
-  return api.post("/messages/share-post", { postId, title, userIds });
+  // Send the cover image + premium flag so the backend snapshot
+  // ({ ideaId, title, imageUrl, isPremium }) renders with the cover thumbnail.
+  return api.post("/messages/share-post", { postId, title, imageUrl, isPremium, userIds });
 };

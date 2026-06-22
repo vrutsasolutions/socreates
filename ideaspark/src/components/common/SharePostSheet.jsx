@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../messaging/Avatar';
+import { ideaImages } from './ImageGallery';
 import { fetchShareTargets, sharePost } from '../../api/messagingApi';
 
 export default function SharePostSheet({ post, onClose, onToast }) {
@@ -65,6 +66,10 @@ export default function SharePostSheet({ post, onClose, onToast }) {
 
   const count = selected.size;
 
+  // Cover = first of the idea's images (imageUrls[0]), falling back to the
+  // legacy single imageUrl. This is what the chat idea-card thumbnail shows.
+  const cover = ideaImages(post)[0] || '';
+
   const handleSend = async () => {
     if (count === 0 || sending) return;
 
@@ -73,7 +78,7 @@ export default function SharePostSheet({ post, onClose, onToast }) {
     try {
       const ids = Array.from(selected);
       const { data } = await sharePost(
-        { postId: post.id, title: post.title, imageUrl: post.imageUrl || '', isPremium: !!post.isPremium },
+        { postId: post.id, title: post.title, imageUrl: cover, isPremium: !!post.isPremium },
         ids,
       );
       onToast?.(`Post shared with ${count} ${count === 1 ? 'person' : 'people'}`);
@@ -142,8 +147,8 @@ export default function SharePostSheet({ post, onClose, onToast }) {
 
       <div className="px-4 pt-3">
         <div className="bg-white rounded-2xl border border-[#E3F2FD] p-3 flex items-center gap-3 shadow-sm">
-          {post.imageUrl ? (
-            <img src={post.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+          {cover ? (
+            <img src={cover} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
           ) : (
             <span className="w-12 h-12 rounded-xl bg-[#EEF4FF] text-[#1565C0] text-[11px] font-bold flex items-center justify-center shrink-0">
               IDEA
