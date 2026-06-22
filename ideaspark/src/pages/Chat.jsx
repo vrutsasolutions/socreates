@@ -1681,7 +1681,7 @@ export default function Chat() {
             onClick={goPremium}
             className="shrink-0 bg-[#EF4444] hover:bg-[#DC2626] text-white text-[13px] font-bold px-4 py-1.5 rounded-full active:scale-95 transition-all flex items-center gap-1"
           >
-            <span>⭐</span> Go Premium
+            <span></span> Go Premium
           </button>
         </div>
       ) : limited && textRemaining > 0 && textRemaining <= 3 ? (
@@ -2588,7 +2588,7 @@ export default function Chat() {
             onClick={() => setShowLimitModal(false)}
           />
           <div className="relative w-full max-w-[360px] bg-white rounded-3xl shadow-2xl p-6 text-center">
-            <span className="block mx-auto mb-4 h-1.5 w-10 rounded-full bg-[#BBDEFB]" />
+      
             <div className="w-20 h-20 rounded-full bg-[#FEF3C7] border-4 border-[#FDE68A] flex items-center justify-center mx-auto mb-4">
               <svg
                 className="w-9 h-9 text-[#D97706]"
@@ -2620,11 +2620,9 @@ export default function Chat() {
               onClick={goPremium}
               className="mt-4 w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-3.5 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-              <span>⭐</span> Upgrade to Premium
+              Upgrade to Premium
             </button>
-            <div className="mt-3 bg-[#F0F6FF] border border-[#E3F2FD] rounded-xl px-3 py-2 text-[11px] text-[#546E7A]">
-              💬 Unlimited messages · ⚡ Read receipts · 🔒 E2E encrypted
-            </div>
+           
             <button
               onClick={() => setShowLimitModal(false)}
               className="mt-3 text-[13px] font-semibold text-[#90A4AE] hover:text-[#546E7A]"
