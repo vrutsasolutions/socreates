@@ -176,7 +176,7 @@ from the message text (backend sends none of those).
 > The bell's initial list / unread-count / mark-read still run on **mock**
 > (`USE_MOCK.notifications = true`) because the GET/read endpoints above don't exist yet.
 >
-> **Gaps for Vishakha to close** (so the bell is fully live, not just real-time):
+> **Backend gaps to close** (so the bell is fully live, not just real-time):
 > 1. Add `GET /`, `GET /unread-count`, `POST /{id}/read`, `POST /read-all`.
 > 2. The WS handshake is currently **unauthenticated** (`setAllowedOriginPatterns("*")`,
 >    no JWT check) — add a STOMP `ChannelInterceptor`/handshake auth.
