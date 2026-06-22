@@ -27,6 +27,7 @@ import {
   sendMessage,
   uploadVoice,
   uploadFile,
+  uploadImage,
   reactToMessage,
   deleteMessage,
   isLimitReachedError,
@@ -931,6 +932,7 @@ export default function Chat() {
       url: URL.createObjectURL(f),
       isVideo: f.type.startsWith("video"),
       name: f.name,
+      file: f,
     }));
     if (!compose) setCaption("");
     setCompose((prev) =>
@@ -980,13 +982,26 @@ export default function Chat() {
         // is what was breaking images for both sender and receiver, since
         // blob: URLs only resolve inside the tab that created them.
         const url = await uploadImage(it.file, id);
-        await sendMessage(id, {
+        const sent = await sendMessage(id, {
           type: 'image',
           content: url,
           isVideo: it.isVideo,
           text: i === 0 ? (caption.trim() || undefined) : undefined,
           replyTo: i === 0 ? replySnippet() : undefined,
         });
+        // Swap the optimistic bubble over to the permanent R2 url (and the
+        // server's real message id, when available) *before* revoking the
+        // blob — the bubble is still mounted and pointing at it.id/imageUrl,
+        // so revoking first left it referencing a dead blob: URL, which is
+        // what produced the "Failed to load resource… ERR_FILE_NOT_FOUND"
+        // console error on every successful image send.
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tmpId
+              ? { ...m, id: sent?.data?.id ?? m.id, imageUrl: url }
+              : m,
+          ),
+        );
         try { URL.revokeObjectURL(it.url); } catch (_) {}
       } catch (err) {
         console.error('Image send failed:', err);

@@ -30,6 +30,21 @@ public class Notification {
     @Column(name = "reference_id")
     private UUID referenceId;
 
+    // Kind of activity this notification represents. The frontend uses this
+    // to decide whether the notification belongs in the bell (idea activity:
+    // LIKE/FOLLOW/COMMENT/BOOKMARK/SYSTEM) or in the message icon (MESSAGE —
+    // any DM, including text/photo/voice/file/shared-idea sent in a chat).
+    // Defaults to SYSTEM so older rows / callers that don't set it still work.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 20)
+    @Builder.Default
+    private NotificationType type = NotificationType.SYSTEM;
+
+    // Set only for MESSAGE-type notifications, so the message icon can take
+    // the user straight to the relevant chat (/messages/{conversationId}).
+    @Column(name = "conversation_id")
+    private UUID conversationId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -43,5 +58,9 @@ public class Notification {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
+    }
+
+    public enum NotificationType {
+        LIKE, FOLLOW, COMMENT, BOOKMARK, MESSAGE, SYSTEM
     }
 }

@@ -5,7 +5,7 @@
 //  "Pay with Razorpay" opens Razorpay's hosted popup (Card / UPI / Netbanking),
 //  then verifies the signature server-side before granting premium.
 // ════════════════════════════════════════════════════════════════════════
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { USE_MOCK } from '../api/config';
@@ -35,10 +35,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState('');   // '' | 'razorpay' | 'stripe'
   const [error, setError]     = useState('');
 
-  const order = location.state;
-  // Deep-linked / refreshed without a selected plan → back to Membership.
-  if (!order?.plan) return <Navigate to="/membership" replace />;
-
+  const order = location.state || {};
   const { plan, billing, planLabel, price } = order;
   const yearly   = billing === 'yearly';
   const includes = INCLUDES[plan] ?? INCLUDES.reader;
@@ -52,7 +49,7 @@ export default function Checkout() {
 
   const onFailure = (err) =>
     navigate('/membership/failure', {
-      state: { message: err?.response?.data?.message },
+      state: { message: err?.response?.data?.message, plan, billing, planLabel, price },
     });
 
   const payRazorpay = async () => {
@@ -121,6 +118,20 @@ export default function Checkout() {
       setLoading('');
     }
   };
+
+  // Coming from the failure screen's "Retry with X" → run that gateway once.
+  const retriedRef = useRef(false);
+  useEffect(() => {
+    if (retriedRef.current || !order?.retryGateway) return;
+    retriedRef.current = true;
+    if (order.retryGateway === 'stripe') payStripe();
+    else payRazorpay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Deep-linked / refreshed without a selected plan → back to Membership.
+  // (After all hooks, to keep hook order stable.)
+  if (!order.plan) return <Navigate to="/membership" replace />;
 
   const busy = !!loading;
 

@@ -19,6 +19,13 @@ const readUser = () => {
 export const hasCreatorPro = (user) =>
   !!(user?.creatorPro || (user?.isPremium && user?.membership?.plan === 'creator'));
 
+/**
+ * The verified badge is now earned by paying for ANY membership (Premium or
+ * Creator Pro). There is no separate verification flow — buying a plan IS the
+ * verification. Use this everywhere the "Verified" tag/gate is shown.
+ */
+export const isVerified = (user) => !!user?.isPremium;
+
 /** Build a membership descriptor from the checkout payload. */
 export function buildMembership({ plan, billing, gateway, planLabel, price }) {
   const now    = new Date();

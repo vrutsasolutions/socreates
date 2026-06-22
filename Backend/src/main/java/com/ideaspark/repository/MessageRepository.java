@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -20,9 +21,14 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
 
     void deleteByConversationId(UUID conversationId);
 
-    // ── Free-tier messaging limit (user → creator chats) ────────────────────
     long countByConversationAndSenderAndType(Conversation conversation, User sender, Message.MessageType type);
 
     long countByConversationAndSenderAndTypeIn(Conversation conversation, User sender,
             List<Message.MessageType> types);
+
+    // ✅ Get only the last message in a conversation
+    Optional<Message> findTopByConversationOrderByCreatedAtDesc(Conversation conversation);
+
+    // ✅ Count unread messages not sent by a specific user
+    long countByConversationAndIsReadFalseAndSenderIdNot(Conversation conversation, UUID senderId);
 }

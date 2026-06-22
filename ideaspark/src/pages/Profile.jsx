@@ -5,7 +5,7 @@ import IdeaCard from "../components/common/IdeaCard.premium";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosInstance";
 import { fetchFollowStats } from "../api/userApi";
-import { hasCreatorPro } from "../api/paymentApi";
+import { hasCreatorPro, isVerified } from "../api/paymentApi";
 import Icon from "../components/common/Icon";
 
 const TABS = ["My Ideas", "Saved"];
@@ -129,10 +129,10 @@ export default function Profile() {
 
             <h2 className="text-white font-bold text-lg mt-3">{user?.name}</h2>
 
-            {/* Status badges — verified creator + paid tier (premium / creator pro) */}
-            {(user?.verified || user?.isPremium || hasCreatorPro(user)) && (
+            {/* Status badges — verified (any paid membership) + tier pill */}
+            {isVerified(user) && (
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                {user?.verified && (
+                {isVerified(user) && (
                   <span className="inline-flex items-center gap-1 bg-[#E7F8EE] text-[#15803D] text-xs font-bold px-3 py-1 rounded-full">
                     <svg
                       className="w-3.5 h-3.5"

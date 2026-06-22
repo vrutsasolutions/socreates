@@ -9,7 +9,7 @@ import Icon from './Icon';
 
 const TYPE_ICON = {
   message: 'message-square',
-  like: 'heart', bookmark: 'bookmark', idea: 'lightbulb',
+  like: 'heart', bookmark: 'bookmark',
   follow: 'user', comment: 'message-square', system: 'bell',
 };
 

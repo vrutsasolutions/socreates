@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { isVerified } from '../api/paymentApi';
 
 export default function CreatePremiumIdea() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const verified = !!user?.verified;
-  const pending  = user?.verificationStatus === 'pending';
+  // Verified = an active paid membership (verification is no longer a separate flow).
+  const verified = isVerified(user);
   const [price, setPrice] = useState('99');
 
   return (
@@ -55,9 +56,7 @@ export default function CreatePremiumIdea() {
             <p className="text-blue-200 text-xs mt-0.5">
               {verified
                 ? 'You can publish premium ideas'
-                : pending
-                  ? 'Verification under review'
-                  : 'Verification required for premium'}
+                : 'Get verified with a membership to publish'}
             </p>
           </div>
           {verified && (
@@ -143,14 +142,14 @@ export default function CreatePremiumIdea() {
               <div className="bg-white border border-[#E3F2FD] rounded-2xl p-4 flex items-center justify-between shadow-sm">
                 <div>
                   <p className="text-[#0D2137] font-bold text-[15px]">Premium Toggle</p>
-                  <p className="text-[#90A4AE] text-xs mt-0.5">Verification required to enable</p>
+                  <p className="text-[#90A4AE] text-xs mt-0.5">Membership required to enable</p>
                 </div>
                 <span className="bg-[#CBD5E1] text-[#475569] text-xs font-bold px-4 py-1.5 rounded-full">OFF</span>
               </div>
 
               {/* Perks list box */}
               <div className="bg-white border border-[#E3F2FD] rounded-2xl p-4 space-y-3.5 shadow-sm">
-                <p className="text-[#0D2137] font-bold text-sm uppercase tracking-wider px-1">Unlock with Verification</p>
+                <p className="text-[#0D2137] font-bold text-sm uppercase tracking-wider px-1">Unlock with Membership</p>
                 {[
                   'Set a price readers pay to unlock',
                   'Earn from your premium content',
@@ -168,23 +167,12 @@ export default function CreatePremiumIdea() {
                 ))}
               </div>
 
-              {pending && (
-                <div className="flex items-center gap-3 bg-[#FFF8EC] border border-[#FDE68A] rounded-2xl px-4 py-3">
-                  <svg className="w-4 h-4 text-[#D97706] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-[#92400E] text-xs font-semibold">
-                    Your verification application is under review. Check back in 3–5 business days.
-                  </p>
-                </div>
-              )}
-
               <div className="pt-2">
                 <button
-                  onClick={() => navigate('/verify-profile?from=premium')}
+                  onClick={() => navigate('/membership')}
                   className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-white font-bold py-4 rounded-2xl active:scale-[0.97] transition-all shadow-lg shadow-amber-300/40 text-[15px]"
                 >
-                  {pending ? 'View Application Status' : 'Apply for Verification'}
+                  Get Verified — View Plans
                 </button>
               </div>
             </div>
