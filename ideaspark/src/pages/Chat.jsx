@@ -15,6 +15,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Avatar from "../components/messaging/Avatar";
+import { useSearchParams } from "react-router-dom";
+import { setEditorInput, takeEditorOutput } from "../state/imageEditorStore";
+
 import {
   ChatActionsLayer,
   ShareAttachSheet,
@@ -358,7 +361,11 @@ function Bubble({
         className="block w-[230px] overflow-hidden rounded-2xl bg-white text-left shadow-sm border border-[#E3F2FD] active:scale-[0.99] transition-transform"
       >
         {idea.imageUrl ? (
-          <img src={idea.imageUrl} alt="" className="w-full h-[120px] object-cover" />
+          <img
+            src={idea.imageUrl}
+            alt=""
+            className="w-full h-[120px] object-cover"
+          />
         ) : (
           <div className="w-full h-[88px] bg-[#EAF2FF] flex items-center justify-center text-[#1565C0] text-[11px] font-bold tracking-widest">
             IDEA
@@ -457,7 +464,6 @@ function Bubble({
         <div className="relative">
           {content}
 
-        
           {reaction && (
             <span
               className={`absolute -bottom-2.5 ${
@@ -544,6 +550,7 @@ function EmptyState({ onSayHello }) {
 export default function Chat() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [params] = useSearchParams();
   const { user } = useAuth();
 
   const cameraRef = useRef(null);
@@ -590,6 +597,7 @@ export default function Chat() {
   const [forwardContacts, setForwardContacts] = useState(null); // null = loading
   const [forwardPicked, setForwardPicked] = useState([]); // selected contact ids
   const [forwardSearch, setForwardSearch] = useState("");
+
 
   // Free-tier messaging limit upsell modal
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -685,6 +693,30 @@ export default function Chat() {
     };
   }, []);
 
+  useEffect(() => {
+    if (params.get("edited") !== "1") return;
+
+    const edited = takeEditorOutput();
+
+    if (edited?.length) {
+      const croppedFile = edited[0];
+
+      setCaption("");
+
+      setCompose({
+        items: [
+          {
+            url: URL.createObjectURL(croppedFile),
+            isVideo: false,
+            name: croppedFile.name,
+            file: croppedFile,
+          },
+        ],
+        index: 0,
+      });
+    }
+  }, [params]);
+
   // ── Timer helpers ───────────────────────────────────────────────────────
   const startTimer = () => {
     stopTimer();
@@ -730,31 +762,31 @@ export default function Chat() {
   };
 
   useEffect(() => {
-  const handlePresence = (event) => {
-    const presence = event.detail;
+    const handlePresence = (event) => {
+      const presence = event.detail;
 
-    setConvo((prev) => {
-      if (!prev) return prev;
+      setConvo((prev) => {
+        if (!prev) return prev;
 
-      if (String(prev.otherUserId) !== String(presence.userId)) {
-        return prev;
-      }
+        if (String(prev.otherUserId) !== String(presence.userId)) {
+          return prev;
+        }
 
-      return {
-        ...prev,
-        online: presence.online,
-        otherUserOnline: presence.online,
-        lastSeen: presence.lastSeen,
-      };
-    });
-  };
+        return {
+          ...prev,
+          online: presence.online,
+          otherUserOnline: presence.online,
+          lastSeen: presence.lastSeen,
+        };
+      });
+    };
 
-  window.addEventListener("presence-update", handlePresence);
+    window.addEventListener("presence-update", handlePresence);
 
-  return () => {
-    window.removeEventListener("presence-update", handlePresence);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("presence-update", handlePresence);
+    };
+  }, []);
 
   const replySnippet = () =>
     replyTo
@@ -918,23 +950,37 @@ export default function Chat() {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
-    for (const file of files) {
-      if (!ALLOWED_MEDIA_TYPES.includes(file.type)) {
-        showToast("Only JPG, PNG, WEBP images and MP4 videos are supported.");
-        return;
-      }
-      if (file.size > MAX_MEDIA_SIZE) {
-        showToast("Media file size must be less than 5MB.");
-        return;
-      }
+
+    const file = files[0];
+
+    if (!ALLOWED_MEDIA_TYPES.includes(file.type)) {
+      showToast("Only JPG, PNG, WEBP images and MP4 videos are supported.");
+      return;
     }
-    const items = files.map((f) => ({
-      url: URL.createObjectURL(f),
-      isVideo: f.type.startsWith("video"),
-      name: f.name,
-      file: f,
-    }));
+
+    if (file.size > MAX_MEDIA_SIZE) {
+      showToast("Media file size must be less than 5MB.");
+      return;
+    }
+
+
+    if (file.type.startsWith("image")) {
+      setEditorInput([file], `/messages/${id}`);
+      navigate("/edit-images");
+      return;
+    }
+
+    const items = [
+      {
+        url: URL.createObjectURL(file),
+        isVideo: true,
+        name: file.name,
+        file,
+      },
+    ];
+
     if (!compose) setCaption("");
+
     setCompose((prev) =>
       prev
         ? { ...prev, items: [...prev.items, ...items] }
@@ -958,22 +1004,33 @@ export default function Chat() {
 
   const handleSendCompose = async () => {
     if (!compose) return;
-    if (fileLimitReached) { setShowLimitModal(true); return; }
+    if (fileLimitReached) {
+      setShowLimitModal(true);
+      return;
+    }
 
     const items = compose.items;
-    setCompose(null); setCaption(''); setReplyTo(null);
+    setCompose(null);
+    setCaption("");
+    setReplyTo(null);
 
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      const tmpId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+      const tmpId =
+        "tmp-" + Date.now() + "-" + Math.random().toString(36).slice(2);
       // Optimistic bubble using the local blob preview (fine for the sender's
       // own screen only — never persisted or sent to the backend/receiver).
       setMessages((prev) => [
-        ...prev.filter((m) => m.type !== 'typing'),
+        ...prev.filter((m) => m.type !== "typing"),
         {
-          id: tmpId, conversationId: id, fromMe: true, time: '', type: 'image',
-          imageUrl: it.url, isVideo: it.isVideo,
-          text: i === 0 ? (caption.trim() || undefined) : undefined,
+          id: tmpId,
+          conversationId: id,
+          fromMe: true,
+          time: "",
+          type: "image",
+          imageUrl: it.url,
+          isVideo: it.isVideo,
+          text: i === 0 ? caption.trim() || undefined : undefined,
           replyTo: i === 0 ? replySnippet() : undefined,
         },
       ]);
@@ -983,10 +1040,10 @@ export default function Chat() {
         // blob: URLs only resolve inside the tab that created them.
         const url = await uploadImage(it.file, id);
         const sent = await sendMessage(id, {
-          type: 'image',
+          type: "image",
           content: url,
           isVideo: it.isVideo,
-          text: i === 0 ? (caption.trim() || undefined) : undefined,
+          text: i === 0 ? caption.trim() || undefined : undefined,
           replyTo: i === 0 ? replySnippet() : undefined,
         });
         // Swap the optimistic bubble over to the permanent R2 url (and the
@@ -1002,14 +1059,16 @@ export default function Chat() {
               : m,
           ),
         );
-        try { URL.revokeObjectURL(it.url); } catch (_) {}
+        try {
+          URL.revokeObjectURL(it.url);
+        } catch (_) {}
       } catch (err) {
-        console.error('Image send failed:', err);
+        console.error("Image send failed:", err);
         setMessages((prev) => prev.filter((m) => m.id !== tmpId));
         if (isLimitReachedError(err)) {
           setShowLimitModal(true);
         } else {
-          showToast('Could not send image.');
+          showToast("Could not send image.");
         }
       }
     }
@@ -1183,22 +1242,22 @@ export default function Chat() {
       : messages;
 
   const getDateLabel = (dateValue) => {
-  const date = dateValue ? new Date(dateValue) : new Date();
+    const date = dateValue ? new Date(dateValue) : new Date();
 
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
 
-  const isSameDay = (a, b) =>
-    a.getDate() === b.getDate() &&
-    a.getMonth() === b.getMonth() &&
-    a.getFullYear() === b.getFullYear();
+    const isSameDay = (a, b) =>
+      a.getDate() === b.getDate() &&
+      a.getMonth() === b.getMonth() &&
+      a.getFullYear() === b.getFullYear();
 
-  if (isSameDay(date, today)) return "Today";
-  if (isSameDay(date, yesterday)) return "Yesterday";
+    if (isSameDay(date, today)) return "Today";
+    if (isSameDay(date, yesterday)) return "Yesterday";
 
-  return date.toLocaleDateString();
-};
+    return date.toLocaleDateString();
+  };
 
   // Shared media / docs for the Media & Docs sheet
   const mediaItems = messages.filter((m) => m.type === "image");
@@ -1373,8 +1432,11 @@ export default function Chat() {
             </button>
 
             {/* Identity pill — tapping the name opens the chat info / profile */}
-            <button onClick={() => navigate(`/messages/${id}/profile`)} aria-label="View profile"
-              className="flex-1 min-w-0 flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2 text-left hover:bg-white/15 active:scale-[0.98] transition-all">
+            <button
+              onClick={() => navigate(`/messages/${id}/profile`)}
+              aria-label="View profile"
+              className="flex-1 min-w-0 flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-2 text-left hover:bg-white/15 active:scale-[0.98] transition-all"
+            >
               {loading ? (
                 <div className="w-9 h-9 rounded-full bg-white/20 animate-pulse shrink-0" />
               ) : (
@@ -1556,7 +1618,11 @@ export default function Chat() {
                 onReact={applyReaction}
                 onOpenIdea={(idea) => {
                   if (!idea?.id) return;
-                  navigate(idea.isPremium ? `/premium/${idea.id}` : `/ideas/${idea.id}`);
+                  navigate(
+                    idea.isPremium
+                      ? `/premium/${idea.id}`
+                      : `/ideas/${idea.id}`,
+                  );
                 }}
               />
             ))

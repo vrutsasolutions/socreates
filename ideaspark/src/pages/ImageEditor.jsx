@@ -4,70 +4,126 @@
  * Optional — Skip returns originals unchanged.
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getEditorInput,
   getReturnPath,
   setEditorOutput,
-} from '../state/imageEditorStore';
+} from "../state/imageEditorStore";
 
 // ─── Icons ─────────────────────────────────────────────────────────────────
 
 const RotateCCWIcon = () => (
-  <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-    <path d="M3 3v5h5"/>
+  <svg
+    width={20}
+    height={20}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
   </svg>
 );
 
 const RotateCWIcon = () => (
-  <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-    <path d="M21 3v5h-5"/>
+  <svg
+    width={20}
+    height={20}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
   </svg>
 );
 
 const FlipHIcon = () => (
-  <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/>
-    <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/>
-    <line x1="12" y1="3" x2="12" y2="21"/>
+  <svg
+    width={20}
+    height={20}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3" />
+    <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
+    <line x1="12" y1="3" x2="12" y2="21" />
   </svg>
 );
 
 const FlipVIcon = () => (
-  <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"/>
-    <path d="M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"/>
-    <line x1="3" y1="12" x2="21" y2="12"/>
+  <svg
+    width={20}
+    height={20}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3" />
+    <path d="M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3" />
+    <line x1="3" y1="12" x2="21" y2="12" />
   </svg>
 );
 
 const CropIcon = () => (
-  <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 2v14a2 2 0 0 0 2 2h14"/>
-    <path d="M18 22V8a2 2 0 0 0-2-2H2"/>
+  <svg
+    width={20}
+    height={20}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+    <path d="M18 22V8a2 2 0 0 0-2-2H2" />
   </svg>
 );
 
 const ResetIcon = () => (
-  <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 12a9 9 0 1 0 4-7.5"/>
-    <path d="M3 4v5h5"/>
+  <svg
+    width={20}
+    height={20}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 12a9 9 0 1 0 4-7.5" />
+    <path d="M3 4v5h5" />
   </svg>
 );
 
 const CheckIcon = () => (
-  <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12"/>
+  <svg
+    width={18}
+    height={18}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="20 6 9 17 4 12" />
   </svg>
 );
 
@@ -80,113 +136,166 @@ function CropOverlay({ imgRect, crop, onCropChange }) {
   const startRef = useRef(null);
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-  const startDrag = useCallback((corner, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const cx0 = e.touches ? e.touches[0].clientX : e.clientX;
-    const cy0 = e.touches ? e.touches[0].clientY : e.clientY;
-    startRef.current = { corner, cx0, cy0, crop: { ...crop } };
+  const startDrag = useCallback(
+    (corner, e) => {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      const cx0 = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy0 = e.touches ? e.touches[0].clientY : e.clientY;
+      startRef.current = { corner, cx0, cy0, crop: { ...crop } };
 
-    const onMove = (ev) => {
-      if (!startRef.current) return;
-      const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
-      const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
-      const dx = cx - startRef.current.cx0;
-      const dy = cy - startRef.current.cy0;
-      const c  = { ...startRef.current.crop };
+      const onMove = (ev) => {
+        if (ev.cancelable) ev.preventDefault();
+        if (!startRef.current) return;
+        const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+        const dx = cx - startRef.current.cx0;
+        const dy = cy - startRef.current.cy0;
+        const c = { ...startRef.current.crop };
 
-      if (corner === 'tl') {
-        const nx = clamp(c.x + dx, 0, c.x + c.w - MIN_SZ);
-        const ny = clamp(c.y + dy, 0, c.y + c.h - MIN_SZ);
-        onCropChange({ x: nx, y: ny, w: c.w + (c.x - nx), h: c.h + (c.y - ny) });
-      } else if (corner === 'tr') {
-        const nw = clamp(c.w + dx, MIN_SZ, imgRect.width - c.x);
-        const ny = clamp(c.y + dy, 0, c.y + c.h - MIN_SZ);
-        onCropChange({ x: c.x, y: ny, w: nw, h: c.h + (c.y - ny) });
-      } else if (corner === 'bl') {
-        const nx = clamp(c.x + dx, 0, c.x + c.w - MIN_SZ);
-        const nh = clamp(c.h + dy, MIN_SZ, imgRect.height - c.y);
-        onCropChange({ x: nx, y: c.y, w: c.w + (c.x - nx), h: nh });
-      } else {
-        const nw = clamp(c.w + dx, MIN_SZ, imgRect.width  - c.x);
-        const nh = clamp(c.h + dy, MIN_SZ, imgRect.height - c.y);
-        onCropChange({ x: c.x, y: c.y, w: nw, h: nh });
-      }
-    };
+        if (corner === "tl") {
+          const nx = clamp(c.x + dx, 0, c.x + c.w - MIN_SZ);
+          const ny = clamp(c.y + dy, 0, c.y + c.h - MIN_SZ);
+          onCropChange({
+            x: nx,
+            y: ny,
+            w: c.w + (c.x - nx),
+            h: c.h + (c.y - ny),
+          });
+        } else if (corner === "tr") {
+          const nw = clamp(c.w + dx, MIN_SZ, imgRect.width - c.x);
+          const ny = clamp(c.y + dy, 0, c.y + c.h - MIN_SZ);
+          onCropChange({ x: c.x, y: ny, w: nw, h: c.h + (c.y - ny) });
+        } else if (corner === "bl") {
+          const nx = clamp(c.x + dx, 0, c.x + c.w - MIN_SZ);
+          const nh = clamp(c.h + dy, MIN_SZ, imgRect.height - c.y);
+          onCropChange({ x: nx, y: c.y, w: c.w + (c.x - nx), h: nh });
+        } else {
+          const nw = clamp(c.w + dx, MIN_SZ, imgRect.width - c.x);
+          const nh = clamp(c.h + dy, MIN_SZ, imgRect.height - c.y);
+          onCropChange({ x: c.x, y: c.y, w: nw, h: nh });
+        }
+      };
 
-    const onUp = () => {
-      startRef.current = null;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup',   onUp);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend',  onUp);
-    };
+      const onUp = () => {
+        startRef.current = null;
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener("touchmove", onMove);
+        window.removeEventListener("touchend", onUp);
+      };
 
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup',   onUp);
-    window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend',  onUp);
-  }, [crop, imgRect, onCropChange]);
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+      window.addEventListener("touchmove", onMove, { passive: false });
+      window.addEventListener("touchend", onUp);
+    },
+    [crop, imgRect, onCropChange],
+  );
 
   const { x, y, w, h } = crop;
 
   const corners = [
-    { id: 'tl', left: x - HANDLE / 2,     top: y - HANDLE / 2 },
-    { id: 'tr', left: x + w - HANDLE / 2, top: y - HANDLE / 2 },
-    { id: 'bl', left: x - HANDLE / 2,     top: y + h - HANDLE / 2 },
-    { id: 'br', left: x + w - HANDLE / 2, top: y + h - HANDLE / 2 },
+    { id: "tl", left: x - HANDLE / 2, top: y - HANDLE / 2 },
+    { id: "tr", left: x + w - HANDLE / 2, top: y - HANDLE / 2 },
+    { id: "bl", left: x - HANDLE / 2, top: y + h - HANDLE / 2 },
+    { id: "br", left: x + w - HANDLE / 2, top: y + h - HANDLE / 2 },
   ];
 
   return (
-    <div style={{ position: 'absolute', top: 0, left: 0,
-                  width: imgRect.width, height: imgRect.height,
-                  pointerEvents: 'none' }}>
-
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: imgRect.width,
+        height: imgRect.height,
+        pointerEvents: "none",
+      }}
+    >
       {/* Dimmed area outside crop */}
-      <svg width={imgRect.width} height={imgRect.height}
-           style={{ position: 'absolute', top: 0, left: 0 }}>
+      <svg
+        width={imgRect.width}
+        height={imgRect.height}
+        style={{ position: "absolute", top: 0, left: 0 }}
+      >
         <defs>
           <mask id="cmask">
-            <rect width="100%" height="100%" fill="white"/>
-            <rect x={x} y={y} width={w} height={h} fill="black"/>
+            <rect width="100%" height="100%" fill="white" />
+            <rect x={x} y={y} width={w} height={h} fill="black" />
           </mask>
         </defs>
-        <rect width="100%" height="100%" fill="rgba(13,33,55,0.62)" mask="url(#cmask)"/>
+        <rect
+          width="100%"
+          height="100%"
+          fill="rgba(13,33,55,0.62)"
+          mask="url(#cmask)"
+        />
         {/* Border */}
-        <rect x={x} y={y} width={w} height={h}
-              fill="none" stroke="#1565C0" strokeWidth={2} strokeDasharray="7 4"/>
+        <rect
+          x={x}
+          y={y}
+          width={w}
+          height={h}
+          fill="none"
+          stroke="#1565C0"
+          strokeWidth={2}
+          strokeDasharray="7 4"
+        />
         {/* Rule-of-thirds */}
-        {[1,2].map(n => (
+        {[1, 2].map((n) => (
           <g key={n}>
-            <line x1={x + w*n/3} y1={y} x2={x + w*n/3} y2={y+h}
-                  stroke="rgba(21,101,192,0.45)" strokeWidth={1}/>
-            <line x1={x} y1={y + h*n/3} x2={x+w} y2={y + h*n/3}
-                  stroke="rgba(21,101,192,0.45)" strokeWidth={1}/>
+            <line
+              x1={x + (w * n) / 3}
+              y1={y}
+              x2={x + (w * n) / 3}
+              y2={y + h}
+              stroke="rgba(21,101,192,0.45)"
+              strokeWidth={1}
+            />
+            <line
+              x1={x}
+              y1={y + (h * n) / 3}
+              x2={x + w}
+              y2={y + (h * n) / 3}
+              stroke="rgba(21,101,192,0.45)"
+              strokeWidth={1}
+            />
           </g>
         ))}
       </svg>
 
       {/* Corner handles */}
       {corners.map(({ id, left, top }) => (
-        <div key={id}
+        <div
+          key={id}
           style={{
-            position: 'absolute', left, top,
-            width: HANDLE, height: HANDLE,
-            pointerEvents: 'all',
-            cursor: 'nwse-resize',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            touchAction: 'none',
+            position: "absolute",
+            left,
+            top,
+            width: HANDLE,
+            height: HANDLE,
+            pointerEvents: "all",
+            cursor: "nwse-resize",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            touchAction: "none",
             zIndex: 10,
           }}
           onMouseDown={(e) => startDrag(id, e)}
           onTouchStart={(e) => startDrag(id, e)}
         >
-          <div style={{
-            width: 16, height: 16, borderRadius: 4,
-            background: '#1565C0',
-            boxShadow: '0 2px 8px rgba(21,101,192,0.5)',
-            border: '2.5px solid white',
-          }}/>
+          <div
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: 4,
+              background: "#1565C0",
+              boxShadow: "0 2px 8px rgba(21,101,192,0.5)",
+              border: "2.5px solid white",
+            }}
+          />
         </div>
       ))}
     </div>
@@ -195,63 +304,115 @@ function CropOverlay({ imgRect, crop, onCropChange }) {
 
 // ─── Canvas renderer ────────────────────────────────────────────────────────
 
-async function renderEditedImage(imgEl, edit, mimeType = 'image/jpeg') {
-  const { rotation, flipH, flipV, crop } = edit;
-  const nw = imgEl.naturalWidth;
-  const nh = imgEl.naturalHeight;
-  const displayW = imgEl.clientWidth  || nw;
-  const displayH = imgEl.clientHeight || nh;
+async function renderEditedImage(
+  imgEl,
+  edit = {},
+  mimeType = "image/jpeg",
+  displaySize = null,
+) {
+  await new Promise((resolve, reject) => {
+    if (imgEl.complete && imgEl.naturalWidth) {
+      resolve();
+      return;
+    }
+    imgEl.onload = resolve;
+    imgEl.onerror = reject;
+  });
+
+  const rotation = edit.rotation || 0;
+  const flipH = !!edit.flipH;
+  const flipV = !!edit.flipV;
+
+  const nw = imgEl.naturalWidth || imgEl.width;
+  const nh = imgEl.naturalHeight || imgEl.height;
+
+  const displayW = displaySize?.width || imgEl.clientWidth || nw;
+  const displayH = displaySize?.height || imgEl.clientHeight || nh;
+
+  const crop = edit.crop || { x: 0, y: 0, w: displayW, h: displayH };
+
   const sx = nw / displayW;
   const sy = nh / displayH;
 
-  const cropX = (crop?.x || 0) * sx;
-  const cropY = (crop?.y || 0) * sy;
-  const cropW = (crop?.w || displayW) * sx;
-  const cropH = (crop?.h || displayH) * sy;
+  const cropX = Math.max(0, Math.min(nw, crop.x * sx));
+  const cropY = Math.max(0, Math.min(nh, crop.y * sy));
+  const cropW = Math.max(1, Math.min(nw - cropX, crop.w * sx));
+  const cropH = Math.max(1, Math.min(nh - cropY, crop.h * sy));
 
   const isOdd = Math.abs(rotation) % 180 !== 0;
-  const outW  = isOdd ? cropH : cropW;
-  const outH  = isOdd ? cropW : cropH;
+  const outW = Math.round(isOdd ? cropH : cropW);
+  const outH = Math.round(isOdd ? cropW : cropH);
 
-  const canvas = document.createElement('canvas');
-  canvas.width  = outW;
+  const canvas = document.createElement("canvas");
+  canvas.width = outW;
   canvas.height = outH;
-  const ctx = canvas.getContext('2d');
+
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, outW, outH);
+
   ctx.save();
   ctx.translate(outW / 2, outH / 2);
   ctx.rotate((rotation * Math.PI) / 180);
   ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-  ctx.drawImage(imgEl, cropX, cropY, cropW, cropH, -cropW/2, -cropH/2, cropW, cropH);
+  ctx.drawImage(
+    imgEl,
+    cropX,
+    cropY,
+    cropW,
+    cropH,
+    -cropW / 2,
+    -cropH / 2,
+    cropW,
+    cropH,
+  );
   ctx.restore();
 
-  return new Promise((res, rej) =>
-    canvas.toBlob((b) => b ? res(b) : rej(new Error('toBlob failed')), mimeType, 0.93)
-  );
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Image export failed"));
+      },
+      mimeType,
+      0.93,
+    );
+  });
 }
 
 // ─── Tool button ────────────────────────────────────────────────────────────
 
 function ToolBtn({ label, onClick, active, children }) {
   return (
-    <button onClick={onClick}
+    <button
+      onClick={onClick}
       className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
     >
-      <div style={{
-        width: 50, height: 50,
-        borderRadius: 14,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: active ? '#1565C0' : '#EEF4FF',
-        color:      active ? '#fff'     : '#1565C0',
-        boxShadow: active ? '0 2px 12px rgba(21,101,192,0.35)' : 'none',
-        transition: 'all 0.18s',
-        border: active ? 'none' : '1.5px solid #BBDEFB',
-      }}>
+      <div
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: 14,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: active ? "#1565C0" : "#EEF4FF",
+          color: active ? "#fff" : "#1565C0",
+          boxShadow: active ? "0 2px 12px rgba(21,101,192,0.35)" : "none",
+          transition: "all 0.18s",
+          border: active ? "none" : "1.5px solid #BBDEFB",
+        }}
+      >
         {children}
       </div>
-      <span style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: 0.2,
-        color: active ? '#1565C0' : '#546E7A',
-      }}>
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: 0.2,
+          color: active ? "#1565C0" : "#546E7A",
+        }}
+      >
         {label}
       </span>
     </button>
@@ -261,8 +422,8 @@ function ToolBtn({ label, onClick, active, children }) {
 // ─── Main page ──────────────────────────────────────────────────────────────
 
 export default function ImageEditor() {
-  const navigate   = useNavigate();
-  const files      = getEditorInput();
+  const navigate = useNavigate();
+  const files = getEditorInput();
   const returnPath = getReturnPath();
 
   useEffect(() => {
@@ -270,29 +431,35 @@ export default function ImageEditor() {
   }, []);
 
   const [edits, setEdits] = useState(() =>
-    (files || []).map(() => ({ rotation: 0, flipH: false, flipV: false, crop: null }))
+    (files || []).map(() => ({
+      rotation: 0,
+      flipH: false,
+      flipV: false,
+      crop: null,
+    })),
   );
-  const [current,        setCurrent]        = useState(0);
-  const [previews,       setPreviews]       = useState([]);
-  const [imgRect,        setImgRect]        = useState(null);
-  const [cropActive,     setCropActive]     = useState(false);
-  const [processing,     setProcessing]     = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [previews, setPreviews] = useState([]);
+  const [imgRect, setImgRect] = useState(null);
+  const [cropActive, setCropActive] = useState(false);
+  const [processing, setProcessing] = useState(false);
   // cropConfirmed[i] = true once the user tapped "Apply Crop" for image i
-  const [cropConfirmed,  setCropConfirmed]  = useState(() =>
-    (files || []).map(() => false)
+  const [cropConfirmed, setCropConfirmed] = useState(() =>
+    (files || []).map(() => false),
   );
   // order[i] = original index of the image now at position i
   const [order, setOrder] = useState(() => (files || []).map((_, i) => i));
 
-  const imgRef   = useRef(null);
-  const boxRef   = useRef(null);
+  const imgRef = useRef(null);
+  const boxRef = useRef(null);
   // drag state for thumbnail reorder
-  const dragIdx  = useRef(null);   // position being dragged
-  const dragOver = useRef(null);   // position being hovered
+  const dragIdx = useRef(null); // position being dragged
+  const dragOver = useRef(null); // position being hovered
   // Tracks every object URL we've ever created (originals + crop swaps)
   // so we can revoke all of them on unmount, even ones created later
   // by handleApplyCrop.
   const allUrlsRef = useRef([]);
+  const displaySizesRef = useRef({});
 
   // Build object URLs once
   useEffect(() => {
@@ -308,46 +475,71 @@ export default function ImageEditor() {
   const measureImg = useCallback(() => {
     if (!imgRef.current) return;
     const el = imgRef.current;
-    const w  = el.clientWidth;
-    const h  = el.clientHeight;
+    const w = el.clientWidth;
+    const h = el.clientHeight;
     if (!w || !h) return;
+
+    displaySizesRef.current[current] = { width: w, height: h };
     setImgRect({ width: w, height: h });
-    setEdits((prev) => {
-      const next = [...prev];
-      if (!next[current]?.crop) {
-        next[current] = { ...next[current], crop: { x: 0, y: 0, w, h } };
-      }
-      return next;
-    });
   }, [current]);
 
   useEffect(() => {
     measureImg();
-    window.addEventListener('resize', measureImg);
-    return () => window.removeEventListener('resize', measureImg);
+    window.addEventListener("resize", measureImg);
+    return () => window.removeEventListener("resize", measureImg);
   }, [measureImg, current]);
 
   // Reset crop-active when switching images
-  useEffect(() => { setCropActive(false); }, [current]);
+  useEffect(() => {
+    setCropActive(false);
+  }, [current]);
 
-  const edit = edits[current] || { rotation: 0, flipH: false, flipV: false, crop: null };
+  const edit = edits[current] || {
+    rotation: 0,
+    flipH: false,
+    flipV: false,
+    crop: null,
+  };
 
-  const updateEdit = (patch) => setEdits((prev) => {
-    const next = [...prev];
-    next[current] = { ...next[current], ...patch };
-    return next;
-  });
+  const updateEdit = (patch) =>
+    setEdits((prev) => {
+      const next = [...prev];
+      next[current] = { ...next[current], ...patch };
+      return next;
+    });
+
+  const ensureCropForCurrent = () => {
+    const size = displaySizesRef.current[current] || imgRect;
+    if (!size) return;
+
+    setEdits((prev) => {
+      const next = [...prev];
+      if (!next[current]?.crop) {
+        next[current] = {
+          ...next[current],
+          crop: { x: 0, y: 0, w: size.width, h: size.height },
+        };
+      }
+      return next;
+    });
+  };
 
   const handleRotate = (deg) => {
-    const newRot = ((edit.rotation + deg) % 360 + 360) % 360;
-    const newCrop = imgRect ? { x: 0, y: 0, w: imgRect.width, h: imgRect.height } : edit.crop;
+    const newRot = (((edit.rotation + deg) % 360) + 360) % 360;
+    const newCrop = imgRect
+      ? { x: 0, y: 0, w: imgRect.width, h: imgRect.height }
+      : edit.crop;
     updateEdit({ rotation: newRot, crop: newCrop });
   };
 
   const handleReset = () => {
     updateEdit({
-      rotation: 0, flipH: false, flipV: false,
-      crop: imgRect ? { x: 0, y: 0, w: imgRect.width, h: imgRect.height } : null,
+      rotation: 0,
+      flipH: false,
+      flipV: false,
+      crop: imgRect
+        ? { x: 0, y: 0, w: imgRect.width, h: imgRect.height }
+        : null,
     });
     setCropActive(false);
     // clear confirmed status for this image on reset
@@ -371,7 +563,8 @@ export default function ImageEditor() {
         const blob = await renderEditedImage(
           imgEl,
           edit,
-          files[idx].type || 'image/jpeg'
+          files[idx].type || "image/jpeg",
+          displaySizesRef.current[idx] || imgRect,
         );
         const newUrl = URL.createObjectURL(blob);
         const oldUrl = previews[idx];
@@ -400,7 +593,7 @@ export default function ImageEditor() {
         });
       }
     } catch (err) {
-      console.error('Apply crop failed:', err);
+      console.error("Apply crop failed:", err);
     }
 
     setCropConfirmed((prev) => {
@@ -424,28 +617,42 @@ export default function ImageEditor() {
       const out = [];
       // Iterate in the user-defined order
       for (let pos = 0; pos < order.length; pos++) {
-        const i   = order[pos]; // original index
-        const el  = document.createElement('img');
-        el.src    = previews[i];
-        await new Promise((res) => { el.onload = res; });
-        el.width  = el.naturalWidth;
+        const i = order[pos]; // original index
+        const el = document.createElement("img");
+        el.src = previews[i];
+        await new Promise((res) => {
+          el.onload = res;
+        });
+        el.width = el.naturalWidth;
         el.height = el.naturalHeight;
 
-        const displayW = imgRef.current?.clientWidth  || el.naturalWidth;
-        const displayH = imgRef.current?.clientHeight || el.naturalHeight;
-        const ed       = edits[i];
-        const crop     = ed.crop || { x: 0, y: 0, w: displayW, h: displayH };
+        const ed = edits[i] || {
+          rotation: 0,
+          flipH: false,
+          flipV: false,
+          crop: null,
+        };
+        const displaySize = displaySizesRef.current[i] || null;
 
-        const blob = await renderEditedImage(el, { ...ed, crop }, files[i].type || 'image/jpeg');
-        out.push(new File([blob], files[i].name, { type: files[i].type || 'image/jpeg' }));
+        const blob = await renderEditedImage(
+          el,
+          ed,
+          files[i].type || "image/jpeg",
+          displaySize,
+        );
+        out.push(
+          new File([blob], files[i].name, {
+            type: files[i].type || "image/jpeg",
+          }),
+        );
       }
       setEditorOutput(out);
     } catch (err) {
-      console.error('ImageEditor error:', err);
+      console.error("ImageEditor error:", err);
       setEditorOutput([...files]);
     } finally {
       setProcessing(false);
-      navigate(returnPath + '?edited=1', { replace: true });
+      navigate(returnPath + "?edited=1", { replace: true });
     }
   };
 
@@ -458,73 +665,129 @@ export default function ImageEditor() {
 
   const imgTransform = [
     `rotate(${edit.rotation}deg)`,
-    edit.flipH ? 'scaleX(-1)' : '',
-    edit.flipV ? 'scaleY(-1)' : '',
-  ].filter(Boolean).join(' ');
+    edit.flipH ? "scaleX(-1)" : "",
+    edit.flipV ? "scaleY(-1)" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 50,
-      background: '#F4F7FF',
-      display: 'flex', flexDirection: 'column',
-      userSelect: 'none', WebkitUserSelect: 'none',
-    }}>
-
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 50,
+        background: "#F4F7FF",
+        display: "flex",
+        flexDirection: "column",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+      }}
+    >
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div style={{
-        background: '#1565C0',
-        padding: '44px 16px 14px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexShrink: 0,
-        boxShadow: '0 2px 12px rgba(21,101,192,0.18)',
-      }}>
-        <button onClick={handleSkip} style={{
-          color: 'rgba(255,255,255,0.82)', fontSize: 14, fontWeight: 600,
-          padding: '6px 4px', background: 'none', border: 'none', cursor: 'pointer',
-        }}>
+      <div
+        style={{
+          background: "#1565C0",
+          padding: "44px 16px 14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexShrink: 0,
+          boxShadow: "0 2px 12px rgba(21,101,192,0.18)",
+        }}
+      >
+        <button
+          onClick={handleSkip}
+          style={{
+            color: "rgba(255,255,255,0.82)",
+            fontSize: 14,
+            fontWeight: 600,
+            padding: "6px 4px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
           Skip
         </button>
 
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, margin: 0 }}>
-            Edit {files.length > 1 ? `Image ${current + 1}/${files.length}` : 'Image'}
+        <div style={{ textAlign: "center" }}>
+          <p
+            style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: 0 }}
+          >
+            Edit{" "}
+            {files.length > 1
+              ? `Image ${current + 1}/${files.length}`
+              : "Image"}
           </p>
           {cropActive && (
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, margin: 0 }}>
+            <p
+              style={{
+                color: "rgba(255,255,255,0.7)",
+                fontSize: 11,
+                margin: 0,
+              }}
+            >
               Drag corners to crop
             </p>
           )}
         </div>
 
-        <button onClick={handleDone} disabled={processing} style={{
-          background: processing ? 'rgba(255,255,255,0.25)' : 'white',
-          color: '#1565C0', fontWeight: 700, fontSize: 13,
-          padding: '7px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 5,
-          opacity: processing ? 0.7 : 1,
-          transition: 'opacity 0.2s',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-        }}>
-          {processing
-            ? <span style={{
-                width: 15, height: 15, border: '2px solid #BBDEFB',
-                borderTopColor: '#1565C0', borderRadius: '50%',
-                display: 'inline-block', animation: 'spin 0.7s linear infinite',
-              }}/>
-            : <CheckIcon />
-          }
+        <button
+          onClick={handleDone}
+          disabled={processing}
+          style={{
+            background: processing ? "rgba(255,255,255,0.25)" : "white",
+            color: "#1565C0",
+            fontWeight: 700,
+            fontSize: 13,
+            padding: "7px 14px",
+            borderRadius: 10,
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            opacity: processing ? 0.7 : 1,
+            transition: "opacity 0.2s",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          }}
+        >
+          {processing ? (
+            <span
+              style={{
+                width: 15,
+                height: 15,
+                border: "2px solid #BBDEFB",
+                borderTopColor: "#1565C0",
+                borderRadius: "50%",
+                display: "inline-block",
+                animation: "spin 0.7s linear infinite",
+              }}
+            />
+          ) : (
+            <CheckIcon />
+          )}
           Done
         </button>
       </div>
 
       {/* ── Image canvas area ───────────────────────────────────────────── */}
-      <div ref={boxRef} style={{
-        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '16px', overflow: 'hidden', position: 'relative',
-        background: '#EEF4FF',
-      }}>
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+      <div
+        ref={boxRef}
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "16px",
+          overflow: "hidden",
+          position: "relative",
+          background: "#EEF4FF",
+        }}
+      >
+        <div style={{ position: "relative", display: "inline-block" }}>
           <img
             ref={imgRef}
             key={current}
@@ -533,25 +796,31 @@ export default function ImageEditor() {
             onLoad={measureImg}
             draggable={false}
             style={{
-              maxWidth: '100%',
-              maxHeight: 'calc(100vh - 280px)',
-              objectFit: 'contain',
+              maxWidth: "100%",
+              maxHeight: "calc(100vh - 280px)",
+              objectFit: "contain",
               transform: imgTransform,
-              transformOrigin: 'center',
-              display: 'block',
+              transformOrigin: "center",
+              display: "block",
               borderRadius: 12,
-              boxShadow: '0 4px 24px rgba(21,101,192,0.15)',
+              boxShadow: "0 4px 24px rgba(21,101,192,0.15)",
             }}
           />
 
           {/* Crop overlay — only shown when crop mode is active */}
           {cropActive && imgRect && edit.crop && (
-            <div style={{
-              position: 'absolute', top: 0, left: 0,
-              width: imgRect.width, height: imgRect.height,
-              borderRadius: 12, overflow: 'hidden',
-              pointerEvents: 'none',
-            }}>
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: imgRect.width,
+                height: imgRect.height,
+                borderRadius: 12,
+                overflow: "hidden",
+                pointerEvents: "none",
+              }}
+            >
               <CropOverlay
                 imgRect={imgRect}
                 crop={edit.crop}
@@ -562,17 +831,33 @@ export default function ImageEditor() {
 
           {/* Confirmed tick badge on the image */}
           {cropConfirmed[current] && !cropActive && (
-            <div style={{
-              position: 'absolute', top: 10, right: 10,
-              background: '#1565C0',
-              borderRadius: '50%', width: 26, height: 26,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(21,101,192,0.4)',
-              border: '2px solid white',
-            }}>
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none"
-                stroke="white" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
+            <div
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                background: "#1565C0",
+                borderRadius: "50%",
+                width: 26,
+                height: 26,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 2px 8px rgba(21,101,192,0.4)",
+                border: "2px solid white",
+              }}
+            >
+              <svg
+                width={13}
+                height={13}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
           )}
@@ -580,28 +865,47 @@ export default function ImageEditor() {
 
         {/* ── Apply Crop button — floats above toolbar when crop is active ── */}
         {cropActive && (
-          <div style={{
-            position: 'absolute', bottom: 16, left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex', gap: 10, alignItems: 'center',
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              bottom: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+            }}
+          >
             {/* Cancel crop */}
             <button
               onClick={() => setCropActive(false)}
               style={{
-                background: 'white',
-                border: '1.5px solid #BBDEFB',
-                borderRadius: 24, padding: '10px 20px',
-                fontSize: 13, fontWeight: 700, color: '#546E7A',
-                cursor: 'pointer', whiteSpace: 'nowrap',
-                boxShadow: '0 2px 12px rgba(21,101,192,0.10)',
-                display: 'flex', alignItems: 'center', gap: 6,
+                background: "white",
+                border: "1.5px solid #BBDEFB",
+                borderRadius: 24,
+                padding: "10px 20px",
+                fontSize: 13,
+                fontWeight: 700,
+                color: "#546E7A",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                boxShadow: "0 2px 12px rgba(21,101,192,0.10)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+              <svg
+                width={14}
+                height={14}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
               Cancel
             </button>
@@ -610,27 +914,45 @@ export default function ImageEditor() {
             <button
               onClick={handleApplyCrop}
               style={{
-                background: '#1565C0',
-                border: 'none',
-                borderRadius: 24, padding: '10px 24px',
-                fontSize: 13, fontWeight: 700, color: 'white',
-                cursor: 'pointer', whiteSpace: 'nowrap',
-                boxShadow: '0 4px 16px rgba(21,101,192,0.35)',
-                display: 'flex', alignItems: 'center', gap: 6,
+                background: "#1565C0",
+                border: "none",
+                borderRadius: 24,
+                padding: "10px 24px",
+                fontSize: 13,
+                fontWeight: 700,
+                color: "white",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                boxShadow: "0 4px 16px rgba(21,101,192,0.35)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              <svg width={15} height={15} viewBox="0 0 24 24" fill="none"
-                stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
+              <svg
+                width={15}
+                height={15}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth={2.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
               </svg>
               Apply Crop
               {/* hint: next image exists */}
               {order.filter((idx) => idx !== current).length > 0 && (
-                <span style={{
-                  background: 'rgba(255,255,255,0.25)',
-                  borderRadius: 10, padding: '1px 7px',
-                  fontSize: 11, fontWeight: 600,
-                }}>
+                <span
+                  style={{
+                    background: "rgba(255,255,255,0.25)",
+                    borderRadius: 10,
+                    padding: "1px 7px",
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}
+                >
                   → Next
                 </span>
               )}
@@ -640,46 +962,75 @@ export default function ImageEditor() {
 
         {/* Hint badge when crop is inactive */}
         {!cropActive && (
-          <div style={{
-            position: 'absolute', bottom: 12, left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(21,101,192,0.09)',
-            border: '1px solid #BBDEFB',
-            borderRadius: 20, padding: '5px 14px',
-            fontSize: 11, color: '#1565C0', fontWeight: 600,
-            whiteSpace: 'nowrap',
-            display: 'flex', alignItems: 'center', gap: 5,
-          }}>
-            {cropConfirmed[current]
-              ? <>
-                  <svg width={11} height={11} viewBox="0 0 24 24" fill="none"
-                    stroke="#1565C0" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  Crop applied · tap Crop to adjust
-                </>
-              : 'Tap Crop to trim · editing is optional'
-            }
+          <div
+            style={{
+              position: "absolute",
+              bottom: 12,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "rgba(21,101,192,0.09)",
+              border: "1px solid #BBDEFB",
+              borderRadius: 20,
+              padding: "5px 14px",
+              fontSize: 11,
+              color: "#1565C0",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            {cropConfirmed[current] ? (
+              <>
+                <svg
+                  width={11}
+                  height={11}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#1565C0"
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Crop applied · tap Crop to adjust
+              </>
+            ) : (
+              "Tap Crop to trim · editing is optional"
+            )}
           </div>
         )}
       </div>
 
       {/* ── Tool bar ────────────────────────────────────────────────────── */}
-      <div style={{
-        background: '#fff',
-        borderTop: '1.5px solid #EEF4FF',
-        paddingBottom: 'env(safe-area-inset-bottom, 16px)',
-        flexShrink: 0,
-        boxShadow: '0 -2px 12px rgba(21,101,192,0.07)',
-      }}>
-
+      <div
+        style={{
+          background: "#fff",
+          borderTop: "1.5px solid #EEF4FF",
+          paddingBottom: "env(safe-area-inset-bottom, 16px)",
+          flexShrink: 0,
+          boxShadow: "0 -2px 12px rgba(21,101,192,0.07)",
+        }}
+      >
         {/* 5 tools row */}
-        <div style={{
-          display: 'flex', justifyContent: 'center',
-          gap: 16, padding: '14px 20px 4px',
-        }}>
-          <ToolBtn label="Crop" active={cropActive}
-            onClick={() => setCropActive((v) => !v)}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 16,
+            padding: "14px 20px 4px",
+          }}
+        >
+          <ToolBtn
+            label="Crop"
+            active={cropActive}
+            onClick={() => {
+              ensureCropForCurrent();
+              setCropActive((v) => !v);
+            }}
+          >
             <CropIcon />
           </ToolBtn>
 
@@ -691,13 +1042,19 @@ export default function ImageEditor() {
             <RotateCWIcon />
           </ToolBtn>
 
-          <ToolBtn label="Flip H" active={edit.flipH}
-            onClick={() => updateEdit({ flipH: !edit.flipH })}>
+          <ToolBtn
+            label="Flip H"
+            active={edit.flipH}
+            onClick={() => updateEdit({ flipH: !edit.flipH })}
+          >
             <FlipHIcon />
           </ToolBtn>
 
-          <ToolBtn label="Flip V" active={edit.flipV}
-            onClick={() => updateEdit({ flipV: !edit.flipV })}>
+          <ToolBtn
+            label="Flip V"
+            active={edit.flipV}
+            onClick={() => updateEdit({ flipV: !edit.flipV })}
+          >
             <FlipVIcon />
           </ToolBtn>
 
@@ -709,17 +1066,28 @@ export default function ImageEditor() {
         {/* Thumbnail strip — drag to reorder */}
         {files.length > 1 && (
           <div>
-            <p style={{
-              textAlign: 'center', fontSize: 10, fontWeight: 700,
-              color: '#90A4AE', letterSpacing: 1, textTransform: 'uppercase',
-              margin: '10px 0 6px',
-            }}>
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: 10,
+                fontWeight: 700,
+                color: "#90A4AE",
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                margin: "10px 0 6px",
+              }}
+            >
               Hold &amp; drag to reorder
             </p>
-            <div style={{
-              display: 'flex', gap: 8, justifyContent: 'center',
-              padding: '0 16px 16px', overflowX: 'auto',
-            }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                justifyContent: "center",
+                padding: "0 16px 16px",
+                overflowX: "auto",
+              }}
+            >
               {order.map((origIdx, pos) => {
                 const src = previews[origIdx];
                 const isSelected = origIdx === current;
@@ -729,16 +1097,26 @@ export default function ImageEditor() {
                     key={origIdx}
                     draggable
                     onDragStart={(e) => {
-                      dragIdx.current  = pos;
-                      e.dataTransfer.effectAllowed = 'move';
+                      dragIdx.current = pos;
+                      e.dataTransfer.effectAllowed = "move";
                       // ghost image
-                      try { e.dataTransfer.setDragImage(e.currentTarget, 24, 24); } catch (_) {}
+                      try {
+                        e.dataTransfer.setDragImage(e.currentTarget, 24, 24);
+                        // eslint-disable-next-line no-unused-vars
+                      } catch (_) {
+                        // ignore failures setting the drag image
+                      }
                     }}
-                    onDragEnter={() => { dragOver.current = pos; }}
-                    onDragOver={(e) => { e.preventDefault(); dragOver.current = pos; }}
+                    onDragEnter={() => {
+                      dragOver.current = pos;
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      dragOver.current = pos;
+                    }}
                     onDragEnd={() => {
                       const from = dragIdx.current;
-                      const to   = dragOver.current;
+                      const to = dragOver.current;
                       if (from !== null && to !== null && from !== to) {
                         setOrder((prev) => {
                           const next = [...prev];
@@ -749,21 +1127,33 @@ export default function ImageEditor() {
                         // keep current pointing to the same original image
                         // (its position may have shifted)
                       }
-                      dragIdx.current  = null;
+                      dragIdx.current = null;
                       dragOver.current = null;
                     }}
                     // Touch drag (mobile)
-                    onTouchStart={(e) => { dragIdx.current = pos; }}
+                    onTouchStart={() => {
+                      dragIdx.current = pos;
+                    }}
                     onTouchMove={(e) => {
-                      e.preventDefault();
+                      if (e.cancelable) {
+                        e.preventDefault();
+                      }
+
                       const touch = e.touches[0];
-                      const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                      const idx = el?.closest('[data-pos]')?.dataset?.pos;
-                      if (idx !== undefined) dragOver.current = Number(idx);
+                      const el = document.elementFromPoint(
+                        touch.clientX,
+                        touch.clientY,
+                      );
+
+                      const idx = el?.closest("[data-pos]")?.dataset?.pos;
+
+                      if (idx !== undefined) {
+                        dragOver.current = Number(idx);
+                      }
                     }}
                     onTouchEnd={() => {
                       const from = dragIdx.current;
-                      const to   = dragOver.current;
+                      const to = dragOver.current;
                       if (from !== null && to !== null && from !== to) {
                         setOrder((prev) => {
                           const next = [...prev];
@@ -772,71 +1162,113 @@ export default function ImageEditor() {
                           return next;
                         });
                       }
-                      dragIdx.current  = null;
+                      dragIdx.current = null;
                       dragOver.current = null;
                     }}
                     data-pos={pos}
                     onClick={() => setCurrent(origIdx)}
                     style={{
-                      position: 'relative',
-                      width: 52, height: 52,
+                      position: "relative",
+                      width: 52,
+                      height: 52,
                       borderRadius: 10,
-                      overflow: 'hidden',
+                      overflow: "hidden",
                       flexShrink: 0,
-                      cursor: 'grab',
+                      cursor: "grab",
                       border: isSelected
-                        ? '2.5px solid #1565C0'
-                        : '2.5px solid #EEF4FF',
+                        ? "2.5px solid #1565C0"
+                        : "2.5px solid #EEF4FF",
                       opacity: isDraggingThis ? 0.4 : isSelected ? 1 : 0.65,
                       boxShadow: isSelected
-                        ? '0 0 0 3px rgba(21,101,192,0.2)'
-                        : 'none',
-                      transition: 'opacity 0.15s, border-color 0.15s',
-                      touchAction: 'none',
+                        ? "0 0 0 3px rgba(21,101,192,0.2)"
+                        : "none",
+                      transition: "opacity 0.15s, border-color 0.15s",
+                      touchAction: "none",
                     }}
                   >
-                    <img src={src} alt={`t${pos}`}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
+                    <img
+                      src={src}
+                      alt={`t${pos}`}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        pointerEvents: "none",
+                      }}
                     />
                     {/* Position badge */}
-                    <div style={{
-                      position: 'absolute', top: 3, left: 3,
-                      background: pos === 0 ? '#1565C0' : 'rgba(13,33,55,0.55)',
-                      color: '#fff',
-                      fontSize: 9, fontWeight: 700,
-                      padding: '1px 5px', borderRadius: 5,
-                      lineHeight: '14px',
-                      pointerEvents: 'none',
-                    }}>
-                      {pos === 0 ? 'Cover' : pos + 1}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 3,
+                        left: 3,
+                        background:
+                          pos === 0 ? "#1565C0" : "rgba(13,33,55,0.55)",
+                        color: "#fff",
+                        fontSize: 9,
+                        fontWeight: 700,
+                        padding: "1px 5px",
+                        borderRadius: 5,
+                        lineHeight: "14px",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {pos === 0 ? "Cover" : pos + 1}
                     </div>
                     {/* Crop-confirmed tick */}
                     {cropConfirmed[origIdx] && (
-                      <div style={{
-                        position: 'absolute', top: 3, right: 3,
-                        background: '#1565C0',
-                        borderRadius: '50%', width: 14, height: 14,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        border: '1.5px solid white',
-                        pointerEvents: 'none',
-                      }}>
-                        <svg width={8} height={8} viewBox="0 0 24 24" fill="none"
-                          stroke="white" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"/>
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 3,
+                          right: 3,
+                          background: "#1565C0",
+                          borderRadius: "50%",
+                          width: 14,
+                          height: 14,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1.5px solid white",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <svg
+                          width={8}
+                          height={8}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="white"
+                          strokeWidth={3.5}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
                         </svg>
                       </div>
                     )}
                     {/* Drag handle dots */}
-                    <div style={{
-                      position: 'absolute', bottom: 3, right: 3,
-                      display: 'grid', gridTemplateColumns: '1fr 1fr',
-                      gap: 2, pointerEvents: 'none',
-                    }}>
-                      {[0,1,2,3].map(d => (
-                        <div key={d} style={{
-                          width: 3, height: 3, borderRadius: '50%',
-                          background: 'rgba(255,255,255,0.8)',
-                        }}/>
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: 3,
+                        right: 3,
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 2,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {[0, 1, 2, 3].map((d) => (
+                        <div
+                          key={d}
+                          style={{
+                            width: 3,
+                            height: 3,
+                            borderRadius: "50%",
+                            background: "rgba(255,255,255,0.8)",
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
@@ -847,7 +1279,7 @@ export default function ImageEditor() {
         )}
 
         {/* Single image spacing */}
-        {files.length === 1 && <div style={{ height: 14 }}/>}
+        {files.length === 1 && <div style={{ height: 14 }} />}
       </div>
 
       {/* spinner keyframe */}
