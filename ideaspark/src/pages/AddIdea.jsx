@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { hasCreatorPro, isVerified } from '../api/paymentApi';
 import { AIAssistantBar, AIThinkingBubble } from '../components/common/AIInteractions.premium';
 import { saveIdeaDraft, takeIdeaDraft } from '../state/ideaDraft';
+import { setEditorInput, takeEditorOutput } from '../state/imageEditorStore';
 
 const CATEGORIES = [
   'Technology','Design','Business','Science','Art','Health',
@@ -369,7 +370,8 @@ export default function AddIdea() {
     // back from the Creator Pro page. takeIdeaDraft() clears it after one read.
     const d = takeIdeaDraft();
     const premiumReturn = params.get('premium') === '1';
-    if (!d && !premiumReturn) return;
+    const editorReturn  = params.get('edited')  === '1';
+    if (!d && !premiumReturn && !editorReturn) return;
     const p = params.get('price');
     setForm((f) => ({
       ...f,
@@ -379,8 +381,13 @@ export default function AddIdea() {
         : {}),
     }));
     if (d) {
-      setImages(d.images || []);
-      setPreviews(d.previews || []);
+      // When returning from the image editor, DON'T restore draft images —
+      // the editor-output effect below will apply the edited (or original)
+      // files instead. Restoring draft images here would overwrite them.
+      if (!editorReturn) {
+        setImages(d.images || []);
+        setPreviews(d.previews || []);
+      }
       // Return the user to the step they left from (the Media / upload-image
       // step where the premium toggle lives) instead of resetting to step 0.
       if (typeof d.step === 'number') setStep(d.step);
@@ -411,16 +418,42 @@ export default function AddIdea() {
     setForm({ ...form, [name]: v });
   };
 
+  // ── Image editor integration ───────────────────────────────────────────────
+  // When the user selects files from disk, we send them to /edit-images first.
+  // The editor is optional — if they tap Skip it writes null and navigates back
+  // with no ?edited=1 param, so we just re-apply the originals.
   const handleImage = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    setImages((prev) => [...prev, ...files].slice(0, MAX_IMAGES));
-    setPreviews((prev) => {
-      const room = MAX_IMAGES - prev.length;
-      return [...prev, ...files.slice(0, room).map((f) => URL.createObjectURL(f))];
-    });
     e.target.value = '';
+    // Stash the current draft so the images/form survive navigation.
+    saveIdeaDraft({ form, images, previews, step });
+    // Hand the newly selected files to the editor store.
+    setEditorInput(
+      [...images, ...files].slice(0, MAX_IMAGES),
+      '/add-idea'
+    );
+    navigate('/edit-images');
   };
+
+  // Called when navigating back from /edit-images (with ?edited=1).
+  // Also handles the skip case: editor writes null output but navigates back
+  // without ?edited=1. In that case the draft restore already has the originals.
+  useEffect(() => {
+    if (params.get('edited') !== '1') return;
+    const edited = takeEditorOutput();
+    if (edited && edited.length > 0) {
+      // User applied edits — swap in the processed files.
+      setPreviews((prev) => {
+        prev.forEach((u) => URL.revokeObjectURL(u));
+        return edited.map((f) => URL.createObjectURL(f));
+      });
+      setImages(edited);
+    }
+    // If edited is null/empty the editor had an error — draft restore already
+    // put the originals back via the !editorReturn branch.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const removeImage = (idx) => {
     setImages((prev)   => prev.filter((_, i) => i !== idx));
@@ -612,6 +645,20 @@ export default function AddIdea() {
                           Cover
                         </span>
                       )}
+                      {/* Edit button — opens editor for all current images */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          saveIdeaDraft({ form, images, previews, step });
+                          setEditorInput([...images], '/add-idea');
+                          navigate('/edit-images');
+                        }}
+                        aria-label="Edit image"
+                        className="absolute bottom-1 right-1 w-6 h-6 bg-black/55 text-white rounded-full flex items-center justify-center text-xs leading-none active:scale-90"
+                        title="Edit images"
+                      >
+                        ✎
+                      </button>
                       <button
                         type="button"
                         onClick={() => removeImage(i)}
