@@ -272,14 +272,23 @@ export default function ImageEditor() {
   const [edits, setEdits] = useState(() =>
     (files || []).map(() => ({ rotation: 0, flipH: false, flipV: false, crop: null }))
   );
-  const [current,    setCurrent]    = useState(0);
-  const [previews,   setPreviews]   = useState([]);
-  const [imgRect,    setImgRect]    = useState(null);
-  const [cropActive, setCropActive] = useState(false); // toggle crop mode
-  const [processing, setProcessing] = useState(false);
+  const [current,        setCurrent]        = useState(0);
+  const [previews,       setPreviews]       = useState([]);
+  const [imgRect,        setImgRect]        = useState(null);
+  const [cropActive,     setCropActive]     = useState(false);
+  const [processing,     setProcessing]     = useState(false);
+  // cropConfirmed[i] = true once the user tapped "Apply Crop" for image i
+  const [cropConfirmed,  setCropConfirmed]  = useState(() =>
+    (files || []).map(() => false)
+  );
+  // order[i] = original index of the image now at position i
+  const [order, setOrder] = useState(() => (files || []).map((_, i) => i));
 
-  const imgRef = useRef(null);
-  const boxRef = useRef(null);
+  const imgRef   = useRef(null);
+  const boxRef   = useRef(null);
+  // drag state for thumbnail reorder
+  const dragIdx  = useRef(null);   // position being dragged
+  const dragOver = useRef(null);   // position being hovered
 
   // Build object URLs once
   useEffect(() => {
@@ -333,13 +342,39 @@ export default function ImageEditor() {
       crop: imgRect ? { x: 0, y: 0, w: imgRect.width, h: imgRect.height } : null,
     });
     setCropActive(false);
+    // clear confirmed status for this image on reset
+    setCropConfirmed((prev) => {
+      const next = [...prev];
+      next[current] = false;
+      return next;
+    });
+  };
+
+  // Confirm the crop for the current image, exit crop mode,
+  // and auto-advance to the next unconfirmed image if any.
+  const handleApplyCrop = () => {
+    setCropConfirmed((prev) => {
+      const next = [...prev];
+      next[current] = true;
+      return next;
+    });
+    setCropActive(false);
+    // Find next image in order that hasn't been confirmed yet
+    const remaining = order
+      .map((origIdx) => origIdx)
+      .filter((origIdx) => origIdx !== current && !cropConfirmed[origIdx]);
+    if (remaining.length > 0) {
+      setCurrent(remaining[0]);
+    }
   };
 
   const handleDone = async () => {
     setProcessing(true);
     try {
       const out = [];
-      for (let i = 0; i < files.length; i++) {
+      // Iterate in the user-defined order
+      for (let pos = 0; pos < order.length; pos++) {
+        const i   = order[pos]; // original index
         const el  = document.createElement('img');
         el.src    = previews[i];
         await new Promise((res) => { el.onload = res; });
@@ -351,7 +386,7 @@ export default function ImageEditor() {
         const ed       = edits[i];
         const crop     = ed.crop || { x: 0, y: 0, w: displayW, h: displayH };
 
-        const blob    = await renderEditedImage(el, { ...ed, crop }, files[i].type || 'image/jpeg');
+        const blob = await renderEditedImage(el, { ...ed, crop }, files[i].type || 'image/jpeg');
         out.push(new File([blob], files[i].name, { type: files[i].type || 'image/jpeg' }));
       }
       setEditorOutput(out);
@@ -474,20 +509,107 @@ export default function ImageEditor() {
               />
             </div>
           )}
+
+          {/* Confirmed tick badge on the image */}
+          {cropConfirmed[current] && !cropActive && (
+            <div style={{
+              position: 'absolute', top: 10, right: 10,
+              background: '#1565C0',
+              borderRadius: '50%', width: 26, height: 26,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(21,101,192,0.4)',
+              border: '2px solid white',
+            }}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none"
+                stroke="white" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+          )}
         </div>
 
-        {/* Crop hint badge when inactive */}
+        {/* ── Apply Crop button — floats above toolbar when crop is active ── */}
+        {cropActive && (
+          <div style={{
+            position: 'absolute', bottom: 16, left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex', gap: 10, alignItems: 'center',
+          }}>
+            {/* Cancel crop */}
+            <button
+              onClick={() => setCropActive(false)}
+              style={{
+                background: 'white',
+                border: '1.5px solid #BBDEFB',
+                borderRadius: 24, padding: '10px 20px',
+                fontSize: 13, fontWeight: 700, color: '#546E7A',
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                boxShadow: '0 2px 12px rgba(21,101,192,0.10)',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              Cancel
+            </button>
+
+            {/* Apply Crop — primary CTA */}
+            <button
+              onClick={handleApplyCrop}
+              style={{
+                background: '#1565C0',
+                border: 'none',
+                borderRadius: 24, padding: '10px 24px',
+                fontSize: 13, fontWeight: 700, color: 'white',
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                boxShadow: '0 4px 16px rgba(21,101,192,0.35)',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <svg width={15} height={15} viewBox="0 0 24 24" fill="none"
+                stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Apply Crop
+              {/* hint: next image exists */}
+              {order.filter((idx) => idx !== current).length > 0 && (
+                <span style={{
+                  background: 'rgba(255,255,255,0.25)',
+                  borderRadius: 10, padding: '1px 7px',
+                  fontSize: 11, fontWeight: 600,
+                }}>
+                  → Next
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Hint badge when crop is inactive */}
         {!cropActive && (
           <div style={{
             position: 'absolute', bottom: 12, left: '50%',
             transform: 'translateX(-50%)',
-            background: 'rgba(21,101,192,0.10)',
+            background: 'rgba(21,101,192,0.09)',
             border: '1px solid #BBDEFB',
-            borderRadius: 20, padding: '4px 12px',
+            borderRadius: 20, padding: '5px 14px',
             fontSize: 11, color: '#1565C0', fontWeight: 600,
             whiteSpace: 'nowrap',
+            display: 'flex', alignItems: 'center', gap: 5,
           }}>
-            Tap Crop to trim · editing is optional
+            {cropConfirmed[current]
+              ? <>
+                  <svg width={11} height={11} viewBox="0 0 24 24" fill="none"
+                    stroke="#1565C0" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Crop applied · tap Crop to adjust
+                </>
+              : 'Tap Crop to trim · editing is optional'
+            }
           </div>
         )}
       </div>
@@ -534,24 +656,143 @@ export default function ImageEditor() {
           </ToolBtn>
         </div>
 
-        {/* Thumbnail strip */}
+        {/* Thumbnail strip — drag to reorder */}
         {files.length > 1 && (
-          <div style={{
-            display: 'flex', gap: 8, justifyContent: 'center',
-            padding: '10px 16px 14px', overflowX: 'auto',
-          }}>
-            {previews.map((src, i) => (
-              <button key={i} onClick={() => setCurrent(i)} style={{
-                width: 48, height: 48, borderRadius: 10, overflow: 'hidden',
-                border: i === current ? '2.5px solid #1565C0' : '2.5px solid #EEF4FF',
-                flexShrink: 0, opacity: i === current ? 1 : 0.5,
-                transition: 'all 0.18s', padding: 0, cursor: 'pointer',
-                boxShadow: i === current ? '0 0 0 2px rgba(21,101,192,0.25)' : 'none',
-              }}>
-                <img src={src} alt={`t${i}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-              </button>
-            ))}
+          <div>
+            <p style={{
+              textAlign: 'center', fontSize: 10, fontWeight: 700,
+              color: '#90A4AE', letterSpacing: 1, textTransform: 'uppercase',
+              margin: '10px 0 6px',
+            }}>
+              Hold &amp; drag to reorder
+            </p>
+            <div style={{
+              display: 'flex', gap: 8, justifyContent: 'center',
+              padding: '0 16px 16px', overflowX: 'auto',
+            }}>
+              {order.map((origIdx, pos) => {
+                const src = previews[origIdx];
+                const isSelected = origIdx === current;
+                const isDraggingThis = dragIdx.current === pos;
+                return (
+                  <div
+                    key={origIdx}
+                    draggable
+                    onDragStart={(e) => {
+                      dragIdx.current  = pos;
+                      e.dataTransfer.effectAllowed = 'move';
+                      // ghost image
+                      try { e.dataTransfer.setDragImage(e.currentTarget, 24, 24); } catch (_) {}
+                    }}
+                    onDragEnter={() => { dragOver.current = pos; }}
+                    onDragOver={(e) => { e.preventDefault(); dragOver.current = pos; }}
+                    onDragEnd={() => {
+                      const from = dragIdx.current;
+                      const to   = dragOver.current;
+                      if (from !== null && to !== null && from !== to) {
+                        setOrder((prev) => {
+                          const next = [...prev];
+                          const [moved] = next.splice(from, 1);
+                          next.splice(to, 0, moved);
+                          return next;
+                        });
+                        // keep current pointing to the same original image
+                        // (its position may have shifted)
+                      }
+                      dragIdx.current  = null;
+                      dragOver.current = null;
+                    }}
+                    // Touch drag (mobile)
+                    onTouchStart={(e) => { dragIdx.current = pos; }}
+                    onTouchMove={(e) => {
+                      e.preventDefault();
+                      const touch = e.touches[0];
+                      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                      const idx = el?.closest('[data-pos]')?.dataset?.pos;
+                      if (idx !== undefined) dragOver.current = Number(idx);
+                    }}
+                    onTouchEnd={() => {
+                      const from = dragIdx.current;
+                      const to   = dragOver.current;
+                      if (from !== null && to !== null && from !== to) {
+                        setOrder((prev) => {
+                          const next = [...prev];
+                          const [moved] = next.splice(from, 1);
+                          next.splice(to, 0, moved);
+                          return next;
+                        });
+                      }
+                      dragIdx.current  = null;
+                      dragOver.current = null;
+                    }}
+                    data-pos={pos}
+                    onClick={() => setCurrent(origIdx)}
+                    style={{
+                      position: 'relative',
+                      width: 52, height: 52,
+                      borderRadius: 10,
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      cursor: 'grab',
+                      border: isSelected
+                        ? '2.5px solid #1565C0'
+                        : '2.5px solid #EEF4FF',
+                      opacity: isDraggingThis ? 0.4 : isSelected ? 1 : 0.65,
+                      boxShadow: isSelected
+                        ? '0 0 0 3px rgba(21,101,192,0.2)'
+                        : 'none',
+                      transition: 'opacity 0.15s, border-color 0.15s',
+                      touchAction: 'none',
+                    }}
+                  >
+                    <img src={src} alt={`t${pos}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
+                    />
+                    {/* Position badge */}
+                    <div style={{
+                      position: 'absolute', top: 3, left: 3,
+                      background: pos === 0 ? '#1565C0' : 'rgba(13,33,55,0.55)',
+                      color: '#fff',
+                      fontSize: 9, fontWeight: 700,
+                      padding: '1px 5px', borderRadius: 5,
+                      lineHeight: '14px',
+                      pointerEvents: 'none',
+                    }}>
+                      {pos === 0 ? 'Cover' : pos + 1}
+                    </div>
+                    {/* Crop-confirmed tick */}
+                    {cropConfirmed[origIdx] && (
+                      <div style={{
+                        position: 'absolute', top: 3, right: 3,
+                        background: '#1565C0',
+                        borderRadius: '50%', width: 14, height: 14,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        border: '1.5px solid white',
+                        pointerEvents: 'none',
+                      }}>
+                        <svg width={8} height={8} viewBox="0 0 24 24" fill="none"
+                          stroke="white" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </div>
+                    )}
+                    {/* Drag handle dots */}
+                    <div style={{
+                      position: 'absolute', bottom: 3, right: 3,
+                      display: 'grid', gridTemplateColumns: '1fr 1fr',
+                      gap: 2, pointerEvents: 'none',
+                    }}>
+                      {[0,1,2,3].map(d => (
+                        <div key={d} style={{
+                          width: 3, height: 3, borderRadius: '50%',
+                          background: 'rgba(255,255,255,0.8)',
+                        }}/>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
