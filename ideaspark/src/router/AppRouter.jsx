@@ -42,6 +42,7 @@ import FollowList      from '../pages/FollowList';
 import SavedIdeas      from '../pages/SavedIdeas';
 import Settings        from '../pages/Settings';
 import AIAssistant     from '../pages/AIAssistant';
+import ImageEditor     from '../pages/ImageEditor';
 
 // ── Protected route wrapper ─────────────────────────────────────────────────
 function PrivateRoute({ children }) {
@@ -87,6 +88,7 @@ export default function AppRouter() {
         <Route path="/messages/:id"      element={<PrivateRoute><Chat /></PrivateRoute>} />
 
         <Route path="/add-idea"         element={<PrivateRoute><AddIdea /></PrivateRoute>} />
+        <Route path="/edit-images"      element={<PrivateRoute><ImageEditor /></PrivateRoute>} />
         <Route path="/premium"          element={<PrivateRoute><Premium /></PrivateRoute>} />
         <Route path="/membership"         element={<PrivateRoute><Membership /></PrivateRoute>} />
         <Route path="/membership/checkout" element={<PrivateRoute><Checkout /></PrivateRoute>} />
