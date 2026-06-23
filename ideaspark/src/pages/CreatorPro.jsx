@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { subscribe, hasCreatorPro } from '../api/paymentApi';
+import { hasCreatorPro } from '../api/paymentApi';
 import Icon from '../components/common/Icon';
 
 /* Creator Pro plan (monthly). Kept here so the landing page is self-contained. */
@@ -32,24 +31,10 @@ const fmtDate = (iso) => {
 };
 
 export default function CreatorPro() {
-  const navigate        = useNavigate();
-  const { user, login } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const isPro = hasCreatorPro(user);
-
-  const handleUpgrade = async (gateway = 'razorpay') => {
-    setLoading(true); setError('');
-    try {
-      const { data } = await subscribe({ ...CREATOR_PRO, gateway });
-      // becoming Creator Pro re-renders this page into the active state
-      login(data.user, localStorage.getItem('token'));
-    } catch (err) {
-      setError(err.response?.data?.message || 'Upgrade failed. Please try again.');
-    }
-    setLoading(false);
-  };
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-12">
@@ -86,7 +71,7 @@ export default function CreatorPro() {
   <div className="bg-white rounded-t-[32px] px-4 pt-6 pb-12">
     {isPro
       ? <ActiveState user={user} navigate={navigate} />
-      : <UpgradeState loading={loading} error={error} onUpgrade={handleUpgrade} />}
+      : <UpgradeState navigate={navigate} />}
   </div>
 </div>
 </div>
@@ -94,7 +79,7 @@ export default function CreatorPro() {
 }
 
 /* ── Not subscribed: landing / upgrade (image 1) ─────────────────── */
-function UpgradeState({ loading, error, onUpgrade }) {
+function UpgradeState({ navigate }) {
   return (
     <>
       <div className="bg-white rounded-3xl shadow-md px-5 pt-6 pb-6">
@@ -108,13 +93,8 @@ function UpgradeState({ loading, error, onUpgrade }) {
         </div>
       </div>
 
-      {error && (
-        <div className="mt-4 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-500 text-sm">{error}</div>
-      )}
-
-      <button onClick={() => onUpgrade('razorpay')} disabled={loading}
-        className="mt-6 w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2">
-        {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+      <button onClick={() => navigate('/membership?plan=creator&billing=monthly')}
+        className="mt-6 w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2">
         Upgrade to Creator Pro — {CREATOR_PRO.price}/mo
       </button>
 

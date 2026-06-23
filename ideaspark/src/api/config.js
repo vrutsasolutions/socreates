@@ -18,7 +18,7 @@ export const USE_MOCK = {
   ai:            false, // ✅ backend ready — /api/ai/*       (Aparna)
   images:        true,  // ⏳ under dev      — /api/images/*   (Vishakha)
   messaging:     false,  // ✅ backend ready      — /api/messages/* (DM/inbox feature; backend TBD) (Aparna)
-  payment:       true,  // ⏳ under dev      — /api/payment/*  (Razorpay/Stripe; backend TBD)
+  payment:       false, // ✅ live sandbox   — /api/payment/*  (Razorpay test keys in Backend/.env)
 
   // Notifications are SPLIT, because the backend only shipped part of the contract:
   //   • realtime push  → ✅ LIVE  (STOMP/SockJS, see notificationApi.subscribeToNotifications)

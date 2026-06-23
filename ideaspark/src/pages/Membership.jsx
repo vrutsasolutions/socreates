@@ -54,8 +54,10 @@ export default function Membership() {
   // A ?plan= deep link (e.g. from the "Upgrade to Creator Pro" publish gate)
   // pre-selects and visually emphasizes that tile.
   const emphasizedPlan  = ['reader', 'creator'].includes(params.get('plan')) ? params.get('plan') : null;
+  // An optional ?billing= deep link picks the monthly/yearly toggle on arrival.
+  const deepLinkBilling = ['monthly', 'yearly'].includes(params.get('billing')) ? params.get('billing') : null;
 
-  const [period, setPeriod]     = useState('yearly');               // 'monthly' | 'yearly'
+  const [period, setPeriod]     = useState(deepLinkBilling || 'yearly');  // 'monthly' | 'yearly'
   const [selected, setSelected] = useState(emphasizedPlan || 'creator'); // 'reader' | 'creator'
   const [emphasize, setEmphasize] = useState(!!emphasizedPlan);
   const [loading, setLoading]   = useState(false);
