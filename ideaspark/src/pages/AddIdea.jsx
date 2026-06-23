@@ -15,6 +15,38 @@ const CATEGORIES = [
 
 const STEPS = ['Details', 'Media', 'Publish'];
 
+// ── Aspect-fit preview tile ─────────────────────────────────────────────────
+// Renders an image at a fixed row-height, with width derived from the image's
+// own natural aspect ratio (capped at maxWidth). The full image is always
+// visible — nothing is cropped. While dimensions are unknown, falls back to a
+// square box so layout doesn't jump.
+function PreviewTile({ src, height = 116, maxWidth = 220, className = '', children }) {
+  const [ratio, setRatio] = useState(null); // width / height of the natural image
+
+  const handleLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalWidth && naturalHeight) {
+      setRatio(naturalWidth / naturalHeight);
+    }
+  };
+
+  const width = ratio ? Math.min(Math.round(height * ratio), maxWidth) : height;
+
+  return (
+    <div
+      className={`relative shrink-0 rounded-xl overflow-hidden border border-[#BBDEFB] bg-[#F4F7FF] ${className}`}
+      style={{ width, height }}
+    >
+      <img
+        src={src}
+        onLoad={handleLoad}
+        className="w-full h-full object-contain"
+      />
+      {children}
+    </div>
+  );
+}
+
 // ── AI Refine Modal ────────────────────────────────────────────────────────────
 function AIRefineModal({ original, onAccept, onClose }) {
   // "select" → user picks a mode
@@ -401,6 +433,12 @@ export default function AddIdea() {
   const [images,   setImages]   = useState([]);
   const [previews, setPreviews] = useState([]);
 
+  // Shared row height for image preview tiles. Each tile's width is derived
+  // from the image's own natural aspect ratio, so wide photos get wide boxes
+  // and tall photos get narrow/tall boxes — full image always visible.
+  const PREVIEW_TILE_HEIGHT = 116;
+  const PREVIEW_TILE_MAX_WIDTH = 220; // cap so a panoramic image can't eat the whole row
+
   const [checking,     setChecking]     = useState(false);
   const [publishing,   setPublishing]   = useState(false);
   const [checkResult,  setCheckResult]  = useState(null);
@@ -636,10 +674,14 @@ export default function AddIdea() {
                   Upload Images
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {previews.map((src, i) => (
-                    <div key={src} className="relative aspect-square rounded-xl overflow-hidden border border-[#BBDEFB]">
-                      <img src={src} className="w-full h-full object-cover" />
+                    <PreviewTile
+                      key={src}
+                      src={src}
+                      height={PREVIEW_TILE_HEIGHT}
+                      maxWidth={PREVIEW_TILE_MAX_WIDTH}
+                    >
                       {i === 0 && (
                         <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">
                           Cover
@@ -667,13 +709,14 @@ export default function AddIdea() {
                       >
                         ×
                       </button>
-                    </div>
+                    </PreviewTile>
                   ))}
                   {previews.length < MAX_IMAGES && (
                     <button
                       type="button"
                       onClick={() => fileRef.current.click()}
-                      className="aspect-square rounded-xl border-dashed border-2 border-[#BBDEFB] bg-[#F4F7FF] text-[#90A4AE] flex flex-col items-center justify-center text-xs active:scale-95"
+                      className="shrink-0 rounded-xl border-dashed border-2 border-[#BBDEFB] bg-[#F4F7FF] text-[#90A4AE] flex flex-col items-center justify-center text-xs active:scale-95"
+                      style={{ width: PREVIEW_TILE_HEIGHT, height: PREVIEW_TILE_HEIGHT }}
                     >
                       <span className="text-xl leading-none">+</span>
                       Add
