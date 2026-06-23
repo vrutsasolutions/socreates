@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 @Service
 @RequiredArgsConstructor
@@ -19,9 +20,9 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom("your_gmail@gmail.com", "SoCreates");
+            helper.setFrom("your_gmail@gmail.com", "SoCreate");
             helper.setTo(toEmail);
-            helper.setSubject("Your OTP Verification Code — SoCreates");
+            helper.setSubject("Your OTP Verification Code — SoCreate");
             helper.setText(buildOtpEmailHtml(otp), true); // true = HTML
 
             mailSender.send(message);
@@ -36,9 +37,9 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom("your_gmail@gmail.com", "SoCreates");
+            helper.setFrom("your_gmail@gmail.com", "SoCreate");
             helper.setTo(toEmail);
-            helper.setSubject("Password Reset OTP — SoCreates");
+            helper.setSubject("Password Reset OTP — SoCreate");
             helper.setText(buildPasswordResetHtml(otp), true); // true = HTML
 
             mailSender.send(message);
@@ -51,7 +52,7 @@ public class EmailService {
     private String buildOtpEmailHtml(String otp) {
         return """
                 <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 32px; border-radius: 12px; background: #f4f7ff;">
-                    <h2 style="color: #1565C0;">SoCreates</h2>
+                    <h2 style="color: #1565C0;">SoCreate</h2>
                     <p style="color: #333;">Hello,</p>
                     <p style="color: #333;">Your OTP for email verification is:</p>
                     <div style="text-align: center; margin: 24px 0;">
@@ -63,7 +64,7 @@ public class EmailService {
                     <p style="color: #666;">Do not share this code with anyone.</p>
                     <hr style="border: none; border-top: 1px solid #ddd; margin: 24px 0;">
                     <p style="color: #999; font-size: 12px;">If you did not request this, please ignore this email.</p>
-                    <p style="color: #999; font-size: 12px;">— Team SoCreates</p>
+                    <p style="color: #999; font-size: 12px;">— Team SoCreate</p>
                 </div>
                 """
                 .formatted(otp);
@@ -73,7 +74,7 @@ public class EmailService {
     private String buildPasswordResetHtml(String otp) {
         return """
                 <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 32px; border-radius: 12px; background: #f4f7ff;">
-                    <h2 style="color: #1565C0;">SoCreates</h2>
+                    <h2 style="color: #1565C0;">SoCreate</h2>
                     <p style="color: #333;">Hello,</p>
                     <p style="color: #333;">Your OTP for password reset is:</p>
                     <div style="text-align: center; margin: 24px 0;">
@@ -85,12 +86,13 @@ public class EmailService {
                     <p style="color: #666;">Do not share this code with anyone.</p>
                     <hr style="border: none; border-top: 1px solid #ddd; margin: 24px 0;">
                     <p style="color: #999; font-size: 12px;">If you did not request this, please ignore this email.</p>
-                    <p style="color: #999; font-size: 12px;">— Team SoCreates</p>
+                    <p style="color: #999; font-size: 12px;">— Team SoCreate</p>
                 </div>
                 """
                 .formatted(otp);
     }
 
+    @Async
     public void sendNewIdeaNotificationEmail(
         String toEmail,
         String creatorName,
@@ -103,7 +105,7 @@ public class EmailService {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        helper.setFrom("your_gmail@gmail.com", "SoCreates");
+        helper.setFrom("your_gmail@gmail.com", "SoCreate");
         helper.setTo(toEmail);
         helper.setSubject("New Idea from " + creatorName);
 
@@ -115,7 +117,7 @@ public class EmailService {
                 <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; padding: 28px; border-radius: 14px; background: #f4f7ff;">
                     <h2 style="color: #1565C0;">New Idea Posted</h2>
 
-                    <p><strong>%s</strong> posted a new idea on SoCreates.</p>
+                    <p><strong>%s</strong> posted a new idea on SoCreate.</p>
 
                     <p style="font-size: 13px; color: #1565C0; font-weight: bold;">
                         Category: %s
@@ -130,7 +132,7 @@ public class EmailService {
                     <p>
                         <a href="http://localhost:5173/ideas/%s"
                            style="background:#1565C0;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;display:inline-block;">
-                           View Idea on SoCreates
+                           View Idea on SoCreate
                         </a>
                     </p>
 
@@ -138,7 +140,7 @@ public class EmailService {
                         You received this email because you follow %s.
                     </p>
 
-                    <p style="color:#999;font-size:12px;">— Team SoCreates</p>
+                    <p style="color:#999;font-size:12px;">— Team SoCreate</p>
                 </div>
                 """.formatted(
                 creatorName,
@@ -163,9 +165,9 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom("vrutsasolutions@gmail.com", "SoCreates");
+            helper.setFrom("vrutsasolutions@gmail.com", "SoCreate");
             helper.setTo(toEmail);
-            helper.setSubject("Congratulations! Your idea just hit " + likeCount + " likes on SoCreates");
+            helper.setSubject("Congratulations! Your idea just hit " + likeCount + " likes on SoCreate");
             helper.setText(buildLikeMilestoneHtml(creatorName, ideaTitle, likeCount), true);
 
             mailSender.send(message);
@@ -182,9 +184,9 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom("vrutsasolutions@gmail.com", "SoCreates");
+            helper.setFrom("vrutsasolutions@gmail.com", "SoCreate");
             helper.setTo(toEmail);
-            helper.setSubject("Congratulations! You just hit " + followerCount + " followers on SoCreates");
+            helper.setSubject("Congratulations! You just hit " + followerCount + " followers on SoCreate");
             helper.setText(buildFollowerMilestoneHtml(userName, followerCount), true);
 
             mailSender.send(message);
@@ -214,7 +216,7 @@ public class EmailService {
                   <div style="background: #f4f7ff; padding: 32px;">
                     <p style="color: #333; font-size: 16px; margin: 0 0 16px;">Hi <strong>%s</strong>,</p>
                     <p style="color: #444; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-                      Great news! Your idea <strong style="color: #1565C0;">"%s"</strong> has reached a new milestone on SoCreates.
+                      Great news! Your idea <strong style="color: #1565C0;">"%s"</strong> has reached a new milestone on SoCreate.
                     </p>
 
                     <!-- Count badge -->
@@ -226,7 +228,7 @@ public class EmailService {
                     </div>
 
                     <p style="color: #444; font-size: 15px; line-height: 1.6; margin: 0 0 28px;">
-                      The SoCreates community is responding to your idea. Keep sharing and inspiring others.
+                      The SoCreate community is responding to your idea. Keep sharing and inspiring others.
                     </p>
 
                     <div style="text-align: center;">
@@ -240,7 +242,7 @@ public class EmailService {
 
                   <!-- Footer -->
                   <div style="background: #e8edf7; padding: 20px 32px; text-align: center;">
-                    <p style="color: #999; font-size: 12px; margin: 0;">— Team SoCreates | Keep creating, keep inspiring</p>
+                    <p style="color: #999; font-size: 12px; margin: 0;">— Team SoCreate | Keep creating, keep inspiring</p>
                   </div>
 
                 </div>
@@ -270,7 +272,7 @@ public class EmailService {
                   <div style="background: #f4f7ff; padding: 32px;">
                     <p style="color: #333; font-size: 16px; margin: 0 0 16px;">Hi <strong>%s</strong>,</p>
                     <p style="color: #444; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-                      Congratulations! You have reached a new follower milestone on SoCreates.
+                      Congratulations! You have reached a new follower milestone on SoCreate.
                     </p>
 
                     <!-- Count badge -->
@@ -282,7 +284,7 @@ public class EmailService {
                     </div>
 
                     <p style="color: #444; font-size: 15px; line-height: 1.6; margin: 0 0 28px;">
-                      Every follower is someone who believes in your ideas and your voice. Thank you for being part of the SoCreates community.
+                      Every follower is someone who believes in your ideas and your voice. Thank you for being part of the SoCreate community.
                     </p>
 
                     <div style="text-align: center;">
@@ -296,7 +298,7 @@ public class EmailService {
 
                   <!-- Footer -->
                   <div style="background: #e8edf7; padding: 20px 32px; text-align: center;">
-                    <p style="color: #999; font-size: 12px; margin: 0;">— Team SoCreates | Keep creating, keep inspiring</p>
+                    <p style="color: #999; font-size: 12px; margin: 0;">— Team SoCreate | Keep creating, keep inspiring</p>
                   </div>
 
                 </div>

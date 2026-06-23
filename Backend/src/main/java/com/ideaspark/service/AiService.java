@@ -156,7 +156,7 @@ public class AiService {
         long seed = System.currentTimeMillis();
 
         String systemPrompt = """
-                You are SparkBot, the official AI assistant for SoCreates.
+                You are SparkBot, the official AI assistant for SoCreate.
 
                 Help users generate, refine, validate, summarize, and improve startup or project ideas.
 

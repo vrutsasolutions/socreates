@@ -69,7 +69,7 @@ export default function Home() {
           </button>
 
           <div className="flex items-center flex-1">
-            <img src={scWordmark} alt="SoCreates" className="h-8 w-auto object-contain" draggable="false" />
+            <img src={scWordmark} alt="SoCreate" className="h-8 w-auto object-contain" draggable="false" />
           </div>
 
           <button
@@ -167,7 +167,7 @@ export default function Home() {
       {/* Floating AI assistant — sits above the bottom nav, opens the SparkBot chat */}
       <button
         onClick={() => navigate('/assistant')}
-        aria-label="SoCreates AI"
+        aria-label="SoCreate AI"
         className="fixed right-4 bottom-24 z-40 w-14 h-14 rounded-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
         style={{
           background: 'linear-gradient(135deg, #4F62F5, #2435C9)',

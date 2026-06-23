@@ -1,7 +1,7 @@
 /**
  * EmptyStates.premium.jsx
  * ─────────────────────────────────────────────────────────────
- * Comprehensive empty state library for SoCreates / IdeaSpark.
+ * Comprehensive empty state library for SoCreate / IdeaSpark.
  *
  * Named exports:
  *   EmptyFeed          — Home feed has no ideas (tab is empty)

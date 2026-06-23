@@ -1,7 +1,7 @@
 /**
  * AIInteractions.premium.jsx
  * ─────────────────────────────────────────────────────────────
- * AI interaction UI library for SoCreates / IdeaSpark.
+ * AI interaction UI library for SoCreate / IdeaSpark.
  *
  * Named exports:
  *   AIAssistantBar       — Floating bar with "Ask AI" CTA (top of AddIdea)
@@ -126,7 +126,7 @@ export function AIAssistantBar({ onActivate, onDismiss }) {
           margin: '0 0 2px',
           letterSpacing: '-0.01em',
         }}>
-          SoCreates AI
+          SoCreate AI
         </p>
         <p style={{
           fontSize: 11,
@@ -848,7 +848,7 @@ export function AIOnboardingPrompt({ onTryAI, onDismiss }) {
         margin: '0 0 6px',
         lineHeight: 1.2,
       }}>
-        Meet SoCreates AI
+        Meet SoCreate AI
       </h3>
 
       <p style={{

@@ -7,7 +7,7 @@ import { USE_MOCK, mockResponse } from './config';
 
 const MOCK_USER = {
   id: 'u1', name: 'Mayank Vaswani', email: 'mayank@example.com',
-  bio: 'Building SoCreates.', avatarUrl: null, interests: ['Technology', 'Design'],
+  bio: 'Building SoCreate.', avatarUrl: null, interests: ['Technology', 'Design'],
   followerCount: 12, followingCount: 8,
 };
 

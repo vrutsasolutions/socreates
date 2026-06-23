@@ -93,9 +93,9 @@ export default function AIAssistant() {
       {
         id: uid(),
         from: 'bot',
-        text: "👋 Hey! Welcome to SoCreates!\n\nI'm SparkBot — your personal idea assistant. Let me get to know you 😊",
+        text: "👋 Hey! Welcome to SoCreate!\n\nI'm SparkBot — your personal idea assistant. Let me get to know you 😊",
       },
-      { id: uid(), from: 'bot', text: 'What brings you to SoCreates?', chips: BRING_CHIPS },
+      { id: uid(), from: 'bot', text: 'What brings you to SoCreate?', chips: BRING_CHIPS },
     ]);
   }, []);
 
@@ -190,7 +190,7 @@ export default function AIAssistant() {
             </h1>
             <p className="text-blue-100/70 text-[12px] flex items-center gap-1.5 mt-0.5">
               <span className="w-2 h-2 rounded-full bg-[#4ADE80] shadow-sm shadow-green-300" />
-              Online — by SoCreates
+              Online — by SoCreate
             </p>
           </div>
 

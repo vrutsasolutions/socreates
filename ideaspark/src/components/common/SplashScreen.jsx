@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import logo from '../../assets/socreate-wordmark.png';
 import '../../styles/splash.css';
 
-const BRAND = 'SoCreates';
+const BRAND = 'SoCreate';
 const TAGLINE = 'Where ideas come to life';
 
 // Total time the splash stays before it begins its fade-out.
