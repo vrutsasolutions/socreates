@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { loginUser } from '../api/authApi';
 import api from '../api/axiosInstance';
 import Icon from '../components/common/Icon';
+import scLogo from '../assets/sc-logo.png';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const REMEMBER_KEY = 'ideaspark_remember_email';
@@ -120,7 +121,7 @@ export default function Login() {
 
         <div className="relative z-10">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl mb-4 shadow-lg">
-            <Icon name="lightbulb" className="w-8 h-8 text-amber-300" />
+            <img src={scLogo} alt="SoCreates" className="w-12 h-12 object-contain" />
           </div>
           <h1 className="text-white text-2xl font-bold">Welcome Back</h1>
           <p className="text-blue-200 text-sm mt-1">Sign in to continue to SoCreate</p>
