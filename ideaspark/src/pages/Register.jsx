@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { sendOtp, checkUsername } from '../api/authApi';
 import { ValidationError, FormError } from '../components/common/ErrorStates.premium';
 import Icon from '../components/common/Icon';
+import scLogo from '../assets/sc-logo.png';
 
 const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 
@@ -90,7 +91,7 @@ navigate('/verify-otp', {
         </div>
         <div className="relative z-10">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl mb-4 shadow-lg">
-            <Icon name="lightbulb" className="w-8 h-8 text-amber-300" />
+            <img src={scLogo} alt="SoCreates" className="w-12 h-12 object-contain" />
           </div>
           <h1 className="text-white text-2xl font-bold">Join SoCreates</h1>
           <p className="text-blue-200 text-sm mt-1">Start sharing your ideas today</p>

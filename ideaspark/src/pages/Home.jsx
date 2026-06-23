@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
 import { EmptyFeed, EmptyForYou } from '../components/common/EmptyStates.premium';
 import Icon from '../components/common/Icon';
+import scWordmark from '../assets/sc-wordmark.png';
 
 const TABS = ['Trending', 'Latest', 'For You'];
 
@@ -67,9 +68,8 @@ export default function Home() {
             <Icon name="menu" className="w-6 h-6" />
           </button>
 
-          <div className="flex items-center gap-2 flex-1">
-            <Icon name="lightbulb" className="w-6 h-6 text-amber-300" />
-            <span className="text-white font-bold text-lg">SoCreates</span>
+          <div className="flex items-center flex-1">
+            <img src={scWordmark} alt="SoCreates" className="h-8 w-auto object-contain" draggable="false" />
           </div>
 
           <button

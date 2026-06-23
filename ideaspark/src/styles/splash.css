@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════════
    SoCreates splash / launch animation
-   Timeline follows the design "Animation Reference Notes":
-   flash → rings → logo spring → shine → wordmark → tagline → orbit → loop.
+   Orbit system: drifting star field, soft background circles, a ring of
+   keyword pills around the centre wordmark, tagline, loader, version.
    ════════════════════════════════════════════════════════════════════════ */
 
 .splash-root {
@@ -13,10 +13,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* Deep navy edges with a brighter vertical band slightly right of centre. */
-  background:
-    radial-gradient(120% 75% at 60% 42%, rgba(63,123,234,0.55) 0%, rgba(20,70,170,0) 58%),
-    linear-gradient(160deg, #0A1E63 0%, #123FA6 46%, #0B2A7C 100%);
+  background: linear-gradient(160deg, #1c5fbf 0%, #134aa6 46%, #0d3a86 100%);
 }
 
 .splash-root.is-leaving { animation: splashFadeOut 0.5s ease forwards; }
@@ -26,258 +23,216 @@
   to   { opacity: 0; visibility: hidden; }
 }
 
-/* ── Particles ─────────────────────────────────────────────────────────── */
-.splash-particle {
-  position: absolute;
-  border-radius: 9999px;
-  background: #DCE8FF;
-  opacity: 0;
-  animation: splashTwinkle 3.4s ease-in-out infinite;
-}
-
-@keyframes splashTwinkle {
-  0%, 100% { opacity: 0.12; transform: scale(0.8); }
-  50%      { opacity: 0.75; transform: scale(1); }
-}
-
-/* ── Centre stage ──────────────────────────────────────────────────────── */
-.splash-stage {
-  position: relative;
-  width: 300px;
-  height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Radial white flash bursting behind the logo. */
-.splash-flash {
-  position: absolute;
-  width: 240px;
-  height: 240px;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 65%);
-  opacity: 0;
-  animation: splashFlash 0.6s ease-out 0.28s 1;
-}
-
-@keyframes splashFlash {
-  0%   { opacity: 0;    transform: scale(0.5); }
-  35%  { opacity: 0.9;  transform: scale(1); }
-  100% { opacity: 0;    transform: scale(1.25); }
-}
-
-/* Soft concentric halos (the layered glow circles in the frames). */
-.splash-halo {
-  position: absolute;
-  border-radius: 9999px;
-  background: rgba(170,200,255,0.10);
-  border: 1px solid rgba(200,222,255,0.10);
-  transform: scale(0.4);
-  opacity: 0;
-  animation: splashRingIn 0.7s cubic-bezier(.2,.7,.3,1.2) forwards;
-}
-.splash-halo-1 { width: 300px; height: 300px; animation-delay: 0.25s; }
-.splash-halo-2 { width: 232px; height: 232px; animation-delay: 0.40s; background: rgba(170,200,255,0.14); }
-.splash-halo-3 { width: 168px; height: 168px; animation-delay: 0.55s; background: rgba(190,214,255,0.18); }
-
-@keyframes splashRingIn {
-  from { transform: scale(0.4); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
-}
-
-/* ── Orbit ring with glowing dots ──────────────────────────────────────── */
-.splash-orbit {
-  position: absolute;
-  width: 196px;
-  height: 196px;
-  opacity: 0;
-  animation:
-    splashOrbitIn 0.5s ease 1.05s forwards,
-    splashSpin 9s linear infinite;
-}
-.splash-orbit-ring {
+/* ── Star field canvas ─────────────────────────────────────────────────── */
+.splash-canvas {
   position: absolute;
   inset: 0;
-  border-radius: 9999px;
-  border: 1px solid rgba(214,228,255,0.45);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
-.splash-orbit-dashed {
+
+/* ── Large soft background circles ─────────────────────────────────────── */
+.splash-bigcircle {
   position: absolute;
-  inset: -18px;
   border-radius: 9999px;
-  border: 1px dashed rgba(190,214,255,0.30);
+  pointer-events: none;
+  z-index: 0;
 }
-.splash-orbit-dot {
+.splash-bigcircle-tl {
+  width: 340px;
+  height: 340px;
+  top: -120px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(120,170,255,0.18) 0%, rgba(120,170,255,0) 70%);
+}
+.splash-bigcircle-br {
+  width: 440px;
+  height: 440px;
+  bottom: -170px;
+  right: -140px;
+  background: radial-gradient(circle, rgba(110,160,255,0.12) 0%, rgba(110,160,255,0) 70%);
+}
+
+/* ── Orbit system ──────────────────────────────────────────────────────── */
+.splash-system {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  opacity: 0;
+  transform: scale(0.9);
+  animation: splashSysIn 0.7s cubic-bezier(.2,.7,.3,1.2) 0.1s forwards;
+}
+@keyframes splashSysIn {
+  to { opacity: 1; transform: scale(1); }
+}
+
+.splash-ring {
   position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 9999px;
   top: 50%;
   left: 50%;
-  margin: -4px 0 0 -4px;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
 }
-.splash-orbit-dot.d1 { transform: translateY(-98px); background:#FBBF24; box-shadow:0 0 10px 2px rgba(251,191,36,0.8); }
-.splash-orbit-dot.d2 { transform: translateX(98px);  background:#FFFFFF; box-shadow:0 0 10px 2px rgba(255,255,255,0.8); }
-.splash-orbit-dot.d3 { transform: translateY(98px);  background:#FBBF24; box-shadow:0 0 10px 2px rgba(251,191,36,0.8); }
-.splash-orbit-dot.d4 { transform: translateX(-98px); background:#FFFFFF; box-shadow:0 0 10px 2px rgba(255,255,255,0.8); }
-
-@keyframes splashOrbitIn { to { opacity: 1; } }
-@keyframes splashSpin { to { transform: rotate(360deg); } }
-
-/* ── Logo ──────────────────────────────────────────────────────────────── */
-.splash-logo-wrap {
-  position: relative;
-  width: 112px;
-  height: 112px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: scale(0.3);
-  opacity: 0;
-  animation:
-    splashLogoIn 0.8s cubic-bezier(.18,.9,.28,1.3) 0.30s forwards,
-    splashPulse 2.2s ease-in-out 1.25s infinite;
+.splash-ring-outer {
+  width: 260px;
+  height: 260px;
+  border: 1px solid rgba(214,228,255,0.22);
 }
-
-@keyframes splashLogoIn {
-  0%   { transform: scale(0.3); opacity: 0; }
-  60%  { opacity: 1; }
-  100% { transform: scale(1);   opacity: 1; }
+.splash-ring-mid {
+  width: 188px;
+  height: 188px;
+  border: 1px dashed rgba(214,228,255,0.16);
+  animation: splashSpin 26s linear infinite;
 }
-@keyframes splashPulse {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.06); }
-}
+@keyframes splashSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 
-/* Breathing amber ring around the mark. */
-.splash-logo-ring {
+/* Glowing translucent disc behind the wordmark. */
+.splash-disc {
   position: absolute;
-  inset: 4px;
+  top: 50%;
+  left: 50%;
+  width: 132px;
+  height: 132px;
   border-radius: 9999px;
-  border: 1.5px solid rgba(251,191,36,0.85);
-  box-shadow: 0 0 16px rgba(251,191,36,0.35), inset 0 0 12px rgba(251,191,36,0.18);
-  animation: splashBreathe 1.8s ease-in-out 1.1s infinite;
+  background: radial-gradient(circle at 50% 40%, rgba(130,180,255,0.32) 0%, rgba(80,130,230,0.10) 70%);
+  box-shadow: 0 0 42px rgba(90,150,255,0.25);
+  transform: translate(-50%, -50%);
+  animation: splashDiscPulse 3.2s ease-in-out infinite;
 }
-@keyframes splashBreathe {
-  0%, 100% { transform: scale(1);    opacity: 0.85; }
-  50%      { transform: scale(1.08); opacity: 1; }
+@keyframes splashDiscPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.9; }
+  50%      { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
 }
 
-/* Translucent disc that holds the monogram. */
-.splash-logo-core {
+/* ── Keyword pills on the outer ring ───────────────────────────────────── */
+.splash-pill {
+  position: absolute;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.26);
+  border-radius: 14px;
+  padding: 4px 11px;
+  white-space: nowrap;
+  backdrop-filter: blur(3px);
+}
+.splash-pill span {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+.splash-pill-top    { top: -13px;    left: 50%;   transform: translateX(-50%); }
+.splash-pill-bottom { bottom: -13px; left: 50%;   transform: translateX(-50%); }
+.splash-pill-right  { right: -34px;  top: 50%;    transform: translateY(-50%); }
+.splash-pill-left   { left: -34px;   top: 50%;    transform: translateY(-50%); }
+
+/* ── Amber sparks ──────────────────────────────────────────────────────── */
+.splash-spark {
+  position: absolute;
+  border-radius: 9999px;
+  background: #FBBF24;
+  box-shadow: 0 0 8px 1px rgba(251,191,36,0.7);
+  z-index: 4;
+  animation: splashSparkle 2.4s ease-in-out infinite;
+}
+.splash-spark-1 { width: 7px; height: 7px; top: 82px;  left: 150px; }
+.splash-spark-2 { width: 5px; height: 5px; top: 96px;  left: 166px; animation-delay: 0.7s; }
+@keyframes splashSparkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50%      { opacity: 1;    transform: scale(1.1); }
+}
+
+/* ── Centre wordmark ───────────────────────────────────────────────────── */
+.splash-logo2 {
   position: relative;
-  width: 92px;
-  height: 92px;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: radial-gradient(circle at 50% 38%, rgba(255,255,255,0.22), rgba(255,255,255,0.06));
-  border: 1px solid rgba(255,255,255,0.25);
-  backdrop-filter: blur(2px);
+  z-index: 3;
+  animation: splashFloat 4s ease-in-out infinite;
 }
-
-.splash-logo-img {
-  width: 74px;
-  height: 74px;
-  object-fit: contain;
+.splash-logo2 img {
+  display: block;
+  width: 150px;
+  height: auto;
   user-select: none;
   -webkit-user-drag: none;
-  filter: drop-shadow(0 2px 8px rgba(10,30,99,0.35));
+  filter: drop-shadow(0 3px 12px rgba(8,30,90,0.4));
+}
+@keyframes splashFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
 }
 
-/* Two shine streaks sweeping left→right across the logo. */
-.splash-shine {
-  position: absolute;
-  top: 0;
-  left: -60%;
-  width: 50%;
-  height: 100%;
-  transform: skewX(-20deg);
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 100%);
-  animation: splashShine 0.85s ease-in 0.70s 1;
-}
-.splash-shine.s2 { animation-delay: 0.95s; }
-@keyframes splashShine {
-  from { left: -60%; }
-  to   { left: 140%; }
-}
-
-/* ── Wordmark ──────────────────────────────────────────────────────────── */
-.splash-name {
+/* ── Tagline ───────────────────────────────────────────────────────────── */
+.splash-tagline2 {
   margin-top: 30px;
-  display: flex;
-  font-weight: 800;
-  font-size: 30px;
-  letter-spacing: 0.5px;
-  color: #FFFFFF;
-}
-.splash-name span {
-  display: inline-block;
+  z-index: 2;
+  font-size: 12px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
   opacity: 0;
-  transform: translateY(14px);
-  animation: splashLetter 0.45s cubic-bezier(.2,.8,.3,1.4) forwards;
+  transform: translateY(8px);
+  animation: splashFadeUp 0.6s ease 0.5s forwards;
 }
-@keyframes splashLetter {
-  0%   { opacity: 0; transform: translateY(14px); }
-  60%  { opacity: 1; transform: translateY(-4px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-.splash-tagline {
-  margin-top: 10px;
-  font-size: 13px;
-  color: #A9C2EE;
-  opacity: 0;
-  transform: translateY(12px);
-  animation: splashTagline 0.6s ease 0.85s forwards;
-}
-@keyframes splashTagline {
+@keyframes splashFadeUp {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Loading dots ──────────────────────────────────────────────────────── */
-.splash-dots {
+/* ── Loading bar ───────────────────────────────────────────────────────── */
+.splash-loadbar {
   position: absolute;
-  bottom: 64px;
-  display: flex;
-  gap: 8px;
-  opacity: 0;
-  animation: splashTagline 0.5s ease 1.35s forwards;
+  bottom: 46px;
+  width: 48px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.14);
+  overflow: hidden;
+  z-index: 2;
 }
-.splash-dots span {
-  width: 7px;
-  height: 7px;
-  border-radius: 9999px;
-  background: rgba(220,232,255,0.4);
-  animation: splashLoadingDot 1.14s ease-in-out infinite;
+.splash-loadbar-fill {
+  width: 45%;
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.85);
+  animation: splashLoad 1.6s ease-in-out infinite;
 }
-.splash-dots span:nth-child(1) { animation-delay: 0s; }
-.splash-dots span:nth-child(2) { animation-delay: 0.38s; }
-.splash-dots span:nth-child(3) { animation-delay: 0.76s; }
-@keyframes splashLoadingDot {
-  0%, 100% { background: rgba(220,232,255,0.4); transform: scale(0.85); }
-  40%      { background: #FBBF24;               transform: scale(1.15); }
+@keyframes splashLoad {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(240%); }
 }
 
-/* ── Reduced motion: keep it calm, just fade the final state in. ───────── */
+/* ── Version ───────────────────────────────────────────────────────────── */
+.splash-version {
+  position: absolute;
+  bottom: 22px;
+  width: 100%;
+  text-align: center;
+  color: rgba(255,255,255,0.22);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  z-index: 2;
+  margin: 0;
+}
+
+/* ── Reduced motion: keep the final state, drop the looping animation. ──── */
 @media (prefers-reduced-motion: reduce) {
-  .splash-particle,
-  .splash-flash,
-  .splash-halo,
-  .splash-orbit,
-  .splash-logo-wrap,
-  .splash-logo-ring,
-  .splash-shine,
-  .splash-name span,
-  .splash-tagline,
-  .splash-dots,
-  .splash-dots span {
+  .splash-system,
+  .splash-ring-mid,
+  .splash-disc,
+  .splash-spark,
+  .splash-logo2,
+  .splash-tagline2,
+  .splash-loadbar-fill {
     animation: none !important;
     opacity: 1 !important;
-    transform: none !important;
+    transform: translate(-50%, -50%) !important;
   }
-  .splash-shine { display: none; }
+  .splash-system,
+  .splash-logo2,
+  .splash-tagline2 { transform: none !important; }
+  .splash-loadbar-fill { width: 55%; transform: none !important; }
 }
