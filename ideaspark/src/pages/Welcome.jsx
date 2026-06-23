@@ -24,7 +24,7 @@ export default function Welcome() {
 
         <div className="relative z-10">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl mb-5 shadow-xl">
-            <img src={scLogo} alt="SoCreates" className="w-14 h-14 object-contain" />
+            <img src={scLogo} alt="SoCreate" className="w-14 h-14 object-contain" />
           </div>
           <h1 className="text-white text-3xl font-black tracking-tight">SoCreate</h1>
           <p className="text-blue-200 text-sm mt-2">Where ideas come alive</p>

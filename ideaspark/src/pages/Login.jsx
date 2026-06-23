@@ -121,7 +121,7 @@ export default function Login() {
 
         <div className="relative z-10">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl mb-4 shadow-lg">
-            <img src={scLogo} alt="SoCreates" className="w-12 h-12 object-contain" />
+            <img src={scLogo} alt="SoCreate" className="w-12 h-12 object-contain" />
           </div>
           <h1 className="text-white text-2xl font-bold">Welcome Back</h1>
           <p className="text-blue-200 text-sm mt-1">Sign in to continue to SoCreate</p>
