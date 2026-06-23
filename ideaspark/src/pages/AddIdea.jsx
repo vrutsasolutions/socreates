@@ -5,8 +5,9 @@ import api from '../api/axiosInstance';
 import { useAuth } from '../context/AuthContext';
 import { hasCreatorPro, isVerified } from '../api/paymentApi';
 import { AIAssistantBar, AIThinkingBubble } from '../components/common/AIInteractions.premium';
-import { saveIdeaDraft, takeIdeaDraft } from '../state/ideaDraft';
+import { saveIdeaDraft, takeIdeaDraft, clearIdeaDraft } from '../state/ideaDraft';
 import { setEditorInput, takeEditorOutput } from '../state/imageEditorStore';
+import { filesToCompressedDataURLs, dataURLsToFiles } from '../state/imageCodec';
 
 const CATEGORIES = [
   'Technology','Design','Business','Science','Art','Health',
@@ -107,7 +108,7 @@ function AIRefineModal({ original, onAccept, onClose }) {
               <SparkleIcon size={18} />
             </div>
             <div className="flex-1">
-              <p className="font-bold text-[#0D2137] text-[15px] leading-tight">SoCreate AI</p>
+              <p className="font-bold text-[#0D2137] text-[15px] leading-tight">SoCreates AI</p>
               <p className="text-[11px] text-[#90A4AE]">
                 {screen === 'select'
                   ? 'Choose how AI should help you'
@@ -382,48 +383,51 @@ export default function AddIdea() {
   };
   // ──────────────────────────────────────────────────────────────────────────
 
-  const requestPremiumToggle = () => {
+  const requestPremiumToggle = async () => {
     if (form.isPremium) { setForm((f) => ({ ...f, isPremium: false })); return; }
-    saveIdeaDraft({ form, images, previews, step });
+    const imageDataURLs = await filesToCompressedDataURLs(images);
+    saveIdeaDraft({ form, imageDataURLs, step });
     navigate('/create-premium');
   };
 
   // Non-premium users tap "Upgrade to Creator Pro". Persist the in-progress
   // draft first so their title/description/images survive the round-trip and
   // are restored when they navigate back (see the restore effect below).
-  const goToCreatorPro = () => {
-    saveIdeaDraft({ form, images, previews, step });
+  const goToCreatorPro = async () => {
+    const imageDataURLs = await filesToCompressedDataURLs(images);
+    saveIdeaDraft({ form, imageDataURLs, step });
     navigate('/creator-pro');
   };
 
   useEffect(() => {
-    // Restore a draft stashed before any trip to the premium gate — whether the
-    // user came back via the `?premium=1` return (Creator Pro flow) or just hit
-    // back from the Creator Pro page. takeIdeaDraft() clears it after one read.
+    // Restore a stashed draft — covers three cases with the same code path:
+    //   1. A plain page refresh on /add-idea (no query params at all).
+    //   2. Coming back from the premium gate (`?premium=1`).
+    //   3. Coming back from the image editor (`?edited=1`).
+    // takeIdeaDraft() clears it after one read so it doesn't reappear later.
     const d = takeIdeaDraft();
     const premiumReturn = params.get('premium') === '1';
     const editorReturn  = params.get('edited')  === '1';
-    if (!d && !premiumReturn && !editorReturn) return;
+    if (!d) return;
     const p = params.get('price');
     setForm((f) => ({
       ...f,
-      ...(d?.form || {}),
+      ...(d.form || {}),
       ...(premiumReturn && creatorPro && verified
-        ? { isPremium: true, price: p || d?.form?.price || f.price }
+        ? { isPremium: true, price: p || d.form?.price || f.price }
         : {}),
     }));
-    if (d) {
-      // When returning from the image editor, DON'T restore draft images —
-      // the editor-output effect below will apply the edited (or original)
-      // files instead. Restoring draft images here would overwrite them.
-      if (!editorReturn) {
-        setImages(d.images || []);
-        setPreviews(d.previews || []);
-      }
-      // Return the user to the step they left from (the Media / upload-image
-      // step where the premium toggle lives) instead of resetting to step 0.
-      if (typeof d.step === 'number') setStep(d.step);
+    // When returning from the image editor, DON'T restore draft images —
+    // the editor-output effect below will apply the edited (or original)
+    // files instead. Restoring draft images here would overwrite them.
+    if (!editorReturn && Array.isArray(d.imageDataURLs) && d.imageDataURLs.length > 0) {
+      const restoredFiles = dataURLsToFiles(d.imageDataURLs, 'restored');
+      setImages(restoredFiles);
+      setPreviews(restoredFiles.map((f) => URL.createObjectURL(f)));
     }
+    // Return the user to the step they left from (the Media / upload-image
+    // step where the premium toggle lives) instead of resetting to step 0.
+    if (typeof d.step === 'number') setStep(d.step);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -432,6 +436,28 @@ export default function AddIdea() {
   const DESC_MAX   = 3000;
   const [images,   setImages]   = useState([]);
   const [previews, setPreviews] = useState([]);
+
+  // ── Auto-save draft on every change ─────────────────────────────────────
+  // Debounced so we're not re-encoding images on every keystroke. This is
+  // what makes a plain page refresh (no navigation involved) recoverable —
+  // the explicit saveIdeaDraft() calls elsewhere only cover the moments
+  // right before a route change.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      filesToCompressedDataURLs(images).then((imageDataURLs) => {
+        // Nothing entered at all yet — don't leave an empty draft sitting around.
+        const isEmpty =
+          !form.title.trim() && !form.description.trim() &&
+          !form.category && imageDataURLs.length === 0;
+        if (isEmpty) {
+          clearIdeaDraft();
+          return;
+        }
+        saveIdeaDraft({ form, imageDataURLs, step });
+      });
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [form, images, step]);
 
   // Shared row height for image preview tiles. Each tile's width is derived
   // from the image's own natural aspect ratio, so wide photos get wide boxes
@@ -460,12 +486,13 @@ export default function AddIdea() {
   // When the user selects files from disk, we send them to /edit-images first.
   // The editor is optional — if they tap Skip it writes null and navigates back
   // with no ?edited=1 param, so we just re-apply the originals.
-  const handleImage = (e) => {
+  const handleImage = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     e.target.value = '';
     // Stash the current draft so the images/form survive navigation.
-    saveIdeaDraft({ form, images, previews, step });
+    const imageDataURLs = await filesToCompressedDataURLs(images);
+    saveIdeaDraft({ form, imageDataURLs, step });
     // Hand the newly selected files to the editor store.
     setEditorInput(
       [...images, ...files].slice(0, MAX_IMAGES),
@@ -511,6 +538,24 @@ export default function AddIdea() {
     setStep((s) => s + 1);
   };
 
+  // Step back within the wizard (Media -> Details, Publish -> Media).
+  // Whatever was entered stays in state (and keeps auto-saving via the
+  // draft effect), so going back and forward again doesn't lose anything.
+  const prevStep = () => {
+    setError('');
+    setStep((s) => Math.max(0, s - 1));
+  };
+
+  // Header back arrow: step back within the wizard if we're past step 0,
+  // otherwise leave the Add Idea flow entirely (previous screen/page).
+  const handleHeaderBack = () => {
+    if (step > 0) {
+      prevStep();
+    } else {
+      navigate(-1);
+    }
+  };
+
   const handlePublish = async () => {
     if (form.isPremium && creatorPro && !verified) {
       navigate('/create-premium');
@@ -543,6 +588,7 @@ export default function AddIdea() {
 
       await api.post('/ideas', fd);
 
+      clearIdeaDraft();
       navigate('/home');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to publish.');
@@ -573,7 +619,7 @@ export default function AddIdea() {
 
         <div className="flex items-center gap-3 relative z-10">
           <button
-           onClick={() => navigate(-1)}
+           onClick={handleHeaderBack}
                aria-label="Go back"
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
          >
@@ -690,8 +736,9 @@ export default function AddIdea() {
                       {/* Edit button — opens editor for all current images */}
                       <button
                         type="button"
-                        onClick={() => {
-                          saveIdeaDraft({ form, images, previews, step });
+                        onClick={async () => {
+                          const imageDataURLs = await filesToCompressedDataURLs(images);
+                          saveIdeaDraft({ form, imageDataURLs, step });
                           setEditorInput([...images], '/add-idea');
                           navigate('/edit-images');
                         }}
