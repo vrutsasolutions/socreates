@@ -75,7 +75,7 @@ function AIRefineModal({ original, onAccept, onClose }) {
               <SparkleIcon size={18} />
             </div>
             <div className="flex-1">
-              <p className="font-bold text-[#0D2137] text-[15px] leading-tight">SoCreates AI</p>
+              <p className="font-bold text-[#0D2137] text-[15px] leading-tight">SoCreate AI</p>
               <p className="text-[11px] text-[#90A4AE]">
                 {screen === 'select'
                   ? 'Choose how AI should help you'

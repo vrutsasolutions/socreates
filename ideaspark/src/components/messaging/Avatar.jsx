@@ -1,5 +1,5 @@
 // Avatar — gradient fills, story ring, online dot.
-// Mirrors the Socreates design system; replaces the flat-colored version.
+// Mirrors the SoCreate design system; replaces the flat-colored version.
 
 const GRADIENTS = [
   'linear-gradient(135deg,#1976D2,#42A5F5)',   // blue

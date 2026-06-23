@@ -1,7 +1,7 @@
 /**
  * ErrorStates.premium.jsx
  * ─────────────────────────────────────────────────────────────
- * Comprehensive error state library for SoCreates / IdeaSpark.
+ * Comprehensive error state library for SoCreate / IdeaSpark.
  *
  * Named exports:
  *   NetworkError       — No internet / request timed out

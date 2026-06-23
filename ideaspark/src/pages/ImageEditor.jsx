@@ -1,5 +1,5 @@
 /**
- * ImageEditor.jsx  — SoCreates themed image editor
+ * ImageEditor.jsx  — SoCreate themed image editor
  * Features: Crop (toggle + drag handles), Rotate ±90, Flip H/V, Reset
  * Optional — Skip returns originals unchanged.
  */

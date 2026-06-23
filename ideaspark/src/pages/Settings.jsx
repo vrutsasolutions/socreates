@@ -139,7 +139,7 @@ export default function Settings() {
             />
           </Section>
 
-          <p className="text-center text-[#90A4AE] text-xs pb-6">SoCreates v1.0.0</p>
+          <p className="text-center text-[#90A4AE] text-xs pb-6">SoCreate v1.0.0</p>
         </div>
       </div>
     </div>

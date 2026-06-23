@@ -1,7 +1,7 @@
 /**
  * LoadingStates.premium.jsx
  * ─────────────────────────────────────────────────────────────
- * Comprehensive loading & skeleton state library for SoCreates.
+ * Comprehensive loading & skeleton state library for SoCreate.
  *
  * Named exports — import only what you need:
  *
@@ -151,7 +151,7 @@ export function PageLoader({ message = 'Loading…' }) {
           letterSpacing: '-0.03em',
           lineHeight: 1,
         }}>
-          SoCreates
+          SoCreate
         </div>
         <div style={{
           color: 'rgba(255,255,255,0.55)',

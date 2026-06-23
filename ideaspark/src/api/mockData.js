@@ -54,7 +54,7 @@ export const MOCK_NOTIFICATIONS = [
   { id: 'n1', type: 'like',    title: 'New like',     message: 'Arjun liked your idea "Food Rescue Network"', read: false, createdAt: ago(120000),   link: '/ideas/3' },
   { id: 'n2', type: 'follow',  title: 'New follower', message: 'Priya Nair started following you',             read: false, createdAt: ago(900000),   link: '/profile' },
   { id: 'n3', type: 'comment', title: 'New comment',  message: 'Rahul commented on "Mental Wellness Journal"', read: true,  createdAt: ago(5400000),  link: '/ideas/6' },
-  { id: 'n4', type: 'system',  title: 'Welcome 🎉',   message: 'Your SoCreates account is ready. Share your first idea!', read: true, createdAt: ago(86400000), link: '/add-idea' },
+  { id: 'n4', type: 'system',  title: 'Welcome 🎉',   message: 'Your SoCreate account is ready. Share your first idea!', read: true, createdAt: ago(86400000), link: '/add-idea' },
   // Chat-originated notifications (shared idea / photo) are `message` type so
   // they surface in the message icon, not the bell — clicking opens the chat.
   { id: 'n5', type: 'message', title: 'New message',  message: 'Aparna S. shared an idea',     read: false, createdAt: ago(150000),  conversationId: 'c-aparna', link: '/messages/c-aparna' },

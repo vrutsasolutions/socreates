@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import logo from '../../assets/socreates-logo.png';
+import logo from '../../assets/SoCreate-logo.png';
 import '../../styles/splash.css';
 
 // Brand wordmark shown beneath the logo. Kept consistent with the rest of the
 // app (Welcome, <title>) rather than the mockup's shortened "SoCreate".
-const BRAND = 'SoCreates';
+const BRAND = 'SoCreate';
 const TAGLINE = 'Where ideas come to life';
 
 // Total time the splash stays before it begins its fade-out. The animation
