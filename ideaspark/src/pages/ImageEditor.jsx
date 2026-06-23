@@ -1,5 +1,5 @@
 /**
- * ImageEditor.jsx  — SoCreate themed image editor
+ * ImageEditor.jsx  — SoCreates themed image editor
  * Features: Crop (toggle + drag handles), Rotate ±90, Flip H/V, Reset
  * Optional — Skip returns originals unchanged.
  */
@@ -776,6 +776,7 @@ export default function ImageEditor() {
         ref={boxRef}
         style={{
           flex: 1,
+          minHeight: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -785,7 +786,14 @@ export default function ImageEditor() {
           background: "#EEF4FF",
         }}
       >
-        <div style={{ position: "relative", display: "inline-block" }}>
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            maxWidth: "100%",
+            maxHeight: "100%",
+          }}
+        >
           <img
             ref={imgRef}
             key={current}
@@ -795,7 +803,7 @@ export default function ImageEditor() {
             draggable={false}
             style={{
               maxWidth: "100%",
-              maxHeight: "calc(100vh - 280px)",
+              maxHeight: "100%",
               objectFit: "contain",
               transform: imgTransform,
               transformOrigin: "center",
