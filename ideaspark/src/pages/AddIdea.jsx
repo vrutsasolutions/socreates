@@ -851,7 +851,7 @@ export default function AddIdea() {
         <div className="mt-6 pb-6">
           {step < 2 ? (
             <button onClick={nextStep} className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold">
-              Continue →
+              Continue 
             </button>
           ) : (
             <button onClick={handlePublish} className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold">
