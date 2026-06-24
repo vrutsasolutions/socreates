@@ -1,7 +1,7 @@
 /**
  * AIInteractions.premium.jsx
  * ─────────────────────────────────────────────────────────────
- * AI interaction UI library for SoCreates / IdeaSpark.
+ * AI interaction UI library for SoCreate / IdeaSpark.
  *
  * BUILD MARKER: v6-synced-2024 — if you don't see this comment in your
  * project's copy of the file, you are NOT running this version. Every
@@ -132,7 +132,7 @@ export function AIAssistantBar({ onActivate, onDismiss }) {
           margin: '0 0 3px',
           letterSpacing: '-0.01em',
         }}>
-          SoCreates AI
+          SoCreate AI
         </p>
         <p style={{
           fontSize: 12,
@@ -875,7 +875,7 @@ export function AIOnboardingPrompt({ onTryAI, onDismiss }) {
         margin: '0 0 7px',
         lineHeight: 1.25,
       }}>
-        Meet SoCreates AI
+        Meet SoCreate AI
       </h3>
 
       <p style={{
