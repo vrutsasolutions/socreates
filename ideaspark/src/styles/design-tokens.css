@@ -65,11 +65,17 @@
   --sc-info:          #3B82F6;
   --sc-info-dark:     #1E3A8A;
 
-  /* AI / Special */
-  --sc-ai-light:   #F5F0FF;
-  --sc-ai:         #7C3AED;
-  --sc-ai-dark:    #4C1D95;
-  --sc-ai-glow:    #8B5CF6;
+  /* AI / Special
+     Distinct from --sc-primary-500 on purpose — if AI used the exact
+     same value as the Create button, there'd be no visual signal that
+     marks AI content as special. This pushes ONE more step in the same
+     direction the nav already goes from the header (212°→233°→245°),
+     plus extra saturation/brightness, so it reads as "AI" at a glance
+     while staying in the same blue family — not a jump to violet. */
+  --sc-ai-light:   #EDEBFE;
+  --sc-ai:         #4536F2;
+  --sc-ai-dark:    #2013AE;
+  --sc-ai-glow:    #6F62F8;
 
   /* ── 2. SEMANTIC SURFACE TOKENS ────────────────────────── */
   --sc-bg-page:        var(--sc-neutral-50);
@@ -162,7 +168,10 @@
   /* Brand-tinted shadows */
   --sc-shadow-brand: 0 8px 24px rgba(51, 71, 232, 0.24);
   --sc-shadow-accent:0 8px 24px rgba(245,158, 11, 0.28);
-  --sc-shadow-ai:    0 8px 24px rgba(124, 58,237, 0.28);
+  /* CHANGED: was rgba(124,58,237,...) (violet) — now matches the AI
+     accent's new blue value so the glow color and the surface color
+     are always the same hue. */
+  --sc-shadow-ai:    0 8px 24px rgba(69, 54, 242, 0.30);
 
   /* ── 7. TRANSITIONS ────────────────────────────────────── */
   --sc-ease-out:     cubic-bezier(0.0, 0.0, 0.2, 1.0);

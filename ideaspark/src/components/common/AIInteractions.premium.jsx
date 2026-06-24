@@ -1,7 +1,12 @@
 /**
  * AIInteractions.premium.jsx
  * ─────────────────────────────────────────────────────────────
- * AI interaction UI library for SoCreate / IdeaSpark.
+ * AI interaction UI library for SoCreates / IdeaSpark.
+ *
+ * BUILD MARKER: v6-synced-2024 — if you don't see this comment in your
+ * project's copy of the file, you are NOT running this version. Every
+ * AI-blue value in this file is rgba(69,54,242,...) / #3347E8, matching
+ * BottomNav.premium.jsx's Create-button color exactly.
  *
  * Named exports:
  *   AIAssistantBar       — Floating bar with "Ask AI" CTA (top of AddIdea)
@@ -31,11 +36,10 @@ import { useState, useEffect, useRef } from 'react';
 /** Sparkle / AI icon — reused across components */
 function SparkleIcon({ size = 16, color = 'currentColor' }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none">
       <path d="M12 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z" />
-      <path d="M5 5l1 2.5L8.5 8 6 9l-1 2.5L4 9 1.5 8 4 7 5 5z" strokeWidth={1.4} />
-      <path d="M19 14l0.8 2L22 17l-2.2 1-0.8 2-0.8-2L16 17l2.2-1 0.8-2z" strokeWidth={1.4} />
+      <path d="M5 4l0.9 2.2L8 7l-2.1 0.8L5 10l-0.9-2.2L2 7l2.1-0.8L5 4z" opacity="0.85" />
+      <path d="M19 13l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5z" opacity="0.85" />
     </svg>
   );
 }
@@ -64,9 +68,9 @@ function AIAccentBorder() {
     <div style={{
       position: 'absolute',
       top: 0, left: 0, right: 0,
-      height: 2,
+      height: 3,
       borderRadius: 'inherit',
-      background: 'linear-gradient(90deg, var(--sc-ai), var(--sc-primary-400), var(--sc-ai-glow))',
+      background: 'linear-gradient(90deg, var(--sc-ai), var(--sc-ai-glow), var(--sc-ai))',
       backgroundSize: '200% 100%',
       animation: 'sc-shimmer 2.5s linear infinite',
     }} />
@@ -94,42 +98,44 @@ export function AIAssistantBar({ onActivate, onDismiss }) {
       position: 'relative',
       display: 'flex',
       alignItems: 'center',
-      gap: 12,
-      padding: '12px 14px',
-      borderRadius: 'var(--sc-radius-xl)',
-      background: 'linear-gradient(135deg, var(--sc-ai-light) 0%, #EEF0FF 100%)',
-      border: '1px solid rgba(124,58,237,0.18)',
+      gap: 14,
+      padding: '16px 18px',
+      borderRadius: 18,
+      background: 'linear-gradient(135deg, var(--sc-ai-light) 0%, #E4E9FF 100%)',
+      border: '1px solid rgba(69,54,242,0.30)',
+      boxShadow: '0 8px 24px rgba(69,54,242,0.18), 0 2px 6px rgba(69,54,242,0.12)',
       marginBottom: 4,
       overflow: 'hidden',
       animation: 'sc-slide-up 300ms var(--sc-ease-out) both',
     }}>
       <AIAccentBorder />
 
-      {/* Icon */}
+      {/* Icon — subtle pulse-glow gives it "AI energy" without changing hue */}
       <div style={{
-        width: 36, height: 36,
-        borderRadius: 'var(--sc-radius-lg)',
+        width: 44, height: 44,
+        borderRadius: 14,
         background: 'linear-gradient(135deg, var(--sc-ai), var(--sc-ai-glow))',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
-        boxShadow: 'var(--sc-shadow-ai)',
+        boxShadow: '0 4px 14px rgba(69,54,242,0.45), 0 0 0 4px rgba(69,54,242,0.10)',
+        animation: 'sc-ai-glow-pulse 2.8s ease-in-out infinite',
       }}>
-        <SparkleIcon size={16} color="#fff" />
+        <SparkleIcon size={20} color="#fff" />
       </div>
 
       {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{
-          fontSize: 13, fontWeight: 700,
+          fontSize: 14, fontWeight: 800,
           color: 'var(--sc-ai-dark)',
           fontFamily: 'var(--sc-font-display)',
-          margin: '0 0 2px',
+          margin: '0 0 3px',
           letterSpacing: '-0.01em',
         }}>
-          SoCreate AI
+          SoCreates AI
         </p>
         <p style={{
-          fontSize: 11,
+          fontSize: 12,
           color: 'var(--sc-text-secondary)',
           fontFamily: 'var(--sc-font-body)',
           margin: 0,
@@ -143,16 +149,16 @@ export function AIAssistantBar({ onActivate, onDismiss }) {
       <button
         onClick={onActivate}
         style={{
-          padding: '7px 14px',
-          borderRadius: 'var(--sc-radius-xl)',
+          padding: '9px 18px',
+          borderRadius: 14,
           background: 'linear-gradient(135deg, var(--sc-ai), var(--sc-ai-glow))',
           color: '#fff',
-          fontSize: 12, fontWeight: 700,
+          fontSize: 13, fontWeight: 800,
           fontFamily: 'var(--sc-font-body)',
           border: 'none', cursor: 'pointer',
           flexShrink: 0,
           transition: 'all 200ms var(--sc-ease-spring)',
-          boxShadow: 'var(--sc-shadow-ai)',
+          boxShadow: '0 4px 14px rgba(69,54,242,0.40)',
         }}
         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -164,16 +170,18 @@ export function AIAssistantBar({ onActivate, onDismiss }) {
       <button
         onClick={handleDismiss}
         style={{
-          position: 'absolute', top: 8, right: 10,
-          width: 20, height: 20,
+          alignSelf: 'flex-start',
+          marginTop: -2,
+          width: 22, height: 22,
           borderRadius: '50%',
-          background: 'rgba(124,58,237,0.10)',
+          background: 'rgba(69,54,242,0.10)',
           border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--sc-ai)',
           fontSize: 11, fontWeight: 700,
           lineHeight: 1,
           padding: 0,
+          flexShrink: 0,
         }}
         aria-label="Dismiss AI bar"
       >
@@ -193,31 +201,33 @@ export function AIThinkingBubble({ message = 'AI is thinking…' }) {
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: 10,
-      padding: '14px 16px',
-      borderRadius: 'var(--sc-radius-xl)',
-      background: 'var(--sc-ai-light)',
-      border: '1px solid rgba(124,58,237,0.14)',
+      gap: 14,
+      padding: '16px 18px',
+      borderRadius: 18,
+      background: 'linear-gradient(135deg, var(--sc-ai-light) 0%, #E4E9FF 100%)',
+      border: '1px solid rgba(69,54,242,0.30)',
+      boxShadow: '0 8px 24px rgba(69,54,242,0.18), 0 2px 6px rgba(69,54,242,0.12)',
       animation: 'sc-fade-in 250ms ease both',
     }}>
-      {/* Pulsing AI avatar */}
+      {/* Pulsing AI avatar — identical recipe to AIAssistantBar's icon */}
       <div style={{
-        width: 32, height: 32,
-        borderRadius: 'var(--sc-radius-lg)',
+        width: 44, height: 44,
+        borderRadius: 14,
         background: 'linear-gradient(135deg, var(--sc-ai), var(--sc-ai-glow))',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
-        animation: 'sc-pulse 1.5s ease-in-out infinite',
+        boxShadow: '0 4px 14px rgba(69,54,242,0.45), 0 0 0 4px rgba(69,54,242,0.10)',
+        animation: 'sc-ai-glow-pulse 2.8s ease-in-out infinite',
       }}>
-        <SparkleIcon size={14} color="#fff" />
+        <SparkleIcon size={20} color="#fff" />
       </div>
 
       <div style={{ flex: 1 }}>
         <p style={{
-          fontSize: 12, fontWeight: 600,
+          fontSize: 13, fontWeight: 700,
           color: 'var(--sc-ai)',
           fontFamily: 'var(--sc-font-body)',
-          margin: '0 0 6px',
+          margin: '0 0 7px',
         }}>
           {message}
         </p>
@@ -249,10 +259,11 @@ export function AISuggestionCard({
   return (
     <div style={{
       position: 'relative',
-      padding: '14px 16px',
-      borderRadius: 'var(--sc-radius-xl)',
+      padding: '17px 18px',
+      borderRadius: 18,
       background: used ? 'var(--sc-success-light)' : 'var(--sc-bg-surface)',
-      border: `1.5px solid ${used ? 'rgba(16,185,129,0.30)' : 'var(--sc-border-default)'}`,
+      border: `1.5px solid ${used ? 'rgba(16,185,129,0.35)' : 'rgba(69,54,242,0.16)'}`,
+      boxShadow: used ? '0 4px 14px rgba(16,185,129,0.14)' : '0 4px 14px rgba(15,18,36,0.08)',
       transition: 'all 250ms var(--sc-ease-out)',
       animation: `sc-slide-up 300ms ${index * 60}ms var(--sc-ease-out) both`,
       overflow: 'hidden',
@@ -296,10 +307,10 @@ export function AISuggestionCard({
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 5,
-          padding: '7px 14px',
+          gap: 6,
+          padding: '9px 16px',
           borderRadius: 'var(--sc-radius-full)',
-          fontSize: 12, fontWeight: 700,
+          fontSize: 13, fontWeight: 800,
           fontFamily: 'var(--sc-font-body)',
           cursor: used ? 'default' : 'pointer',
           border: 'none',
@@ -308,7 +319,7 @@ export function AISuggestionCard({
             ? 'var(--sc-success)'
             : 'linear-gradient(135deg, var(--sc-ai), var(--sc-ai-glow))',
           color: '#fff',
-          boxShadow: used ? 'none' : 'var(--sc-shadow-ai)',
+          boxShadow: used ? '0 2px 8px rgba(16,185,129,0.30)' : '0 4px 12px rgba(69,54,242,0.40)',
         }}
       >
         {used ? (
@@ -373,12 +384,12 @@ export function AISuggestionList({ suggestions = [], onUse, onRegenerate }) {
               fontSize: 11, fontWeight: 600,
               fontFamily: 'var(--sc-font-body)',
               cursor: 'pointer',
-              border: '1px solid rgba(124,58,237,0.22)',
+              border: '1px solid rgba(69,54,242,0.22)',
               background: 'var(--sc-ai-light)',
               color: 'var(--sc-ai)',
               transition: 'all 180ms ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(69,54,242,0.12)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--sc-ai-light)'; }}
           >
             <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -454,7 +465,7 @@ export function AITagSuggestions({ tags = [], onSelect, selectedTag }) {
                 fontSize: 12, fontWeight: 600,
                 fontFamily: 'var(--sc-font-body)',
                 cursor: 'pointer',
-                border: `1.5px solid ${isSelected ? 'var(--sc-ai)' : 'rgba(124,58,237,0.20)'}`,
+                border: `1.5px solid ${isSelected ? 'var(--sc-ai)' : 'rgba(69,54,242,0.20)'}`,
                 background: isSelected
                   ? 'linear-gradient(135deg, var(--sc-ai), var(--sc-ai-glow))'
                   : 'var(--sc-ai-light)',
@@ -463,7 +474,7 @@ export function AITagSuggestions({ tags = [], onSelect, selectedTag }) {
                 animation: `sc-scale-in 250ms ${i * 40}ms var(--sc-ease-spring) both`,
                 boxShadow: isSelected ? 'var(--sc-shadow-ai)' : 'none',
               }}
-              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(69,54,242,0.12)'; }}
               onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'var(--sc-ai-light)'; }}
             >
               {tag}
@@ -509,13 +520,13 @@ export function AIDescriptionHelper({ currentText = '', onImprove, loading = fal
           fontSize: 11, fontWeight: 700,
           fontFamily: 'var(--sc-font-body)',
           cursor: hasText && !loading ? 'pointer' : 'not-allowed',
-          border: '1px solid rgba(124,58,237,0.22)',
+          border: '1px solid rgba(69,54,242,0.22)',
           background: hasText ? 'var(--sc-ai-light)' : 'var(--sc-neutral-100)',
           color: hasText ? 'var(--sc-ai)' : 'var(--sc-text-muted)',
           transition: 'all 180ms ease',
           opacity: hasText ? 1 : 0.6,
         }}
-        onMouseEnter={e => { if (hasText && !loading) e.currentTarget.style.background = 'rgba(124,58,237,0.12)'; }}
+        onMouseEnter={e => { if (hasText && !loading) e.currentTarget.style.background = 'rgba(69,54,242,0.12)'; }}
         onMouseLeave={e => { if (hasText) e.currentTarget.style.background = 'var(--sc-ai-light)'; }}
       >
         {loading ? (
@@ -557,10 +568,11 @@ export function AIResultPanel({
 
   return (
     <div style={{
-      borderRadius: 'var(--sc-radius-xl)',
-      border: '1.5px solid rgba(124,58,237,0.16)',
-      background: 'linear-gradient(160deg, var(--sc-ai-light) 0%, #F0F2FF 100%)',
-      padding: 16,
+      borderRadius: 18,
+      border: '1.5px solid rgba(69,54,242,0.22)',
+      background: 'linear-gradient(160deg, var(--sc-ai-light) 0%, #EEF0FF 100%)',
+      boxShadow: '0 10px 30px rgba(69,54,242,0.14), 0 2px 8px rgba(69,54,242,0.08)',
+      padding: 18,
       position: 'relative',
       overflow: 'hidden',
       animation: 'sc-fade-in 300ms ease both',
@@ -645,8 +657,8 @@ export function AIBadge({ label = 'AI' }) {
     <span style={{
       display: 'inline-flex',
       alignItems: 'center',
-      gap: 3,
-      padding: '2px 7px',
+      gap: 4,
+      padding: '3px 9px',
       borderRadius: 'var(--sc-radius-full)',
       background: 'linear-gradient(135deg, var(--sc-ai), var(--sc-ai-glow))',
       color: '#fff',
@@ -656,6 +668,7 @@ export function AIBadge({ label = 'AI' }) {
       letterSpacing: '0.06em',
       textTransform: 'uppercase',
       lineHeight: 1,
+      boxShadow: '0 1px 4px rgba(69,54,242,0.20)',
     }}>
       <SparkleIcon size={8} color="#fff" />
       {label}
@@ -675,14 +688,17 @@ export function AIPlagiarismResult({ status = 'checking', steps = [], errorMessa
     <div style={{
       position: 'relative',
       borderRadius: 'var(--sc-radius-xl)',
-      border: '1.5px solid rgba(124,58,237,0.16)',
+      border: '1.5px solid rgba(69,54,242,0.20)',
       background: status === 'flagged'
         ? 'var(--sc-error-light)'
         : 'linear-gradient(160deg, var(--sc-ai-light) 0%, #F0F2FF 100%)',
+      boxShadow: status === 'flagged'
+        ? '0 3px 14px rgba(239,68,68,0.10)'
+        : '0 3px 14px rgba(69,54,242,0.08)',
       padding: 16,
       overflow: 'hidden',
       animation: 'sc-fade-in 300ms ease both',
-      transition: 'background 400ms ease',
+      transition: 'background 400ms ease, box-shadow 400ms ease',
     }}>
       {status !== 'flagged' && <AIAccentBorder />}
 
@@ -738,7 +754,7 @@ export function AIPlagiarismResult({ status = 'checking', steps = [], errorMessa
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {steps.map(({ label, done, active }, idx) => (
           <div key={label} style={{
-            display: 'flex', alignItems: 'center', gap: 12,
+            display: 'flex', alignItems: 'center', gap: 13,
           }}>
             {/* Step indicator */}
             <div style={{
@@ -813,14 +829,18 @@ export function AIOnboardingPrompt({ onTryAI, onDismiss }) {
       position: 'relative',
       marginBottom:'20px',
       borderRadius: 'var(--sc-radius-2xl)',
+      /* Uses the exact same gradient stops as BottomNav.premium.jsx's
+         Create button (primary-700 -> primary-500 -> primary-400),
+         so this card's "brand blue with energy" feeling matches a
+         button that's already proven not to look out of place. */
       '--sc-ai': 'var(--sc-primary-700)',
       '--sc-ai-glow': 'var(--sc-primary-500)',
-      background: 'linear-gradient(135deg, var(--sc-ai) 0%, var(--sc-ai-glow) 60%, var(--sc-primary-500) 100%)',
+      background: 'linear-gradient(135deg, var(--sc-primary-700) 0%, var(--sc-primary-500) 55%, var(--sc-primary-400) 100%)',
       padding: '20px 18px',
       color: '#fff',
       overflow: 'hidden',
       animation: 'sc-bounce-in 500ms var(--sc-ease-spring) both',
-      boxShadow: '0 4px 20px rgba(51,71,232,0.25)',
+      boxShadow: '0 6px 24px rgba(69,54,242,0.28)',
     }}>
       {/* Background decoration */}
       <div style={{
@@ -837,25 +857,32 @@ export function AIOnboardingPrompt({ onTryAI, onDismiss }) {
       }} />
 
       {/* Sparkle */}
-      <div style={{ marginBottom: 12 }}>
-        <SparkleIcon size={28} color="rgba(255,255,255,0.9)" />
+      <div style={{
+        width: 44, height: 44,
+        borderRadius: 14,
+        background: 'rgba(255,255,255,0.16)',
+        border: '1px solid rgba(255,255,255,0.22)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: 14,
+      }}>
+        <SparkleIcon size={22} color="#fff" />
       </div>
 
       <h3 style={{
-        fontSize: 17, fontWeight: 800,
+        fontSize: 18, fontWeight: 800,
         fontFamily: 'var(--sc-font-display)',
         letterSpacing: '-0.02em',
-        margin: '0 0 6px',
-        lineHeight: 1.2,
+        margin: '0 0 7px',
+        lineHeight: 1.25,
       }}>
-        Meet SoCreate AI
+        Meet SoCreates AI
       </h3>
 
       <p style={{
         fontSize: 13,
         fontFamily: 'var(--sc-font-body)',
-        opacity: 0.85,
-        margin: '0 0 18px',
+        opacity: 0.88,
+        margin: '0 0 20px',
         lineHeight: 1.6,
         maxWidth: 260,
       }}>
@@ -863,16 +890,17 @@ export function AIOnboardingPrompt({ onTryAI, onDismiss }) {
       </p>
 
       {/* Feature pills */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4, marginBottom: 22 }}>
         {['✦ Title ideas', '✦ Better descriptions', '✦ Smart tags'].map((f) => (
           <span key={f} style={{
-            padding: '4px 10px',
+            padding: '6px 12px',
             borderRadius: 'var(--sc-radius-full)',
             background: 'rgba(255,255,255,0.18)',
             fontSize: 11, fontWeight: 600,
             fontFamily: 'var(--sc-font-body)',
             backdropFilter: 'blur(4px)',
             border: '1px solid rgba(255,255,255,0.20)',
+            lineHeight: 1.3,
           }}>
             {f}
           </span>
