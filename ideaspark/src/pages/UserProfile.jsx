@@ -89,17 +89,22 @@ export default function UserProfile() {
 
   if (!loading && !profile) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
-        <div className="mb-3 flex justify-center text-[#BBDEFB]">
-          <Icon name="user" className="w-12 h-12" />
+      <div className="min-h-screen bg-[#1565C0] flex flex-col">
+        <div className="bg-white rounded-t-[32px] flex flex-col items-center justify-center flex-1 px-6 text-center py-20">
+          <div className="mb-3 flex justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#EAF2FF] border border-[#DBEAFE] flex items-center justify-center">
+              <Icon name="user" className="w-8 h-8 text-[#1565C0]" />
+            </div>
+          </div>
+          <p className="text-[#0D2137] font-semibold text-base">User not found</p>
+          <p className="text-[#90A4AE] text-sm mt-1">This profile doesn't exist or was removed.</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-5 px-6 py-2.5 rounded-xl bg-[#1565C0] text-white text-sm font-semibold hover:bg-[#0D47A1] transition-colors shadow-sm"
+          >
+            Go back
+          </button>
         </div>
-        <p className="text-[#0D2137] font-semibold">User not found</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-4 text-[#1565C0] text-sm font-medium"
-        >
-          Go back
-        </button>
       </div>
     );
   }
@@ -107,7 +112,7 @@ export default function UserProfile() {
   return (
     <div className="min-h-screen pb-24">
       {/* HEADER — matches Profile.jsx */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-8 relative shadow-lg">
+      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
           <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />

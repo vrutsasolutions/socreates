@@ -414,7 +414,7 @@ function ToolBtn({ label, onClick, active, children }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: active ? "#1565C0" : "#EEF4FF",
+          background: active ? "#1565C0" : "#F0F6FF",
           color: active ? "#fff" : "#1565C0",
           boxShadow: active ? "0 2px 12px rgba(21,101,192,0.35)" : "none",
           transition: "all 0.18s",
@@ -859,7 +859,7 @@ export default function ImageEditor() {
           padding: "16px",
           overflow: "hidden",
           position: "relative",
-          background: "#EEF4FF",
+          background: "#F4F7FF",
         }}
       >
         <div
@@ -1092,10 +1092,10 @@ export default function ImageEditor() {
       <div
         style={{
           background: "#fff",
-          borderTop: "1.5px solid #EEF4FF",
+          borderTop: "1.5px solid #DBEAFE",
           paddingBottom: "env(safe-area-inset-bottom, 16px)",
           flexShrink: 0,
-          boxShadow: "0 -2px 12px rgba(21,101,192,0.07)",
+          boxShadow: "0 -4px 20px rgba(21,101,192,0.07)",
         }}
       >
         {/* 5 tools row */}
@@ -1260,7 +1260,7 @@ export default function ImageEditor() {
                       cursor: "grab",
                       border: isSelected
                         ? "2.5px solid #1565C0"
-                        : "2.5px solid #EEF4FF",
+                        : "2.5px solid #DBEAFE",
                       opacity: isDraggingThis ? 0.4 : isSelected ? 1 : 0.65,
                       boxShadow: isSelected
                         ? "0 0 0 3px rgba(21,101,192,0.2)"
