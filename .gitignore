@@ -1,6 +1,7 @@
 # ───────── Secrets / local config ─────────
 .env
-.env.*
+.env.
+Backend/.env
 *.local
 application-local.properties
 application-secret.properties
