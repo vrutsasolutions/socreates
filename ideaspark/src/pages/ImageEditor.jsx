@@ -1,5 +1,5 @@
 /**
- * ImageEditor.jsx  — SoCreates themed image editor
+ * ImageEditor.jsx  — SoCreate themed image editor
  * Features: Crop (toggle + drag handles), Rotate ±90, Flip H/V, Reset
  * Optional — Skip returns originals unchanged.
  */
@@ -124,6 +124,23 @@ const CheckIcon = () => (
     strokeLinejoin="round"
   >
     <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+// Back-chevron icon — matches the circular back button used on every
+// other page header (Checkout, GetVerified, Profile, Home, etc.)
+const BackIcon = () => (
+  <svg
+    width={18}
+    height={18}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M15 19l-7-7 7-7" />
   </svg>
 );
 
@@ -390,11 +407,14 @@ function ToolBtn({ label, onClick, active, children }) {
         style={{
           width: 50,
           height: 50,
-          borderRadius: 14,
+          // Aligned to the app's rounded-2xl scale (16px) instead of an
+          // off-scale 14px, so these tiles match other icon tiles
+          // (Profile avatar frame, Premium category icons, etc.)
+          borderRadius: 16,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: active ? "#1565C0" : "#EEF4FF",
+          background: active ? "#1565C0" : "#F0F6FF",
           color: active ? "#fff" : "#1565C0",
           boxShadow: active ? "0 2px 12px rgba(21,101,192,0.35)" : "none",
           transition: "all 0.18s",
@@ -687,30 +707,83 @@ export default function ImageEditor() {
       <div
         style={{
           background: "#1565C0",
-          padding: "44px 16px 14px",
+          // Aligned to the app's standard header rhythm: pt-4 (16px) base
+          // padding plus safe-area inset, instead of a hardcoded 44px that
+          // didn't match any other page's spacing scale.
+          padding:
+            "calc(16px + env(safe-area-inset-top, 0px)) 16px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           flexShrink: 0,
           boxShadow: "0 2px 12px rgba(21,101,192,0.18)",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        {/* Decorative rings — every other header in the app (Home, Profile,
+            Checkout, GetVerified, AddIdea...) has this pair of faint rings.
+            This header was missing them entirely. */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              width: 160,
+              height: 160,
+              borderRadius: "50%",
+              border: "28px solid rgba(255,255,255,0.05)",
+              top: -64,
+              right: -40,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              width: 128,
+              height: 128,
+              borderRadius: "50%",
+              border: "22px solid rgba(255,255,255,0.05)",
+              bottom: -40,
+              left: -32,
+            }}
+          />
+        </div>
+
+        {/* Back / Skip — same circular tap-target sizing (36px) and
+            rounded-full shape as the back button used on every other
+            header, just with text instead of only a chevron since this
+            action is "Skip" not strictly "back". */}
         <button
           onClick={handleSkip}
           style={{
-            color: "rgba(255,255,255,0.82)",
-            fontSize: 14,
+            position: "relative",
+            zIndex: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            color: "rgba(255,255,255,0.92)",
+            fontSize: 13,
             fontWeight: 600,
-            padding: "6px 4px",
-            background: "none",
+            padding: "8px 12px",
+            height: 36,
+            borderRadius: 18,
+            background: "rgba(255,255,255,0.15)",
             border: "none",
             cursor: "pointer",
           }}
         >
+          <BackIcon />
           Skip
         </button>
 
-        <div style={{ textAlign: "center" }}>
+        <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
           <p
             style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: 0 }}
           >
@@ -736,12 +809,15 @@ export default function ImageEditor() {
           onClick={handleDone}
           disabled={processing}
           style={{
+            position: "relative",
+            zIndex: 1,
             background: processing ? "rgba(255,255,255,0.25)" : "white",
             color: "#1565C0",
             fontWeight: 700,
             fontSize: 13,
-            padding: "7px 14px",
-            borderRadius: 10,
+            padding: "8px 14px",
+            height: 36,
+            borderRadius: 18,
             border: "none",
             cursor: "pointer",
             display: "flex",
@@ -783,7 +859,7 @@ export default function ImageEditor() {
           padding: "16px",
           overflow: "hidden",
           position: "relative",
-          background: "#EEF4FF",
+          background: "#F4F7FF",
         }}
       >
         <div
@@ -808,7 +884,9 @@ export default function ImageEditor() {
               transform: imgTransform,
               transformOrigin: "center",
               display: "block",
-              borderRadius: 12,
+              // Aligned to rounded-2xl (16px) scale used for image tiles
+              // elsewhere (IdeaCard covers, PreviewTile in AddIdea, etc.)
+              borderRadius: 16,
               boxShadow: "0 4px 24px rgba(21,101,192,0.15)",
             }}
           />
@@ -822,7 +900,7 @@ export default function ImageEditor() {
                 left: 0,
                 width: imgRect.width,
                 height: imgRect.height,
-                borderRadius: 12,
+                borderRadius: 16,
                 overflow: "hidden",
                 pointerEvents: "none",
               }}
@@ -1014,10 +1092,10 @@ export default function ImageEditor() {
       <div
         style={{
           background: "#fff",
-          borderTop: "1.5px solid #EEF4FF",
+          borderTop: "1.5px solid #DBEAFE",
           paddingBottom: "env(safe-area-inset-bottom, 16px)",
           flexShrink: 0,
-          boxShadow: "0 -2px 12px rgba(21,101,192,0.07)",
+          boxShadow: "0 -4px 20px rgba(21,101,192,0.07)",
         }}
       >
         {/* 5 tools row */}
@@ -1173,13 +1251,16 @@ export default function ImageEditor() {
                       position: "relative",
                       width: 52,
                       height: 52,
+                      // Aligned to rounded-xl (10-14px range used for small
+                      // tiles elsewhere); kept close to original 10 since
+                      // that already matched the app's --radius-md scale.
                       borderRadius: 10,
                       overflow: "hidden",
                       flexShrink: 0,
                       cursor: "grab",
                       border: isSelected
                         ? "2.5px solid #1565C0"
-                        : "2.5px solid #EEF4FF",
+                        : "2.5px solid #DBEAFE",
                       opacity: isDraggingThis ? 0.4 : isSelected ? 1 : 0.65,
                       boxShadow: isSelected
                         ? "0 0 0 3px rgba(21,101,192,0.2)"

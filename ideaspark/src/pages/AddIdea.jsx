@@ -49,6 +49,9 @@ function PreviewTile({ src, height = 116, maxWidth = 220, className = '', childr
 }
 
 // ── AI Refine Modal ────────────────────────────────────────────────────────────
+// Color system: brand blue (#1565C0 family) throughout — matches the rest of
+// the app exactly. "AI-ness" is communicated through the gradient sheen,
+// sparkle icon, and glow/shadow treatment, NOT through a different hue.
 function AIRefineModal({ original, onAccept, onClose }) {
   // "select" → user picks a mode
   // "loading" → calling API
@@ -79,12 +82,11 @@ function AIRefineModal({ original, onAccept, onClose }) {
 
   const handleRerun = () => callApi(mode);
 
-  // Sparkle SVG icon
+  // Sparkle SVG icon — filled (not stroke-only) so it stays crisp at small sizes
   const SparkleIcon = ({ size = 16, color = '#fff' }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-         stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none">
       <path d="M12 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/>
-      <path d="M5 5l1 2.5L8.5 8 6 9l-1 2.5L4 9 1.5 8 4 7 5 5z" strokeWidth={1.4}/>
+      <path d="M5 4l0.9 2.2L8 7l-2.1 0.8L5 10l-0.9-2.2L2 7l2.1-0.8L5 4z" opacity="0.85"/>
     </svg>
   );
 
@@ -103,12 +105,12 @@ function AIRefineModal({ original, onAccept, onClose }) {
         {/* ── Header (always visible) ── */}
         <div className="px-6 pt-6 pb-0">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                 style={{ background: 'linear-gradient(135deg,#7C3AED,#4F62F5)' }}>
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-blue-300/40"
+                 style={{ background: 'linear-gradient(135deg,#1565C0,#4536F2)' }}>
               <SparkleIcon size={18} />
             </div>
             <div className="flex-1">
-              <p className="font-bold text-[#0D2137] text-[15px] leading-tight">SoCreates AI</p>
+              <p className="font-bold text-[#0D2137] text-[15px] leading-tight">SoCreate AI</p>
               <p className="text-[11px] text-[#90A4AE]">
                 {screen === 'select'
                   ? 'Choose how AI should help you'
@@ -135,18 +137,25 @@ function AIRefineModal({ original, onAccept, onClose }) {
                 Select mode
               </p>
 
-              {/* Option 1 — Rewrite & Enhance */}
+              {/* Option 1 — Rewrite & Enhance
+                  Selected-state colors match AIAssistantBar's "Try AI" box
+                  exactly: #4536F2 border/shadow, light-blue gradient bg —
+                  so this card reads as the SAME AI treatment, not a third
+                  variant of blue. */}
               <button
                 onClick={() => setMode('enhance')}
                 className={`w-full flex items-start gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
-                  mode === 'enhance'
-                    ? 'border-[#7C3AED] bg-[#F5F3FF]'
-                    : 'border-[#E3E8F0] bg-white hover:border-[#C4B5FD]'
+                  mode === 'enhance' ? 'text-left' : 'border-[#E3E8F0] bg-white hover:border-[#93C5FD]'
                 }`}
+                style={mode === 'enhance' ? {
+                  borderColor: '#4536F2',
+                  background: 'linear-gradient(135deg, #EEF0FE 0%, #E4E9FF 100%)',
+                  boxShadow: '0 8px 24px rgba(69,54,242,0.18), 0 2px 6px rgba(69,54,242,0.12)',
+                } : undefined}
               >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#EDE9FE]">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#DBEAFE]">
                   <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
-                       stroke="#7C3AED" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                       stroke="#1565C0" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/>
                   </svg>
                 </div>
@@ -157,14 +166,14 @@ function AIRefineModal({ original, onAccept, onClose }) {
                   </p>
                   <div className="flex gap-1.5 flex-wrap">
                     {['Clarity', 'Flow', 'Impact'].map(t => (
-                      <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#5B21B6] font-semibold">
+                      <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[#DBEAFE] text-[#0D47A1] font-semibold">
                         {t}
                       </span>
                     ))}
                   </div>
                 </div>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
-                  mode === 'enhance' ? 'border-[#7C3AED] bg-[#7C3AED]' : 'border-[#CBD5E1]'
+                  mode === 'enhance' ? 'border-[#4536F2] bg-[#4536F2]' : 'border-[#CBD5E1]'
                 }`}>
                   {mode === 'enhance' && (
                     <svg width={10} height={10} viewBox="0 0 12 12" fill="none"
@@ -180,7 +189,7 @@ function AIRefineModal({ original, onAccept, onClose }) {
                 onClick={() => setMode('grammar')}
                 className={`w-full flex items-start gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
                   mode === 'grammar'
-                    ? 'border-[#1565C0] bg-[#EFF6FF]'
+                    ? 'border-[#1565C0] bg-[#EFF6FF] shadow-sm shadow-blue-200/60'
                     : 'border-[#E3E8F0] bg-white hover:border-[#93C5FD]'
                 }`}
               >
@@ -217,13 +226,15 @@ function AIRefineModal({ original, onAccept, onClose }) {
                 </div>
               </button>
 
-              {/* Run button */}
+              {/* Run button — same brand blue for both modes now, with a
+                  brighter top-to-bottom sheen so it still feels like a
+                  special "AI" action without changing the hue. */}
               <button
                 onClick={handleRun}
-                className="w-full py-3.5 rounded-2xl font-bold text-sm text-white mt-2 active:scale-95 transition-transform"
-                style={{ background: mode === 'grammar' ? '#1565C0' : 'linear-gradient(135deg,#7C3AED,#4F62F5)' }}
+                className="w-full py-3.5 rounded-2xl font-bold text-sm text-white mt-2 active:scale-95 transition-transform shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg,#1565C0,#4536F2)' }}
               >
-                <SparkleIcon size={14} color="#fff" /> &nbsp;Run AI
+                <SparkleIcon size={14} color="#fff" /> Run AI
               </button>
 
               <button onClick={onClose}
@@ -265,11 +276,7 @@ function AIRefineModal({ original, onAccept, onClose }) {
 
               {/* Mode badge */}
               <div className="flex items-center gap-2 mb-1">
-                <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${
-                  mode === 'grammar'
-                    ? 'bg-[#DBEAFE] text-[#1E40AF]'
-                    : 'bg-[#EDE9FE] text-[#5B21B6]'
-                }`}>
+                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-[#DBEAFE] text-[#0D47A1]">
                   {mode === 'grammar' ? '🔤 Spelling & grammar fixed' : '✨ Rewritten & enhanced'}
                 </span>
               </div>
@@ -311,8 +318,8 @@ function AIRefineModal({ original, onAccept, onClose }) {
               {/* Accept */}
               <button
                 onClick={() => onAccept(refined)}
-                className="w-full py-3.5 rounded-2xl font-bold text-sm text-white active:scale-95 transition-transform"
-                style={{ background: mode === 'grammar' ? '#1565C0' : 'linear-gradient(135deg,#7C3AED,#4F62F5)' }}
+                className="w-full py-3.5 rounded-2xl font-bold text-sm text-white active:scale-95 transition-transform shadow-lg shadow-blue-300/40"
+                style={{ background: 'linear-gradient(135deg,#1565C0,#4536F2)' }}
               >
                 ✓ Accept Changes
               </button>
@@ -844,7 +851,7 @@ export default function AddIdea() {
         <div className="mt-6 pb-6">
           {step < 2 ? (
             <button onClick={nextStep} className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold">
-              Continue →
+              Continue 
             </button>
           ) : (
             <button onClick={handlePublish} className="w-full bg-[#1565C0] text-white py-3 rounded-2xl font-semibold">

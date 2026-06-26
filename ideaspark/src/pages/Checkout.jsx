@@ -141,10 +141,10 @@ export default function Checkout() {
   const busy = !!loading;
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF] pb-10">
+    <div className="min-h-screen">
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-4 relative shadow-lg border-b border-white/10">
+      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
           <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
@@ -160,7 +160,9 @@ export default function Checkout() {
         </div>
       </header>
 
-      <div className="px-4 pt-6 space-y-6">
+      {/* Blue base + white curved card */}
+      <div className="bg-[#1565C0]">
+        <div className="bg-white rounded-t-[32px] px-4 pt-6 pb-10 space-y-6">
 
         <h2 className="text-[#0D2137] text-xl font-bold">Confirm your order</h2>
 
@@ -225,6 +227,7 @@ export default function Checkout() {
         <p className="text-[#90A4AE] text-xs text-center pb-4 inline-flex items-center justify-center gap-1 w-full">
           <Icon name="lock" className="w-3.5 h-3.5" /> Payments are securely processed · Cancel anytime
         </p>
+        </div>
       </div>
     </div>
   );
