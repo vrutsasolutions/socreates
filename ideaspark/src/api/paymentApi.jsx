@@ -79,3 +79,11 @@ export const cancelMembership = () =>
   USE_MOCK.payment
     ? mockResponse({ user: { ...readUser(), isPremium: false, membership: null } })
     : api.post('/payment/cancel', {});
+
+/** Fetch current subscription details fresh from the server. */
+export const fetchMySubscription = () =>
+  api.get('/subscriptions/me');
+
+/** Fetch historical monthly creator earnings. */
+export const fetchCreatorEarnings = () =>
+  api.get('/creator/earnings');

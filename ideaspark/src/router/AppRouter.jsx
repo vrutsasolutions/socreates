@@ -37,6 +37,7 @@ import IdeaDetail      from '../pages/IdeaDetail';
 import PremiumDetail    from '../pages/PremiumDetail';
 import GetVerified      from '../pages/GetVerified';
 import CreatePremiumIdea  from '../pages/CreatePremiumIdea';
+import AccountSubscription from '../pages/AccountSubscription';
 import EditProfile     from '../pages/EditProfile';
 import FollowList      from '../pages/FollowList';
 import SavedIdeas      from '../pages/SavedIdeas';
@@ -90,10 +91,11 @@ export default function AppRouter() {
         <Route path="/add-idea"         element={<PrivateRoute><AddIdea /></PrivateRoute>} />
         <Route path="/edit-images"      element={<PrivateRoute><ImageEditor /></PrivateRoute>} />
         <Route path="/premium"          element={<PrivateRoute><Premium /></PrivateRoute>} />
-        <Route path="/membership"         element={<PrivateRoute><Membership /></PrivateRoute>} />
-        <Route path="/membership/checkout" element={<PrivateRoute><Checkout /></PrivateRoute>} />
-        <Route path="/membership/success" element={<PrivateRoute><MembershipSuccess /></PrivateRoute>} />
-        <Route path="/membership/failure" element={<PrivateRoute><MembershipFailed /></PrivateRoute>} />
+        <Route path="/membership"              element={<PrivateRoute><Membership /></PrivateRoute>} />
+        <Route path="/membership/checkout"     element={<PrivateRoute><Checkout /></PrivateRoute>} />
+        <Route path="/membership/success"      element={<PrivateRoute><MembershipSuccess /></PrivateRoute>} />
+        <Route path="/membership/failure"      element={<PrivateRoute><MembershipFailed /></PrivateRoute>} />
+        <Route path="/account/subscription"    element={<PrivateRoute><AccountSubscription /></PrivateRoute>} />
         <Route path="/creator-dashboard" element={<PrivateRoute><CreatorDashboard /></PrivateRoute>} />
         <Route path="/creator-pro"       element={<PrivateRoute><CreatorPro /></PrivateRoute>} />
         <Route path="/search"           element={<PrivateRoute><Search /></PrivateRoute>} />

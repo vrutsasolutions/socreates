@@ -105,6 +105,9 @@ export default function Settings() {
           <Section title="Account">
             <Row icon={<Icon name="user"      className="w-5 h-5 text-[#1565C0]" />} label="Edit Profile" onClick={() => navigate('/edit-profile')}/>
             <Row icon={<Icon name="gem"       className="w-5 h-5 text-[#7C3AED]" />} label="Membership"   sublabel={user?.isPremium ? 'Active Premium · Verified' : 'Free plan'} right={user?.isPremium ? <span className="text-[#10B981] text-xs font-semibold">Verified ✓</span> : undefined} onClick={() => navigate('/membership')}/>
+            {user?.isPremium && (
+              <Row icon={<svg className="w-5 h-5 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>} label="My Subscription" sublabel="Plan details · Billing history · Cancel" onClick={() => navigate('/account/subscription')}/>
+            )}
             <Row icon={<Icon name="bookmark"  className="w-5 h-5 text-[#10B981]" />} label="Saved Ideas"  onClick={() => navigate('/saved-ideas')}/>
           </Section>
 

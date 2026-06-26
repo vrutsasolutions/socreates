@@ -9,8 +9,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { USE_MOCK } from '../api/config';
-import { createOrder, subscribe, stripeCheckout } from '../api/paymentApi';
+import { createOrder, subscribe } from '../api/paymentApi';
 import Icon from '../components/common/Icon';
+import scLogo from '../assets/sc-logo.png';
 
 // What each tier's order summary lists (matches the checkout design).
 const INCLUDES = {
@@ -62,6 +63,17 @@ export default function Checkout() {
         return;
       }
 
+      // The Razorpay popup needs window.Razorpay, loaded from the CDN script in
+      // index.html. If it's undefined the script never ran — almost always an
+      // ad/privacy blocker (uBlock, Brave Shields, AdGuard) blocking
+      // checkout.razorpay.com, or the page is offline. Say so explicitly rather
+      // than throwing a generic "could not start payment".
+      if (typeof window.Razorpay === 'undefined') {
+        setError('Razorpay could not load. A browser ad/privacy blocker is likely blocking checkout.razorpay.com — disable it for this site (or try an incognito window without extensions), then reload and retry.');
+        setLoading('');
+        return;
+      }
+
       const { data: ord } = await createOrder(payload('razorpay'));
       const key = ord.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
       if (!key) {
@@ -74,7 +86,8 @@ export default function Checkout() {
         key,
         amount:   ord.amount,
         currency: ord.currency || 'INR',
-        name:     'SoCreates',
+        name:     'SoCreate',
+        image:    scLogo,
         description: `${planLabel} · ${yearly ? 'Yearly' : 'Monthly'}`,
         order_id: ord.orderId,
         handler: async (resp) => {
@@ -98,34 +111,26 @@ export default function Checkout() {
         onFailure({ response: { data: { message: r?.error?.description } } }));
       rzp.open();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Could not start payment. Please try again.');
+      // Surface the real cause. A backend error carries response.data.message;
+      // a network/CORS failure (request never reached the server) carries only
+      // err.message === "Network Error". Log the full error for the console too.
+      console.error('[Razorpay] payment start failed:', err);
+      const status = err?.response?.status;
+      setError(
+        err?.response?.data?.message
+        || (status ? `Request failed (HTTP ${status}).`
+                   : `${err?.message || 'Unknown error'} — the create-order request did not reach the backend. Check that the backend is running on http://localhost:8081 and that you are logged in.`)
+      );
       setLoading('');
     }
   };
 
-  const payStripe = async () => {
-    setLoading('stripe'); setError('');
-    try {
-      if (USE_MOCK.payment) {
-        const { data } = await subscribe(payload('stripe'));
-        onSuccess(data);
-        return;
-      }
-      const { data } = await stripeCheckout(payload('stripe'));
-      window.location.href = data.checkoutUrl;
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Could not start Stripe checkout.');
-      setLoading('');
-    }
-  };
-
-  // Coming from the failure screen's "Retry with X" → run that gateway once.
+  // Coming from the failure screen's "Retry" → run Razorpay once on arrival.
   const retriedRef = useRef(false);
   useEffect(() => {
     if (retriedRef.current || !order?.retryGateway) return;
     retriedRef.current = true;
-    if (order.retryGateway === 'stripe') payStripe();
-    else payRazorpay();
+    payRazorpay();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -214,13 +219,6 @@ export default function Checkout() {
             style={{ background: 'linear-gradient(135deg, #4F8EF7, #3B6FE0)' }}>
             {loading === 'razorpay' && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             Pay with Razorpay
-          </button>
-
-          <button onClick={payStripe} disabled={busy}
-            className="w-full text-white font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
-            style={{ background: 'linear-gradient(135deg, #7C5CFC, #6246EA)' }}>
-            {loading === 'stripe' && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            Pay with Stripe
           </button>
         </div>
 
