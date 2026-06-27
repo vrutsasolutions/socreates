@@ -28,11 +28,14 @@ public class CreatorService {
     private final CreatorMonthlyMetricsRepository metricsRepository;
     private final RevenuePoolRepository           poolRepository;
 
-    // ── Score weights (mirror whatever your DB job uses) ────────────────────
-    private static final long VIEWS_WEIGHT    = 1L;
-    private static final long LIKES_WEIGHT    = 5L;
-    private static final long COMMENTS_WEIGHT = 3L;
-    private static final long SAVES_WEIGHT    = 4L;
+    // ── Score weights — must mirror the distribution cron job ────────────────
+    // Formula: raw_score = (views*0.25) + (saves*0.40) + (likes*0.20) + (comments*0.15)
+    // Stored as scaled longs (*100) to avoid floating-point drift:
+    //   views*25 + saves*40 + likes*20 + comments*15  (divide by 100 for the true decimal score)
+    private static final long VIEWS_WEIGHT    = 25L;
+    private static final long SAVES_WEIGHT    = 40L;
+    private static final long LIKES_WEIGHT    = 20L;
+    private static final long COMMENTS_WEIGHT = 15L;
 
     // ────────────────────────────────────────────────────────────────────────
     //  GET /api/creator/dashboard
@@ -63,18 +66,31 @@ public class CreatorService {
         // ── Content table: top ideas by read count ───────────────────────────
         List<Idea> ideas = ideaRepository.findByCreatorIdOrderByReadCountDesc(creatorId);
 
+        // ── Build content rows ───────────────────────────────────────────────
+        // IMPORTANT: Do NOT divide the weighted sum per-idea — integer truncation
+        // on each row causes cumulative rounding loss that makes the per-idea total
+        // disagree with the DB aggregate raw_score (which divides once on the total).
+        // Instead: keep the scaled long (×100) per idea and divide by 100 only when
+        // converting to the display integer, so each row is as precise as possible.
         List<CreatorDashboardDTO.ContentRow> contentRows = ideas.stream()
                 .map(idea -> {
                     long ideaSaves    = savedIdeaRepository.countByIdeaId(idea.getId());
                     long ideaComments = commentRepository.countByIdeaId(idea.getId());
 
-                    long ideaRaw = (idea.getReadCount()  * VIEWS_WEIGHT)
-                                 + (idea.getLikeCount()  * LIKES_WEIGHT)
-                                 + (ideaComments         * COMMENTS_WEIGHT)
-                                 + (ideaSaves            * SAVES_WEIGHT);
+                    // Scaled weighted sum (×100). No early /100 — avoids truncation loss.
+                    // Formula: views×0.25 + saves×0.40 + likes×0.20 + comments×0.15
+                    long scaledSum = (idea.getReadCount() * VIEWS_WEIGHT)
+                                   + (ideaSaves           * SAVES_WEIGHT)
+                                   + (idea.getLikeCount() * LIKES_WEIGHT)
+                                   + (ideaComments        * COMMENTS_WEIGHT);
+
+                    // Divide by 100 once per row (matches the single-division the DB uses
+                    // on the aggregate). Round to nearest instead of truncating so
+                    // e.g. 1.80 → 2, not 1, and the per-idea total matches the DB score.
+                    long ideaRaw = (scaledSum + 50) / 100; // +50 = round-half-up
 
                     // per-idea score capped at 100
-                    int ideaScore = (int) Math.min(100L, ideaRaw / 10L);
+                    int ideaScore = (int) Math.min(100L, ideaRaw);
 
                     return CreatorDashboardDTO.ContentRow.builder()
                             .idea(idea.getTitle())
@@ -185,10 +201,12 @@ public class CreatorService {
         long saves    = savedIdeaRepository.countByIdeaCreatorId(creatorId);
         long comments = commentRepository.countByIdeaCreatorId(creatorId);
 
-        long rawScoreLong = (views    * VIEWS_WEIGHT)
-                          + (likes    * LIKES_WEIGHT)
-                          + (comments * COMMENTS_WEIGHT)
-                          + (saves    * SAVES_WEIGHT);
+        // raw_score = (views*0.25) + (saves*0.40) + (likes*0.20) + (comments*0.15)
+        // Multiplied by 100 then divided by 100 to keep integer arithmetic exact.
+        long rawScoreLong = ((views    * VIEWS_WEIGHT)
+                          +  (saves    * SAVES_WEIGHT)
+                          +  (likes    * LIKES_WEIGHT)
+                          +  (comments * COMMENTS_WEIGHT)) / 100;
 
         m.setViews(views);
         m.setLikes(likes);
