@@ -25,6 +25,8 @@ export default function UserProfile() {
   const [followStats, setFollowStats] = useState({ followersCount: 0, followingCount: 0, isFollowing: false });
   const [loading, setLoading] = useState(true);
   const [followBusy, setFollowBusy] = useState(false);
+  // null = ok | 'notfound' = user genuinely gone (404) | 'error' = load failed
+  const [loadError, setLoadError] = useState(null);
 
   // If you land on your own id, just show the real (editable) profile instead.
   useEffect(() => {
@@ -36,6 +38,7 @@ export default function UserProfile() {
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const [{ data: userData }, { data: ideaData }, { data: statsData }] = await Promise.all([
         fetchUserById(id),
@@ -54,6 +57,11 @@ export default function UserProfile() {
     } catch (err) {
       console.error('[UserProfile] failed to load', err);
       setProfile(null);
+      // A 401/403 from an expired session is handled globally by the axios
+      // response interceptor (redirect to /login), so it won't normally reach
+      // here. Only a real 404 means the user is gone; anything else is a
+      // transient load failure worth retrying.
+      setLoadError(err?.response?.status === 404 ? 'notfound' : 'error');
     } finally {
       setLoading(false);
     }
@@ -88,22 +96,43 @@ export default function UserProfile() {
   };
 
   if (!loading && !profile) {
+    const isNotFound = loadError === 'notfound';
     return (
       <div className="min-h-screen bg-[#1565C0] flex flex-col">
         <div className="bg-white rounded-t-[32px] flex flex-col items-center justify-center flex-1 px-6 text-center py-20">
           <div className="mb-3 flex justify-center">
             <div className="w-16 h-16 rounded-2xl bg-[#EAF2FF] border border-[#DBEAFE] flex items-center justify-center">
-              <Icon name="user" className="w-8 h-8 text-[#1565C0]" />
+              <Icon name={isNotFound ? 'user' : 'alert-triangle'} className="w-8 h-8 text-[#1565C0]" />
             </div>
           </div>
-          <p className="text-[#0D2137] font-semibold text-base">User not found</p>
-          <p className="text-[#90A4AE] text-sm mt-1">This profile doesn't exist or was removed.</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-5 px-6 py-2.5 rounded-xl bg-[#1565C0] text-white text-sm font-semibold hover:bg-[#0D47A1] transition-colors shadow-sm"
-          >
-            Go back
-          </button>
+          <p className="text-[#0D2137] font-semibold text-base">
+            {isNotFound ? 'User not found' : "Couldn't load profile"}
+          </p>
+          <p className="text-[#90A4AE] text-sm mt-1">
+            {isNotFound
+              ? "This profile doesn't exist or was removed."
+              : 'Something went wrong. Please try again.'}
+          </p>
+          <div className="mt-5 flex items-center gap-2">
+            {!isNotFound && (
+              <button
+                onClick={load}
+                className="px-6 py-2.5 rounded-xl bg-[#1565C0] text-white text-sm font-semibold hover:bg-[#0D47A1] transition-colors shadow-sm"
+              >
+                Retry
+              </button>
+            )}
+            <button
+              onClick={() => navigate(-1)}
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm ${
+                isNotFound
+                  ? 'bg-[#1565C0] text-white hover:bg-[#0D47A1]'
+                  : 'bg-[#EAF2FF] text-[#1565C0] hover:bg-[#DBEAFE]'
+              }`}
+            >
+              Go back
+            </button>
+          </div>
         </div>
       </div>
     );

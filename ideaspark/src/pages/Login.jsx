@@ -14,6 +14,12 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+
+  // Set by the axios interceptor when an expired session bounced the user here.
+  const params = new URLSearchParams(location.search);
+  const sessionExpired = params.get('session') === 'expired';
+  // Where to send the user back to after a successful re-login.
+  const redirectParam = params.get('redirect');
   const submitting = useRef(false);
   const emailRef = useRef(null);
 
@@ -74,7 +80,7 @@ export default function Login() {
 
       login(data.user, data.token);
 
-      const redirectTo = location.state?.from?.pathname || '/home';
+      const redirectTo = redirectParam || location.state?.from?.pathname || '/home';
       navigate(redirectTo, { replace: true });
     } catch (err) {
       const status = err.response?.status;
@@ -102,7 +108,7 @@ export default function Login() {
 
       login(res.data.user, res.data.token);
 
-      const redirectTo = location.state?.from?.pathname || '/home';
+      const redirectTo = redirectParam || location.state?.from?.pathname || '/home';
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Google login failed. Please try again.');
@@ -131,6 +137,12 @@ export default function Login() {
       <div className="bg-[#1565C0]">
         <div className="bg-white rounded-t-[32px] pt-6 flex-1">
           <div className="px-6 pb-10 max-w-sm md:max-w-md mx-auto w-full">
+            {sessionExpired && !error && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-2xl px-4 py-3 mb-5 flex items-start gap-2.5">
+                <Icon name="alert-triangle" className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="flex-1 font-semibold">Your session expired — please sign in again to continue.</div>
+              </div>
+            )}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-2xl px-4 py-3 mb-5 flex items-start gap-2.5">
                 <Icon name="alert-triangle" className="w-4 h-4 shrink-0 mt-0.5" />

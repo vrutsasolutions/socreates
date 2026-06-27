@@ -221,14 +221,19 @@ export default function PremiumDetail() {
                   <p className="text-[#90A4AE] text-sm py-4 text-center">No comments yet — be the first to share your thoughts.</p>
                 ) : (
                   <ul className="space-y-3">
-                    {comments.map((c) => (
+                    {comments.map((c) => {
+                      // Tapping the commenter's avatar or name opens their profile.
+                      const goToProfile = () => { if (c.userId) navigate(`/users/${c.userId}`); };
+                      return (
                       <li key={c.id} className="flex gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-[#EEF0FF] text-[#1A28A0] font-bold flex items-center justify-center text-xs shrink-0">
+                        <div onClick={goToProfile}
+                          className={`w-8 h-8 rounded-lg bg-[#EEF0FF] text-[#1A28A0] font-bold flex items-center justify-center text-xs shrink-0${c.userId ? ' cursor-pointer active:scale-95' : ''}`}>
                           {initials(c.userName)}
                         </div>
                         <div className="flex-1 min-w-0 bg-[#F7F9FF] border border-[#ECEFF6] rounded-2xl px-3.5 py-2.5">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-[#0D2137] font-semibold text-[13px] truncate">{c.userName || 'User'}</span>
+                            <span onClick={goToProfile}
+                              className={`text-[#0D2137] font-semibold text-[13px] truncate${c.userId ? ' cursor-pointer hover:underline' : ''}`}>{c.userName || 'User'}</span>
                             <span className="text-[#B0BEC5] text-[11px]">{formatDate(c.createdAt)}</span>
                             {isMine(c) && (
                               <button onClick={() => handleDeleteComment(c.id)}
@@ -240,7 +245,8 @@ export default function PremiumDetail() {
                           <p className="text-[#37474F] text-sm break-words">{c.content}</p>
                         </div>
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 )}
               </div>
