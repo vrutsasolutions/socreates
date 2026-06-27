@@ -63,7 +63,8 @@ public class CreatorMonthlyMetrics {
     private long likes = 0;
 
     /**
-     * raw_score = views*1 + likes*5 + comments*3 + saves*4
+     * raw_score = (views*0.25) + (saves*0.40) + (likes*0.20) + (comments*0.15)
+     * Weights: Views 25%, Saves 40%, Likes 20%, Comments 15%.
      * Used by the distribution job to calculate each creator's share_percent.
      */
     @Column(name = "raw_score", precision = 12, scale = 2)
