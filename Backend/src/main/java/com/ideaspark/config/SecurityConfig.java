@@ -55,6 +55,10 @@ public class SecurityConfig {
     .requestMatchers("/api/plagiarism/**").permitAll()
     .requestMatchers("/ws/**").permitAll()
     .requestMatchers("/api/ideas/*/comments").permitAll()
+    // Read-tracking is public (anonymous readers count too)
+    .requestMatchers(HttpMethod.POST, "/api/creator/ideas/*/read").permitAll()
+    // Creator dashboard & earnings require authentication
+    .requestMatchers("/api/creator/**").authenticated()
     // Authenticated endpoints
     .requestMatchers("/api/notifications/**").authenticated()
     .requestMatchers("/api/follow/**").authenticated()  // ✅ Added

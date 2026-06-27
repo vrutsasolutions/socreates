@@ -51,6 +51,10 @@ public class Idea {
     @Column(name = "like_count")
     private int likeCount = 0;
 
+    // Incremented each time the idea detail page is opened
+    @Column(name = "read_count")
+    private int readCount = 0;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

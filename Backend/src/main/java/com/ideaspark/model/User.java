@@ -44,6 +44,15 @@ public class User {
     @Column(name = "is_verified")
     private boolean isVerified = false;
 
+    // ── Creator-tier flags ──────────────────────────────────────────────────
+    // Boolean (wrapper) so existing NULL rows in DB don't throw on load.
+    // Treat null as false everywhere via isCreatorPro() / isPremiumPublishing().
+    @Column(name = "is_creator_pro")
+    private Boolean creatorPro = false;
+
+    @Column(name = "is_premium_publishing")
+    private Boolean premiumPublishing = false;
+
     @Column(name = "is_online")
     private Boolean online = false;
 
