@@ -27,4 +27,13 @@ public interface SavedIdeaRepository extends JpaRepository<SavedIdea, UUID> {
 
     // ✅ Added — Count saved ideas by user
     long countByUserId(UUID userId);
+
+    // ── Creator dashboard ─────────────────────────────────────────────────────
+    // How many times any of a creator's ideas have been saved by other users
+    @Query("SELECT COUNT(s) FROM SavedIdea s WHERE s.idea.creator.id = :creatorId")
+    long countByIdeaCreatorId(@Param("creatorId") UUID creatorId);
+
+    // Per-idea save count (used in the content table)
+    @Query("SELECT COUNT(s) FROM SavedIdea s WHERE s.idea.id = :ideaId")
+    long countByIdeaId(@Param("ideaId") UUID ideaId);
 }
