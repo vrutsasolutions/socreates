@@ -61,4 +61,26 @@ public interface IdeaRepository extends JpaRepository<Idea, UUID> {
     // ✅ Added — Sum all likes across all ideas by a creator
     @Query("SELECT COALESCE(SUM(i.likeCount), 0) FROM Idea i WHERE i.creator.id = :creatorId")
     int sumLikeCountByCreatorId(@Param("creatorId") UUID creatorId);
+
+    // ── Creator dashboard aggregates ─────────────────────────────────────────
+
+    // Total reads (sum of readCount) across all ideas by a creator
+    @Query("SELECT COALESCE(SUM(i.readCount), 0) FROM Idea i WHERE i.creator.id = :creatorId")
+    int sumReadCountByCreatorId(@Param("creatorId") UUID creatorId);
+
+    // Count of premium ideas by creator
+    int countByCreatorIdAndIsPremium(UUID creatorId, boolean isPremium);
+
+    // Sum of reads on premium-only ideas by creator
+    @Query("SELECT COALESCE(SUM(i.readCount), 0) FROM Idea i WHERE i.creator.id = :creatorId AND i.isPremium = true")
+    int sumPremiumReadCountByCreatorId(@Param("creatorId") UUID creatorId);
+
+    // Increment read count (called when idea detail is opened)
+    @Modifying
+    @Query("UPDATE Idea i SET i.readCount = i.readCount + 1 WHERE i.id = :id")
+    void incrementReadCount(@Param("id") UUID id);
+
+    // Dashboard content table: ideas with per-idea stats
+    @Query("SELECT i FROM Idea i WHERE i.creator.id = :creatorId ORDER BY i.readCount DESC")
+    List<Idea> findByCreatorIdOrderByReadCountDesc(@Param("creatorId") UUID creatorId);
 }
