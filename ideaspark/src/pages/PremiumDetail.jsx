@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
-import { fetchComments, addComment, deleteComment } from '../api/ideaApi';
+import { fetchComments, addComment, deleteComment, trackIdeaView } from '../api/ideaApi';
 import { NotFoundError } from '../components/common/ErrorStates.premium';
 import ImageGallery, { ideaImages } from '../components/common/ImageGallery';
 import Icon from '../components/common/Icon';
@@ -47,6 +47,18 @@ export default function PremiumDetail() {
       .then(({ data }) => setComments(data || []))
       .catch(() => setComments([]));
   }, [id]);
+
+  // Count a view when someone opens another creator's premium idea (not your
+  // own). Fire-and-forget; the creatorId guard also skips the local MOCK
+  // fallback used when the idea fails to load.
+  const viewedRef = useRef(null);
+  useEffect(() => {
+    if (!idea?.id || !idea?.creatorId) return;
+    if (user?.id && user.id === idea.creatorId) return;
+    if (viewedRef.current === idea.id) return;
+    viewedRef.current = idea.id;
+    trackIdeaView(idea.id).catch(() => {});
+  }, [idea?.id, idea?.creatorId, user?.id]);
 
   const isMine = (c) =>
     (c.userId && user?.id && c.userId === user.id) ||

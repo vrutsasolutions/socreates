@@ -65,3 +65,10 @@ export const addComment = (id, content) =>
 // DELETE /api/ideas/comments/{commentId}
 export const deleteComment = (commentId) =>
   USE_MOCK.ideas ? mockResponse({}) : api.delete(`/ideas/comments/${commentId}`);
+
+// ── Views / read tracking (Backend: ✅ ready — CreatorController) ───────────
+// POST /api/creator/ideas/{id}/read → increments the idea's read_count.
+// Public (no auth required — anonymous reads count too). Fire-and-forget when
+// the detail page opens; callers should skip the creator viewing their own idea.
+export const trackIdeaView = (id) =>
+  USE_MOCK.ideas ? mockResponse({}) : api.post(`/creator/ideas/${id}/read`);

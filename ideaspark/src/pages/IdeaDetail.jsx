@@ -15,6 +15,7 @@ import {
   unsaveIdea,
   likeIdea,
   unlikeIdea,
+  trackIdeaView,
 } from '../api/ideaApi';
 import { fetchFollowStats, followUser, unfollowUser } from '../api/userApi';
 
@@ -79,6 +80,20 @@ export default function IdeaDetail() {
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [id]);
+
+  // Count a view when someone opens another creator's idea. Fire-and-forget;
+  // a failed/blocked view tracker must never disrupt reading the idea.
+  const viewedRef = useRef(null);
+  useEffect(() => {
+    if (!idea?.id) return;
+    // Don't count the creator viewing their own idea.
+    if (user?.id && user.id === idea.creatorId) return;
+    // Once per idea — guards React StrictMode's double-effect in dev and any
+    // re-renders that don't change the idea.
+    if (viewedRef.current === idea.id) return;
+    viewedRef.current = idea.id;
+    trackIdeaView(idea.id).catch(() => {});
+  }, [idea?.id, idea?.creatorId, user?.id]);
 
   // Resolve whether the current user already follows this idea's creator.
   useEffect(() => {
