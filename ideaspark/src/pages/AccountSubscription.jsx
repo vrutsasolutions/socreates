@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fetchMySubscription, cancelMembership } from '../api/paymentApi';
@@ -13,6 +13,32 @@ const fmtDate = (iso) => {
   } catch { return '—'; }
 };
 
+const planLabelFor = (plan) =>
+  plan === 'creator' ? 'Creators Pro' : 'Go Premium';
+
+// /payment/status doesn't return the billing period, but it's implied by the
+// span between start and renewal dates (~1 year → yearly, otherwise monthly).
+const billingFromDates = (startIso, endIso) => {
+  if (!startIso || !endIso) return null;
+  const days = (new Date(endIso) - new Date(startIso)) / 86_400_000;
+  return days > 250 ? 'yearly' : 'monthly';
+};
+
+// Merge the live status payload with the descriptive fields (planLabel, billing,
+// price) that only live on the purchase record in auth context — those are fixed
+// at purchase time, so it's correct to reuse them; status and dates come live.
+function normalizeStatus(dto, ctx = {}) {
+  return {
+    plan:      dto.plan ?? ctx.plan,
+    planLabel: ctx.planLabel ?? planLabelFor(dto.plan ?? ctx.plan),
+    billing:   ctx.billing ?? billingFromDates(dto.startDate, dto.endDate),
+    price:     ctx.price ?? null,
+    status:    dto.status ?? ctx.status ?? 'active',
+    startedAt: dto.startDate ?? ctx.startedAt,
+    renewsAt:  dto.endDate ?? ctx.renewsAt,
+  };
+}
+
 export default function AccountSubscription() {
   const navigate              = useNavigate();
   const { user, login }       = useAuth();
@@ -21,26 +47,42 @@ export default function AccountSubscription() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError]     = useState('');
+  // Distinct from `error` (cancel failures): a load failure surfaces a retry
+  // state instead of silently showing stale/placeholder numbers.
+  const [loadError, setLoadError] = useState(false);
+  // Server says there's no active membership — reflect that truth, don't guess.
+  const [noMembership, setNoMembership] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const { data } = await fetchMySubscription();
-        setSub(data.subscription ?? data);
-        setHistory(data.history ?? []);
-      } catch {
-        // Backend endpoint not yet live — fall back to membership in auth context.
-        const m = user?.membership;
-        setSub(m ?? null);
-        if (m?.startedAt) {
-          setHistory([{ date: m.startedAt, amount: m.price, status: 'Paid' }]);
-        }
-      } finally {
-        setLoading(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const { data } = await fetchMySubscription();
+      // ApiResponse { success:false } means no active membership on the server.
+      if (data?.success === false) {
+        setNoMembership(true);
+        setSub(null);
+        setHistory([]);
+      } else {
+        setSub(normalizeStatus(data, user?.membership ?? {}));
+        // The backend has no billing-history endpoint yet, so we show none
+        // rather than fabricate a row.
+        setHistory([]);
       }
-    };
-    load();
-  }, [user]);
+    } catch {
+      // 401/403 from an expired session is handled globally (redirect to login).
+      // Anything else is a real failure — surface it, never show fake numbers.
+      setLoadError(true);
+      setSub(null);
+    } finally {
+      setLoading(false);
+    }
+    // user.membership only supplies fixed descriptive fields; re-running on its
+    // identity change isn't needed and would refetch on every auth update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const handleCancel = async () => {
     if (!window.confirm('Cancel your membership? You will lose premium access immediately.')) return;
@@ -58,10 +100,15 @@ export default function AccountSubscription() {
   };
 
   if (!user?.isPremium) return <Navigate to="/membership" replace />;
+  // Server is the source of truth: if it reports no active membership, send the
+  // user to the plans page rather than rendering a stale "active" view.
+  if (noMembership) return <Navigate to="/membership" replace />;
 
-  const m       = sub ?? user?.membership ?? {};
-  const billing = m.billing === 'yearly' ? 'Yearly' : 'Monthly';
-  const planRow = m.planLabel ?? (m.plan === 'creator' ? 'Creators Pro' : 'Go Premium');
+  const m         = sub ?? {};
+  const billing   = m.billing === 'yearly' ? 'Yearly' : 'Monthly';
+  const planRow   = m.planLabel ?? (m.plan === 'creator' ? 'Creators Pro' : 'Go Premium');
+  const canceled  = (m.status ?? 'active').toLowerCase() === 'canceled';
+  const priceText = m.price ? m.price : '—';
 
   const BENEFITS = m.plan === 'creator'
     ? ['Unlimited Premium Ideas', 'Verified Badge', 'Creator Pro Badge', 'Premium Publishing', 'Priority Reach', 'Cancel anytime']
@@ -89,10 +136,19 @@ export default function AccountSubscription() {
 
         <div className="relative z-10">
           <h2 className="text-[26px] font-bold text-white leading-none">{planRow}</h2>
-          <div className="mt-2 inline-flex items-center gap-2 bg-[#22C55E]/20 border border-[#22C55E]/30 rounded-full px-3 py-1">
-            <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
-            <span className="text-[#4ADE80] text-xs font-bold">ACTIVE</span>
-          </div>
+          {!loading && (
+            canceled ? (
+              <div className="mt-2 inline-flex items-center gap-2 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-full px-3 py-1">
+                <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+                <span className="text-[#FCD34D] text-xs font-bold">CANCELED</span>
+              </div>
+            ) : (
+              <div className="mt-2 inline-flex items-center gap-2 bg-[#22C55E]/20 border border-[#22C55E]/30 rounded-full px-3 py-1">
+                <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
+                <span className="text-[#4ADE80] text-xs font-bold">ACTIVE</span>
+              </div>
+            )
+          )}
         </div>
       </header>
 
@@ -101,6 +157,18 @@ export default function AccountSubscription() {
 
           {loading ? (
             <SubscriptionSkeleton />
+          ) : loadError ? (
+            <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm px-6 py-10 text-center">
+              <div className="mx-auto mb-3 w-14 h-14 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center">
+                <Icon name="alert-triangle" className="w-7 h-7 text-[#DC2626]" />
+              </div>
+              <p className="text-[#0D2137] font-semibold text-base">Couldn't load your subscription</p>
+              <p className="text-[#90A4AE] text-sm mt-1">We couldn't reach the server. Please try again.</p>
+              <button onClick={load}
+                className="mt-5 px-6 py-2.5 rounded-xl bg-[#1565C0] text-white text-sm font-semibold hover:bg-[#0D47A1] transition-colors shadow-sm">
+                Retry
+              </button>
+            </div>
           ) : (
             <>
               {/* Plan details */}
@@ -108,7 +176,7 @@ export default function AccountSubscription() {
                 <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm divide-y divide-[#F0F2F8]">
                   <DetailRow label="Plan"    value={planRow} />
                   <DetailRow label="Billing" value={billing} />
-                  <DetailRow label="Price"   value={m.price ?? '—'} />
+                  <DetailRow label="Price"   value={priceText} />
                   <DetailRow label="Started" value={fmtDate(m.startedAt)} />
                   <DetailRow label="Renews"  value={fmtDate(m.renewsAt)} />
                 </div>

@@ -80,9 +80,11 @@ export const cancelMembership = () =>
     ? mockResponse({ user: { ...readUser(), isPremium: false, membership: null } })
     : api.post('/payment/cancel', {});
 
-/** Fetch current subscription details fresh from the server. */
+/** Fetch current subscription status fresh from the server.
+ *  GET /api/payment/status → MembershipDTO { id, plan, status, startDate, endDate }
+ *  when a membership is active, or { success:false, message } when there is none. */
 export const fetchMySubscription = () =>
-  api.get('/subscriptions/me');
+  api.get('/payment/status');
 
 /** Fetch historical monthly creator earnings. */
 export const fetchCreatorEarnings = () =>
