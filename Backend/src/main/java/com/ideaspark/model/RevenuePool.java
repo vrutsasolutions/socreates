@@ -55,8 +55,22 @@ public class RevenuePool {
 
     /**
      * The portion actually distributed among creators.
-     * creator_pool_paise = total_revenue_paise - reader_revenue_paise
-     *                      - creator_pro_revenue_paise - socreate_share_paise
+     *
+     * Revenue-source-aware split (SoCreate Creator Pro Revenue Distribution
+     * Proposal): Reader Premium and Creator Pro revenue are split at
+     * different rates, then summed —
+     *
+     *   creator_pool_paise   = (reader_revenue_paise     * 0.50)
+     *                        + (creator_pro_revenue_paise * 0.25)
+     *
+     *   socreate_share_paise = (reader_revenue_paise     * 0.50)
+     *                        + (creator_pro_revenue_paise * 0.75)
+     *
+     * total_revenue_paise = reader_revenue_paise + creator_pro_revenue_paise
+     * (creator_pool_paise + socreate_share_paise should equal it, modulo
+     * paise-level rounding "dust" that stays with SoCreate).
+     *
+     * See CreatorService#splitRevenuePool for the implementation.
      */
     @Column(name = "creator_pool_paise")
     private Long creatorPoolPaise;
