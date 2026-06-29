@@ -24,8 +24,8 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const [notifs, setNotifs] = useState({ newIdeas: true, likes: true, comments: false, newsletter: false });
-  const [privacy, setPrivacy] = useState({ publicProfile: true, showSaved: false, showActivity: true });
+  const [notifs, setNotifs] = useState({ newIdeas: true, likes: true, comments: false });
+  const [privacy, setPrivacy] = useState({ publicProfile: true, showActivity: true });
   const [deleting, setDeleting] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -115,20 +115,17 @@ export default function Settings() {
             <Row icon={<Icon name="lightbulb"      className="w-5 h-5 text-[#F59E0B]" />} label="New Idea Alerts" sublabel="When creators you follow post" right={<Toggle value={notifs.newIdeas}    onChange={v => setNotifs({...notifs, newIdeas: v})}/>}/>
             <Row icon={<Icon name="heart"          className="w-5 h-5 text-[#EF4444]" />} label="Likes"           sublabel="When someone likes your idea"  right={<Toggle value={notifs.likes}      onChange={v => setNotifs({...notifs, likes: v})}/>}/>
             <Row icon={<Icon name="message-square" className="w-5 h-5 text-[#3B82F6]" />} label="Comments"        sublabel="When someone comments"         right={<Toggle value={notifs.comments}   onChange={v => setNotifs({...notifs, comments: v})}/>}/>
-            <Row icon={<Icon name="mail"           className="w-5 h-5 text-[#7C3AED]" />} label="Newsletter"      sublabel="Weekly top ideas digest"       right={<Toggle value={notifs.newsletter} onChange={v => setNotifs({...notifs, newsletter: v})}/>}/>
           </Section>
 
           <Section title="Privacy">
             <Row icon={<Icon name="globe"    className="w-5 h-5 text-[#3B82F6]" />} label="Public Profile"   sublabel="Others can find your profile" right={<Toggle value={privacy.publicProfile} onChange={v => setPrivacy({...privacy, publicProfile: v})}/>}/>
-            <Row icon={<Icon name="bookmark" className="w-5 h-5 text-[#10B981]" />} label="Show Saved Ideas" sublabel="Visible on your profile"      right={<Toggle value={privacy.showSaved}     onChange={v => setPrivacy({...privacy, showSaved: v})}/>}/>
             <Row icon={<Icon name="activity" className="w-5 h-5 text-[#3347E8]" />} label="Activity Status"  sublabel="Show when you're active"      right={<Toggle value={privacy.showActivity}  onChange={v => setPrivacy({...privacy, showActivity: v})}/>}/>
           </Section>
 
           <Section title="Support">
             <Row icon={<Icon name="file-text"  className="w-5 h-5 text-[#546E7A]" />} label="Terms of Service" onClick={() => {}}/>
             <Row icon={<Icon name="lock"       className="w-5 h-5 text-[#546E7A]" />} label="Privacy Policy"   onClick={() => {}}/>
-            <Row icon={<Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />} label="Contact Support"  onClick={() => {}}/>
-            <Row icon={<Icon name="star"       className="w-5 h-5 text-[#F59E0B]" />} label="Rate the App"     onClick={() => {}}/>
+            <Row icon={<Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />} label="Contact Support"  onClick={() => navigate('/assistant')}/>
           </Section>
 
           <Section title="Danger Zone">
