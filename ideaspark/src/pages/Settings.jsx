@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import Icon from '../components/common/Icon';
-import { deleteAccount } from '../api/userApi';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import Icon from "../components/common/Icon";
+import { deleteAccount } from "../api/userApi";
 
 const Toggle = ({ value, onChange }) => (
   <button
@@ -11,11 +11,11 @@ const Toggle = ({ value, onChange }) => (
     aria-checked={value}
     onClick={() => onChange(!value)}
     className={`relative inline-flex items-center w-11 h-6 rounded-full transition-colors duration-200 shrink-0
-      ${value ? 'bg-[#1565C0]' : 'bg-[#CBD5E1]'}`}
+      ${value ? "bg-[#1565C0]" : "bg-[#CBD5E1]"}`}
   >
     <span
       className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200
-        ${value ? 'translate-x-[22px]' : 'translate-x-0.5'}`}
+        ${value ? "translate-x-[22px]" : "translate-x-0.5"}`}
     />
   </button>
 );
@@ -23,21 +23,32 @@ const Toggle = ({ value, onChange }) => (
 export default function Settings() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isGoogleUser = user?.authProvider === "google";
 
-  const [notifs, setNotifs] = useState({ newIdeas: true, likes: true, comments: false });
-  const [privacy, setPrivacy] = useState({ publicProfile: true, showActivity: true });
+  const [notifs, setNotifs] = useState({
+    newIdeas: true,
+    likes: true,
+    comments: false,
+  });
+  const [privacy, setPrivacy] = useState({
+    publicProfile: true,
+    showActivity: true,
+  });
   const [deleting, setDeleting] = useState(false);
 
   // Delete-account confirmation modal state.
   const [showDelete, setShowDelete] = useState(false);
-  const [deletePwd, setDeletePwd] = useState('');
-  const [deleteError, setDeleteError] = useState('');
+  const [deletePwd, setDeletePwd] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const openDeleteModal = () => {
-    setDeletePwd('');
-    setDeleteError('');
+    setDeletePwd("");
+    setDeleteError("");
     setShowDelete(true);
   };
 
@@ -47,43 +58,69 @@ export default function Settings() {
   };
 
   const confirmDeleteAccount = async () => {
-    if (!deletePwd.trim()) {
-      setDeleteError('Please enter your password to confirm.');
-      return;
-    }
     try {
       setDeleting(true);
-      setDeleteError('');
-      // Backend verifies this password before deleting (DELETE /users/me).
-      await deleteAccount(deletePwd);
+      setDeleteError("");
+
+      await deleteAccount(isGoogleUser ? null : deletePwd.trim());
+
       logout();
-      navigate('/');
+      navigate("/");
     } catch (err) {
-      setDeleteError(err?.response?.data?.message || 'Failed to delete account. Please try again.');
+      setDeleteError(
+        err?.response?.data?.message ||
+          "Failed to delete account. Please try again.",
+      );
     } finally {
       setDeleting(false);
     }
   };
-
   const Section = ({ title, children }) => (
     <div className="mb-6">
-      <h2 className="text-[#90A4AE] text-xs font-semibold uppercase tracking-widest px-4 mb-2">{title}</h2>
-      <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl overflow-hidden card-hover">{children}</div>
+      <h2 className="text-[#90A4AE] text-xs font-semibold uppercase tracking-widest px-4 mb-2">
+        {title}
+      </h2>
+      <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl overflow-hidden card-hover">
+        {children}
+      </div>
     </div>
   );
 
   const Row = ({ icon, label, sublabel, right, onClick, danger }) => (
-    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-4 border-b border-[#BBDEFB] last:border-0 drawer-item-hover
-      ${onClick && !right ? 'cursor-pointer active:bg-[#BBDEFB]/50' : ''}`}>
-      <span className="w-7 flex items-center justify-center shrink-0">{icon}</span>
+    <div
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-4 border-b border-[#BBDEFB] last:border-0 drawer-item-hover
+      ${onClick && !right ? "cursor-pointer active:bg-[#BBDEFB]/50" : ""}`}
+    >
+      <span className="w-7 flex items-center justify-center shrink-0">
+        {icon}
+      </span>
       <div className="flex-1 min-w-0">
-        <div className={`text-sm font-medium ${danger ? 'text-red-500' : 'text-[#1565C0]'}`}>{label}</div>
-        {sublabel && <div className="text-xs text-[#90A4AE] mt-0.5">{sublabel}</div>}
+        <div
+          className={`text-sm font-medium ${danger ? "text-red-500" : "text-[#1565C0]"}`}
+        >
+          {label}
+        </div>
+        {sublabel && (
+          <div className="text-xs text-[#90A4AE] mt-0.5">{sublabel}</div>
+        )}
       </div>
-      {right || (onClick && !right
-        ? <svg className="w-4 h-4 text-[#BBDEFB]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
-        : null
-      )}
+      {right ||
+        (onClick && !right ? (
+          <svg
+            className="w-4 h-4 text-[#BBDEFB]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        ) : null)}
     </div>
   );
 
@@ -97,8 +134,18 @@ export default function Settings() {
           aria-label="Go back"
           className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
         <h1 className="text-white font-bold text-lg">Settings</h1>
@@ -110,43 +157,164 @@ export default function Settings() {
             {user?.name?.[0]?.toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-white font-semibold truncate">{user?.name}</div>
+            <div className="text-white font-semibold truncate">
+              {user?.name}
+            </div>
             <div className="text-blue-200 text-xs truncate">{user?.email}</div>
           </div>
-          <button onClick={() => navigate('/edit-profile')} className="text-white text-xs font-medium border border-blue-300/40 px-3 py-1.5 rounded-2xl hover:bg-white/10 transition btn-hover">
+          <button
+            onClick={() => navigate("/edit-profile")}
+            className="text-white text-xs font-medium border border-blue-300/40 px-3 py-1.5 rounded-2xl hover:bg-white/10 transition btn-hover"
+          >
             Edit
           </button>
         </div>
 
         <div className="bg-white rounded-t-[32px] pt-5 px-0">
           <Section title="Account">
-            <Row icon={<Icon name="user" className="w-5 h-5 text-[#1565C0]" />} label="Edit Profile" onClick={() => navigate('/edit-profile')}/>
-            <Row icon={<Icon name="gem" className="w-5 h-5 text-[#7C3AED]" />} label="Membership" sublabel={user?.isPremium ? 'Active Premium · Verified' : 'Free plan'} right={user?.isPremium ? <span className="text-[#10B981] text-xs font-semibold">Verified ✓</span> : undefined} onClick={() => navigate('/membership')}/>
+            <Row
+              icon={<Icon name="user" className="w-5 h-5 text-[#1565C0]" />}
+              label="Edit Profile"
+              onClick={() => navigate("/edit-profile")}
+            />
+            <Row
+              icon={<Icon name="gem" className="w-5 h-5 text-[#7C3AED]" />}
+              label="Membership"
+              sublabel={
+                user?.isPremium ? "Active Premium · Verified" : "Free plan"
+              }
+              right={
+                user?.isPremium ? (
+                  <span className="text-[#10B981] text-xs font-semibold">
+                    Verified ✓
+                  </span>
+                ) : undefined
+              }
+              onClick={() => navigate("/membership")}
+            />
             {user?.isPremium && (
-              <Row icon={<svg className="w-5 h-5 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>} label="My Subscription" sublabel="Plan details · Billing history · Cancel" onClick={() => navigate('/account/subscription')}/>
+              <Row
+                icon={
+                  <svg
+                    className="w-5 h-5 text-[#1565C0]"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <rect x="2" y="5" width="20" height="14" rx="2" />
+                    <path d="M2 10h20" />
+                  </svg>
+                }
+                label="My Subscription"
+                sublabel="Plan details · Billing history · Cancel"
+                onClick={() => navigate("/account/subscription")}
+              />
             )}
-            <Row icon={<Icon name="bookmark" className="w-5 h-5 text-[#10B981]" />} label="Saved Ideas" onClick={() => navigate('/saved-ideas')}/>
+            <Row
+              icon={<Icon name="bookmark" className="w-5 h-5 text-[#10B981]" />}
+              label="Saved Ideas"
+              onClick={() => navigate("/saved-ideas")}
+            />
           </Section>
 
           <Section title="Notifications">
-            <Row icon={<Icon name="lightbulb"      className="w-5 h-5 text-[#F59E0B]" />} label="New Idea Alerts" sublabel="When creators you follow post" right={<Toggle value={notifs.newIdeas}    onChange={v => setNotifs({...notifs, newIdeas: v})}/>}/>
-            <Row icon={<Icon name="heart"          className="w-5 h-5 text-[#EF4444]" />} label="Likes"           sublabel="When someone likes your idea"  right={<Toggle value={notifs.likes}      onChange={v => setNotifs({...notifs, likes: v})}/>}/>
-            <Row icon={<Icon name="message-square" className="w-5 h-5 text-[#3B82F6]" />} label="Comments"        sublabel="When someone comments"         right={<Toggle value={notifs.comments}   onChange={v => setNotifs({...notifs, comments: v})}/>}/>
+            <Row
+              icon={
+                <Icon name="lightbulb" className="w-5 h-5 text-[#F59E0B]" />
+              }
+              label="New Idea Alerts"
+              sublabel="When creators you follow post"
+              right={
+                <Toggle
+                  value={notifs.newIdeas}
+                  onChange={(v) => setNotifs({ ...notifs, newIdeas: v })}
+                />
+              }
+            />
+            <Row
+              icon={<Icon name="heart" className="w-5 h-5 text-[#EF4444]" />}
+              label="Likes"
+              sublabel="When someone likes your idea"
+              right={
+                <Toggle
+                  value={notifs.likes}
+                  onChange={(v) => setNotifs({ ...notifs, likes: v })}
+                />
+              }
+            />
+            <Row
+              icon={
+                <Icon
+                  name="message-square"
+                  className="w-5 h-5 text-[#3B82F6]"
+                />
+              }
+              label="Comments"
+              sublabel="When someone comments"
+              right={
+                <Toggle
+                  value={notifs.comments}
+                  onChange={(v) => setNotifs({ ...notifs, comments: v })}
+                />
+              }
+            />
           </Section>
 
           <Section title="Privacy">
-            <Row icon={<Icon name="globe"    className="w-5 h-5 text-[#3B82F6]" />} label="Public Profile"   sublabel="Others can find your profile" right={<Toggle value={privacy.publicProfile} onChange={v => setPrivacy({...privacy, publicProfile: v})}/>}/>
-            <Row icon={<Icon name="activity" className="w-5 h-5 text-[#3347E8]" />} label="Activity Status"  sublabel="Show when you're active"      right={<Toggle value={privacy.showActivity}  onChange={v => setPrivacy({...privacy, showActivity: v})}/>}/>
+            <Row
+              icon={<Icon name="globe" className="w-5 h-5 text-[#3B82F6]" />}
+              label="Public Profile"
+              sublabel="Others can find your profile"
+              right={
+                <Toggle
+                  value={privacy.publicProfile}
+                  onChange={(v) => setPrivacy({ ...privacy, publicProfile: v })}
+                />
+              }
+            />
+            <Row
+              icon={<Icon name="activity" className="w-5 h-5 text-[#3347E8]" />}
+              label="Activity Status"
+              sublabel="Show when you're active"
+              right={
+                <Toggle
+                  value={privacy.showActivity}
+                  onChange={(v) => setPrivacy({ ...privacy, showActivity: v })}
+                />
+              }
+            />
           </Section>
 
           <Section title="Support">
-            <Row icon={<Icon name="file-text"  className="w-5 h-5 text-[#546E7A]" />} label="Terms of Service" onClick={() => navigate('/terms')}/>
-            <Row icon={<Icon name="lock"       className="w-5 h-5 text-[#546E7A]" />} label="Privacy Policy"   onClick={() => navigate('/privacy')}/>
-            <Row icon={<Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />} label="Contact Support"  onClick={() => navigate('/assistant')}/>
+            <Row
+              icon={
+                <Icon name="file-text" className="w-5 h-5 text-[#546E7A]" />
+              }
+              label="Terms of Service"
+              onClick={() => navigate("/terms")}
+            />
+            <Row
+              icon={<Icon name="lock" className="w-5 h-5 text-[#546E7A]" />}
+              label="Privacy Policy"
+              onClick={() => navigate("/privacy")}
+            />
+            <Row
+              icon={
+                <Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />
+              }
+              label="Contact Support"
+              onClick={() => navigate("/assistant")}
+            />
           </Section>
 
           <Section title="Danger Zone">
-            <Row icon={<Icon name="log-out" className="w-5 h-5 text-red-500" />} label="Logout" danger onClick={handleLogout}/>
+            <Row
+              icon={<Icon name="log-out" className="w-5 h-5 text-red-500" />}
+              label="Logout"
+              danger
+              onClick={handleLogout}
+            />
             <Row
               icon={<Icon name="trash" className="w-5 h-5 text-red-500" />}
               label="Delete Account"
@@ -156,7 +324,9 @@ export default function Settings() {
             />
           </Section>
 
-          <p className="text-center text-[#90A4AE] text-xs pb-6">SoCreate v1.0.0</p>
+          <p className="text-center text-[#90A4AE] text-xs pb-6">
+            SoCreate v1.0.0
+          </p>
         </div>
       </div>
 
@@ -176,26 +346,43 @@ export default function Settings() {
               <Icon name="alert-triangle" className="w-5 h-5 text-[#DC2626]" />
             </div>
 
-            <h2 id="delete-account-title" className="text-[#0D2137] text-lg font-bold">
+            <h2
+              id="delete-account-title"
+              className="text-[#0D2137] text-lg font-bold"
+            >
               Delete your account
             </h2>
             <p className="text-[#546E7A] text-sm mt-1.5 leading-relaxed">
-              This will permanently delete your account and all associated data. This can't be undone.
+              This will permanently delete your account and all associated data.
+              This can't be undone.
             </p>
 
-            <label htmlFor="delete-password" className="block text-[#90A4AE] text-xs font-medium mt-5 mb-2">
-              Confirm your password
-            </label>
-            <input
-              id="delete-password"
-              type="password"
-              autoFocus
-              value={deletePwd}
-              onChange={(e) => { setDeletePwd(e.target.value); if (deleteError) setDeleteError(''); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') confirmDeleteAccount(); }}
-              placeholder="••••••••"
-              className="w-full bg-white border border-[#BBDEFB] rounded-xl px-4 py-3 text-[#0D2137] text-sm placeholder-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#1565C0]/20 focus:border-[#1565C0] transition"
-            />
+            {!isGoogleUser && (
+              <>
+                <label
+                  htmlFor="delete-password"
+                  className="block text-[#90A4AE] text-xs font-medium mt-5 mb-2"
+                >
+                  Confirm your password
+                </label>
+
+                <input
+                  id="delete-password"
+                  type="password"
+                  autoFocus
+                  value={deletePwd}
+                  onChange={(e) => {
+                    setDeletePwd(e.target.value);
+                    if (deleteError) setDeleteError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") confirmDeleteAccount();
+                  }}
+                  placeholder="••••••••"
+                  className="w-full bg-white border border-[#BBDEFB] rounded-xl px-4 py-3 text-[#0D2137] text-sm placeholder-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#1565C0]/20 focus:border-[#1565C0] transition"
+                />
+              </>
+            )}
 
             {deleteError && (
               <p className="text-red-500 text-xs mt-2">{deleteError}</p>
@@ -219,7 +406,7 @@ export default function Settings() {
                 {deleting && (
                   <span className="w-4 h-4 border-2 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
                 )}
-                {deleting ? 'Deleting...' : 'Delete account'}
+                {deleting ? "Deleting..." : "Delete account"}
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/common/BottomNav.premium";
 import IdeaCard from "../components/common/IdeaCard.premium";
@@ -36,12 +36,26 @@ export default function Profile() {
   }, []);
 
   // Follower / following counts for the signed-in user's own profile.
-  useEffect(() => {
+  // Uses useCallback so the same function ref can be passed to the
+  // visibilitychange listener without re-registering on every render.
+  const refreshFollowStats = useCallback(() => {
     if (!user?.id) return;
     fetchFollowStats(user.id)
       .then(({ data }) => setFollowStats(data))
       .catch(() => {});
   }, [user?.id]);
+
+  // Fetch on mount + whenever user id changes (login/switch).
+  useEffect(() => { refreshFollowStats(); }, [refreshFollowStats]);
+
+  // Re-fetch when the user returns to this tab/page (e.g. navigating back
+  // from FollowCreators after following several creators). The
+  // visibilitychange event fires on every tab-focus and on React-router
+  // back-navigation when the SPA resurfaces the page.
+  useEffect(() => {
+    document.addEventListener("visibilitychange", refreshFollowStats);
+    return () => document.removeEventListener("visibilitychange", refreshFollowStats);
+  }, [refreshFollowStats]);
 
   const ideas = tab === "My Ideas" ? myIdeas : saved;
 
