@@ -35,7 +35,7 @@ export default function LegalPage({ title, lastUpdated, sections = [] }) {
 
         <div className="mt-2">
           {sections.map((s, i) => (
-            <section key={i} className="border-t border-[#E5E7EB] py-5">
+            <section key={i} className="border-t border-[#1565C0] py-5">
               <h2 className="text-[#0D2137] text-[17px] font-semibold mb-2.5">{s.heading}</h2>
 
               {s.paragraph && (
