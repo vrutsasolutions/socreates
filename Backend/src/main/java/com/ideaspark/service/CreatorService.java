@@ -335,22 +335,58 @@ public class CreatorService {
 
     /**
      * Returns a 0-100 integer score for the monthly-score card.
-     * Uses share_percent if the pool has been locked, raw_score otherwise
-     * (scaled to a 0-100 range with a divisor that you can tune).
+     *
+     * - If the month has been LOCKED by the distribution job, share_percent
+     *   on this creator's row is the final, authoritative number — use it.
+     * - Otherwise (still mid-month / "estimated"), compute the LIVE
+     *   share_percent the same way the job eventually will:
+     *       share_percent = (this creator's raw_score / total_score) * 100
+     *   where total_score sums raw_score across all eligible creators for
+     *   the month (see CreatorMonthlyMetricsRepository#sumRawScoreForEligibleCreators).
+     *
+     * This replaces the old `rawScore / 50` placeholder, which had no
+     * mathematical basis: raw_score has no fixed ceiling, so a flat divisor
+     * either flattens everyone to 0 (low-traffic creators, dividing by 50
+     * when raw_score is in the tens) or saturates at 100 too easily
+     * (high-traffic creators). share_percent self-scales correctly for any
+     * traffic level because it's relative to the same month's total
+     * engagement, exactly like the payout workflow.
      */
     private int computeDisplayScore(CreatorMonthlyMetrics metrics) {
         if (metrics.getSharePercent() != null
                 && metrics.getSharePercent().compareTo(BigDecimal.ZERO) > 0) {
-            // share_percent is already 0-100
+            // Locked by the distribution job — final, authoritative value.
             return metrics.getSharePercent()
                     .setScale(0, RoundingMode.HALF_UP)
                     .intValue();
         }
-        if (metrics.getRawScore() != null) {
-            // raw_score can be arbitrarily large; cap at 100
-            return (int) Math.min(100L, metrics.getRawScore().longValue() / 50L);
+
+        // Ineligible creators (not Creator Pro / not verified) get no share,
+        // even if they have engagement — same rule the distribution job uses.
+        User creator = metrics.getCreator();
+        boolean eligible = Boolean.TRUE.equals(creator.getCreatorPro()) && creator.isVerified();
+        if (!eligible) {
+            return 0;
         }
-        return 0;
+
+        if (metrics.getRawScore() == null
+                || metrics.getRawScore().compareTo(BigDecimal.ZERO) <= 0) {
+            return 0;
+        }
+
+        BigDecimal totalScore = metricsRepository.sumRawScoreForEligibleCreators(metrics.getMonth());
+        if (totalScore == null || totalScore.compareTo(BigDecimal.ZERO) <= 0) {
+            return 0;
+        }
+
+        // share_percent = (creator_raw_score / total_score) * 100, capped at
+        // 100 as a defensive guard against any transient rounding overshoot.
+        int liveShare = metrics.getRawScore()
+                .divide(totalScore, 10, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(0, RoundingMode.HALF_UP)
+                .intValue();
+        return Math.min(100, liveShare);
     }
 
     /**
