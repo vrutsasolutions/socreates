@@ -28,21 +28,39 @@ export default function Settings() {
   const [privacy, setPrivacy] = useState({ publicProfile: true, showActivity: true });
   const [deleting, setDeleting] = useState(false);
 
+  // Delete-account confirmation modal state.
+  const [showDelete, setShowDelete] = useState(false);
+  const [deletePwd, setDeletePwd] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      'Are you sure you want to delete your account? This action cannot be undone.'
-    );
-    if (!confirmed) return;
+  const openDeleteModal = () => {
+    setDeletePwd('');
+    setDeleteError('');
+    setShowDelete(true);
+  };
 
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setShowDelete(false);
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!deletePwd.trim()) {
+      setDeleteError('Please enter your password to confirm.');
+      return;
+    }
     try {
       setDeleting(true);
+      setDeleteError('');
+      // Backend DELETE /users/me takes no body; the password is a frontend
+      // confirmation gate. Pass it through if/when the endpoint accepts it.
       await deleteAccount();
       logout();
       navigate('/');
     } catch (err) {
-      alert('Failed to delete account. Please try again.');
+      setDeleteError('Failed to delete account. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -123,8 +141,8 @@ export default function Settings() {
           </Section>
 
           <Section title="Support">
-            <Row icon={<Icon name="file-text"  className="w-5 h-5 text-[#546E7A]" />} label="Terms of Service" onClick={() => {}}/>
-            <Row icon={<Icon name="lock"       className="w-5 h-5 text-[#546E7A]" />} label="Privacy Policy"   onClick={() => {}}/>
+            <Row icon={<Icon name="file-text"  className="w-5 h-5 text-[#546E7A]" />} label="Terms of Service" onClick={() => navigate('/terms')}/>
+            <Row icon={<Icon name="lock"       className="w-5 h-5 text-[#546E7A]" />} label="Privacy Policy"   onClick={() => navigate('/privacy')}/>
             <Row icon={<Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />} label="Contact Support"  onClick={() => navigate('/assistant')}/>
           </Section>
 
@@ -132,16 +150,82 @@ export default function Settings() {
             <Row icon={<Icon name="log-out" className="w-5 h-5 text-red-500" />} label="Logout" danger onClick={handleLogout}/>
             <Row
               icon={<Icon name="trash" className="w-5 h-5 text-red-500" />}
-              label={deleting ? 'Deleting...' : 'Delete Account'}
+              label="Delete Account"
               sublabel="Permanently delete your account and data"
               danger
-              onClick={handleDeleteAccount}
+              onClick={openDeleteModal}
             />
           </Section>
 
           <p className="text-center text-[#90A4AE] text-xs pb-6">SoCreate v1.0.0</p>
         </div>
       </div>
+
+      {showDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
+          onClick={closeDeleteModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-account-title"
+        >
+          <div
+            className="w-full max-w-sm bg-[#F0F6FF] border-2 border-[#1565C0] rounded-2xl shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-11 h-11 rounded-full bg-[#FEE2E2] flex items-center justify-center mb-4">
+              <Icon name="alert-triangle" className="w-5 h-5 text-[#DC2626]" />
+            </div>
+
+            <h2 id="delete-account-title" className="text-[#0D2137] text-lg font-bold">
+              Delete your account
+            </h2>
+            <p className="text-[#546E7A] text-sm mt-1.5 leading-relaxed">
+              This will permanently delete your account and all associated data. This can't be undone.
+            </p>
+
+            <label htmlFor="delete-password" className="block text-[#90A4AE] text-xs font-medium mt-5 mb-2">
+              Confirm your password
+            </label>
+            <input
+              id="delete-password"
+              type="password"
+              autoFocus
+              value={deletePwd}
+              onChange={(e) => { setDeletePwd(e.target.value); if (deleteError) setDeleteError(''); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmDeleteAccount(); }}
+              placeholder="••••••••"
+              className="w-full bg-white border border-[#BBDEFB] rounded-xl px-4 py-3 text-[#0D2137] text-sm placeholder-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#1565C0]/20 focus:border-[#1565C0] transition"
+            />
+
+            {deleteError && (
+              <p className="text-red-500 text-xs mt-2">{deleteError}</p>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deleting}
+                className="flex-1 bg-white border border-[#CBD5E1] text-[#0D2137] font-semibold py-3 rounded-xl hover:bg-[#F8FAFF] active:scale-95 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteAccount}
+                disabled={deleting}
+                className="flex-1 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] font-semibold py-3 rounded-xl hover:bg-[#FEE2E2] active:scale-95 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleting && (
+                  <span className="w-4 h-4 border-2 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
+                )}
+                {deleting ? 'Deleting...' : 'Delete account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -42,6 +42,8 @@ import EditProfile     from '../pages/EditProfile';
 import FollowList      from '../pages/FollowList';
 import SavedIdeas      from '../pages/SavedIdeas';
 import Settings        from '../pages/Settings';
+import TermsOfService  from '../pages/TermsOfService';
+import PrivacyPolicy   from '../pages/PrivacyPolicy';
 import AIAssistant     from '../pages/AIAssistant';
 import ImageEditor     from '../pages/ImageEditor';
 
@@ -107,6 +109,8 @@ export default function AppRouter() {
         <Route path="/ideas/:id"        element={<PrivateRoute><IdeaDetail /></PrivateRoute>} />
         <Route path="/premium/:id"      element={<PrivateRoute><PremiumDetail /></PrivateRoute>} />
         <Route path="/settings"         element={<PrivateRoute><Settings /></PrivateRoute>} />
+        <Route path="/terms"            element={<PrivateRoute><TermsOfService /></PrivateRoute>} />
+        <Route path="/privacy"          element={<PrivateRoute><PrivacyPolicy /></PrivateRoute>} />
         <Route path="/create-premium"   element={<PrivateRoute><CreatePremiumIdea /></PrivateRoute>} />
 
         {/* Catch-all */}
