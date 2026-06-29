@@ -27,24 +27,31 @@ export default function Settings() {
   const [notifs, setNotifs] = useState({ newIdeas: true, likes: true, comments: false });
   const [privacy, setPrivacy] = useState({ publicProfile: true, showActivity: true });
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      'Are you sure you want to delete your account? This action cannot be undone.'
-    );
-    if (!confirmed) return;
+    if (!deletePassword.trim()) {
+      alert('Please enter your password.');
+      return;
+    }
 
     try {
       setDeleting(true);
-      await deleteAccount();
+      await deleteAccount(deletePassword);
       logout();
       navigate('/');
     } catch (err) {
-      alert('Failed to delete account. Please try again.');
+      alert(err?.response?.data?.message || 'Failed to delete account. Please try again.');
     } finally {
       setDeleting(false);
+      setShowDeleteConfirm(false);
+      setDeletePassword('');
     }
   };
 
@@ -103,12 +110,12 @@ export default function Settings() {
 
         <div className="bg-white rounded-t-[32px] pt-5 px-0">
           <Section title="Account">
-            <Row icon={<Icon name="user"      className="w-5 h-5 text-[#1565C0]" />} label="Edit Profile" onClick={() => navigate('/edit-profile')}/>
-            <Row icon={<Icon name="gem"       className="w-5 h-5 text-[#7C3AED]" />} label="Membership"   sublabel={user?.isPremium ? 'Active Premium · Verified' : 'Free plan'} right={user?.isPremium ? <span className="text-[#10B981] text-xs font-semibold">Verified ✓</span> : undefined} onClick={() => navigate('/membership')}/>
+            <Row icon={<Icon name="user" className="w-5 h-5 text-[#1565C0]" />} label="Edit Profile" onClick={() => navigate('/edit-profile')}/>
+            <Row icon={<Icon name="gem" className="w-5 h-5 text-[#7C3AED]" />} label="Membership" sublabel={user?.isPremium ? 'Active Premium · Verified' : 'Free plan'} right={user?.isPremium ? <span className="text-[#10B981] text-xs font-semibold">Verified ✓</span> : undefined} onClick={() => navigate('/membership')}/>
             {user?.isPremium && (
               <Row icon={<svg className="w-5 h-5 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>} label="My Subscription" sublabel="Plan details · Billing history · Cancel" onClick={() => navigate('/account/subscription')}/>
             )}
-            <Row icon={<Icon name="bookmark"  className="w-5 h-5 text-[#10B981]" />} label="Saved Ideas"  onClick={() => navigate('/saved-ideas')}/>
+            <Row icon={<Icon name="bookmark" className="w-5 h-5 text-[#10B981]" />} label="Saved Ideas" onClick={() => navigate('/saved-ideas')}/>
           </Section>
 
           <Section title="Notifications">
@@ -135,13 +142,54 @@ export default function Settings() {
               label={deleting ? 'Deleting...' : 'Delete Account'}
               sublabel="Permanently delete your account and data"
               danger
-              onClick={handleDeleteAccount}
+              onClick={() => setShowDeleteConfirm(true)}
             />
           </Section>
 
           <p className="text-center text-[#90A4AE] text-xs pb-6">SoCreate v1.0.0</p>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-lg">
+            <h2 className="text-lg font-bold text-red-600 mb-2">Delete Account</h2>
+            <p className="text-sm text-[#546E7A] mb-4">
+              This action cannot be undone. Please enter your password to confirm account deletion.
+            </p>
+
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="Enter your password"
+              className="w-full border border-[#BBDEFB] rounded-xl px-3 py-2 text-sm outline-none mb-4"
+            />
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeletePassword('');
+                }}
+                className="flex-1 py-2 rounded-xl border border-[#CBD5E1] text-[#546E7A] text-sm font-medium"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteAccount}
+                className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-60"
+              >
+                {deleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
