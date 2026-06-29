@@ -56,6 +56,7 @@ public class AuthService {
                 .email(email)
                 .password(passwordEncoder.encode(req.getPassword()))
                 .isPremium(false)
+                .authProvider("local")
                 .isVerified(false)
                 .build();
 
@@ -106,6 +107,7 @@ public class AuthService {
                                 .profileImage(picture)
                                 .isPremium(false)
                                 .isVerified(false)
+                                .authProvider("google")
                                 .build();
 
                         return userRepository.save(newUser);
@@ -185,6 +187,7 @@ public class AuthService {
         dto.setProfileImage(user.getProfileImage());
         dto.setBio(user.getBio());
         dto.setPremium(user.isPremium());
+        dto.setAuthProvider(user.getAuthProvider());
         dto.setMembership(membershipService.activeMembershipShape(user));
 
         AuthResponse res = new AuthResponse();
