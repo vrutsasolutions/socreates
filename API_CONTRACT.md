@@ -26,7 +26,13 @@ Legend: ✅ implemented · ⏳ under development
 | POST | `/forgot-password/verify-otp` ✅ | `{ email, otp }` | `{ message, resetToken }` |
 | POST | `/forgot-password/reset` ✅ | `{ email, newPassword, resetToken }` | `{ message }` |
 
-`user` = `{ id, name, email, bio?, avatarUrl?, interests?[] }`
+`user` = `{ id, name, email, bio?, avatarUrl?, interests?[], isPremium, membership? }`
+
+> `/register`, `/login`, and `/google` now embed the **full `membership` shape**
+> (same object `/payment/subscribe` returns — see §8 Shapes), or `null` when there
+> is no active membership. This is what makes a returning user's subscription
+> survive logout→login (previously only `isPremium` was echoed, so the membership
+> descriptor — plan/billing/price/renewsAt — was dropped on re-login).
 
 OTP ✅ LIVE (`OtpController` + `EmailService`). Frontend: `src/api/authApi.jsx`.
 Onboarding order: **Register → /verify-otp → /select-interests → /follow-creators → /home**.
@@ -237,9 +243,9 @@ and `membership: null`.
 **Gaps for the backend to close:**
 1. Implement the four endpoints above; verify the Razorpay signature server-side.
 2. Add a Stripe webhook to confirm async payments and set `isPremium`/`membership`.
-3. Add `isPremium` + `membership` to the `User` returned by **all** auth/user
-   endpoints (§1, §2 `/me`), not just payment — so a returning user's premium state
-   is correct on login/refresh, not only right after purchase.
+3. ✅ DONE for auth (§1 `/register`,`/login`,`/google` now embed `isPremium` +
+   full `membership`). ⏳ Still TODO: add the same to §2 `GET /me` so a hard page
+   refresh that re-hydrates from `/me` keeps the membership too.
 4. Populate `membership.stats` from real engagement data (currently mock placeholders).
 
 ---

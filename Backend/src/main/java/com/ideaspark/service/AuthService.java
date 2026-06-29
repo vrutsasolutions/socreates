@@ -25,6 +25,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final MembershipService membershipService;
 
     @Value("${google.client.id}")
     private String googleClientId;
@@ -184,6 +185,7 @@ public class AuthService {
         dto.setProfileImage(user.getProfileImage());
         dto.setBio(user.getBio());
         dto.setPremium(user.isPremium());
+        dto.setMembership(membershipService.activeMembershipShape(user));
 
         AuthResponse res = new AuthResponse();
         res.setToken(jwtUtil.generateToken(user.getEmail()));

@@ -80,6 +80,16 @@ public class MembershipService {
                 .orElse(null);
     }
 
+    // The active-membership shape (or null) for embedding in the auth payload,
+    // so login/register/google responses carry the same `membership` object that
+    // /subscribe persists — otherwise re-login drops it (only isPremium survives).
+    public Map<String, Object> activeMembershipShape(User user) {
+        return membershipRepository
+                .findTopByUserIdAndStatusOrderByEndDateDesc(user.getId(), "active")
+                .map(this::toMembershipShape)
+                .orElse(null);
+    }
+
     // ── Mappers ──────────────────────────────────────────────
     private MembershipDTO toDTO(Membership m) {
         MembershipDTO dto = new MembershipDTO();
