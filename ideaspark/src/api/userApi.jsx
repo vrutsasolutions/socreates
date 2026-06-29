@@ -82,7 +82,11 @@ export const unfollowUser = (targetUserId) =>
   USE_MOCK.users
     ? mockResponse('Unfollowed successfully')
     : api.delete(`/follow/${targetUserId}`);
-
-// DELETE /api/users/me → delete account
-export const deleteAccount = () =>
-  USE_MOCK.users ? mockResponse({ message: 'Account deleted' }) : api.delete('/users/me');
+    
+// DELETE /api/users/me → delete account with password verification
+export const deleteAccount = (password) =>
+  USE_MOCK.users
+    ? mockResponse({ message: 'Account deleted' })
+    : api.delete('/users/me', {
+        data: { password },
+      });

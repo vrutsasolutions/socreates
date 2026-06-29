@@ -59,6 +59,7 @@ com\ideaspark\model\SavedIdea$SavedIdeaBuilder.class
 com\ideaspark\controller\CreatorController.class
 com\ideaspark\model\Notification.class
 com\ideaspark\model\CreatorMonthlyMetrics.class
+com\ideaspark\dto\DeleteAccountRequest.class
 com\ideaspark\config\SecurityConfig.class
 com\ideaspark\model\SavedIdea.class
 com\ideaspark\security\UserDetailsServiceImpl.class
