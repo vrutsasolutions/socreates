@@ -48,7 +48,7 @@ public class UserController {
         return ResponseEntity.ok(toDTO(user));
     }
 
-    @PutMapping(value = "/me", consumes = {"multipart/form-data"})
+    @PutMapping(value = "/me", consumes = { "multipart/form-data" })
     public ResponseEntity<UserDTO> updateMe(
             @RequestPart("profile") String profileJson,
             @RequestPart(value = "avatar", required = false) MultipartFile avatar,
@@ -107,8 +107,8 @@ public class UserController {
                 .collect(Collectors.toSet());
 
         List<User> candidates = userRepository.findAll().stream()
-                .filter(u -> !u.getId().equals(currentId))        // never suggest yourself
-                .filter(u -> !followingIds.contains(u.getId()))   // skip people you already follow
+                .filter(u -> !u.getId().equals(currentId)) // never suggest yourself
+                .filter(u -> !followingIds.contains(u.getId())) // skip people you already follow
                 .collect(Collectors.toCollection(java.util.ArrayList::new));
 
         // Dynamic: shuffle so the rail differs per user and per load instead of
@@ -147,41 +147,52 @@ public class UserController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(toDTO(user));
     }
+
     @Transactional
     @DeleteMapping("/me")
     public ResponseEntity<Map<String, String>> deleteAccount(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody DeleteAccountRequest request) {
         try {
+            if (userDetails == null) {
+                return ResponseEntity.status(401)
+                        .body(Map.of("message", "User not authenticated"));
+            }
+
             User user = userRepository.findByEmail(userDetails.getUsername())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
+            if (request == null || request.getPassword() == null || request.getPassword().isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "Password is required"));
+            }
+
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                return ResponseEntity.status(401)
+                        .body(Map.of("message", "Incorrect password"));
+            }
+
             UUID userId = user.getId();
 
-            // 1. Delete notifications
             notificationRepository.deleteAll(
                     notificationRepository.findByUserOrderByCreatedAtDesc(user));
 
-            // 2. Delete saved ideas
             savedIdeaRepository.deleteAll(
                     savedIdeaRepository.findByUserIdOrderBySavedAtDesc(userId));
 
-            // 3. Delete follows
             followRepository.findByFollower(user).forEach(followRepository::delete);
             followRepository.findByFollowing(user).forEach(followRepository::delete);
 
-            // 4. Delete ALL likes by this user on any idea
             ideaLikeRepository.deleteAll(
                     ideaLikeRepository.findAll().stream()
                             .filter(like -> like.getUser() != null && userId.equals(like.getUser().getId()))
                             .toList());
 
-            // 5. Delete comments by this user on other ideas
             commentRepository.deleteAll(
                     commentRepository.findAll().stream()
                             .filter(c -> c.getUser() != null && userId.equals(c.getUser().getId()))
                             .toList());
 
-            // 6. For each idea by this user — delete comments and likes on it, then the idea
             ideaRepository.findByCreatorIdOrderByCreatedAtDesc(userId).forEach(idea -> {
                 commentRepository.deleteAll(
                         commentRepository.findByIdeaIdOrderByCreatedAtDesc(idea.getId()));
@@ -189,13 +200,11 @@ public class UserController {
                 ideaRepository.delete(idea);
             });
 
-            // 7. Delete messages inside conversations involving this user, then conversations
             List<Conversation> conversations = conversationRepository.findByUser(user);
-            conversations.forEach(conv ->
-                    messageRepository.deleteAll(messageRepository.findByConversationId(conv.getId())));
+            conversations
+                    .forEach(conv -> messageRepository.deleteAll(messageRepository.findByConversationId(conv.getId())));
             conversationRepository.deleteAll(conversations);
 
-            // 8. Finally delete the user
             userRepository.delete(user);
 
             return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
