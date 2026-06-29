@@ -390,11 +390,9 @@ export default function AddIdea() {
   };
   // ──────────────────────────────────────────────────────────────────────────
 
-  const requestPremiumToggle = async () => {
-    if (form.isPremium) { setForm((f) => ({ ...f, isPremium: false })); return; }
-    const imageDataURLs = await filesToCompressedDataURLs(images);
-    saveIdeaDraft({ form, imageDataURLs, step });
-    navigate('/create-premium');
+  // Toggle premium inline — no longer routes to a separate premium-price screen.
+  const requestPremiumToggle = () => {
+    setForm((f) => ({ ...f, isPremium: !f.isPremium }));
   };
 
   // Non-premium users tap "Upgrade to Creator Pro". Persist the in-progress
@@ -564,11 +562,6 @@ export default function AddIdea() {
   };
 
   const handlePublish = async () => {
-    if (form.isPremium && creatorPro && !verified) {
-      navigate('/create-premium');
-      return;
-    }
-
     setChecking(true);
     setError('');
 

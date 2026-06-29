@@ -13,6 +13,7 @@
 import { useState, useRef } from 'react';
 import { createPortal }     from 'react-dom';
 import { useNavigate }      from 'react-router-dom';
+import { useAuth }          from '../../context/AuthContext';
 import api                  from '../../api/axiosInstance';
 import { AIBadge } from './AIInteractions.premium';
 import SharePostSheet from './SharePostSheet';
@@ -108,6 +109,9 @@ export function IdeaCardSkeleton({ variant = 'card' } = {}) {
 /* ── Main card ───────────────────────────────────────────── */
 export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
   const navigate        = useNavigate();
+  const { user }        = useAuth();
+  // Premium ideas are only obscured until the viewer holds a membership.
+  const locked          = idea.isPremium && !user?.isPremium;
   const [saved,  setSaved]  = useState(idea.savedByCurrentUser ?? false);
   const [likes,  setLikes]  = useState(idea.likeCount || 0);
   const [liked,  setLiked]  = useState(idea.likedByCurrentUser ?? false);
@@ -388,7 +392,7 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
               display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               fontFamily: 'Inter, sans-serif',
-              ...(idea.isPremium ? { filter: 'blur(3.5px)', userSelect: 'none', pointerEvents: 'none' } : {}),
+              ...(locked ? { filter: 'blur(3.5px)', userSelect: 'none', pointerEvents: 'none' } : {}),
             }}>
               {idea.description}
             </p>
@@ -605,7 +609,7 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
           overflow: 'hidden',
           flex: 1,
           fontFamily: 'Inter, sans-serif',
-          ...(idea.isPremium ? {
+          ...(locked ? {
             filter: 'blur(3.5px)',
             userSelect: 'none',
             pointerEvents: 'none',

@@ -88,5 +88,5 @@ export const deleteAccount = (password) =>
   USE_MOCK.users
     ? mockResponse({ message: 'Account deleted' })
     : api.delete('/users/me', {
-        data: { password },
+        data: password ? { password } : {},
       });

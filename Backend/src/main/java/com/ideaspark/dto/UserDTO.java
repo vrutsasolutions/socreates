@@ -12,6 +12,7 @@ public class UserDTO {
     private String email;
     private String profileImage;
     private String bio;
+    private String authProvider;
     // Pin the JSON key to "isPremium". For a boolean field "isPremium" Lombok
     // generates the getter isPremium(); Jackson then strips the "is" prefix and
     // would serialize it as "premium" — but the frontend reads user.isPremium,

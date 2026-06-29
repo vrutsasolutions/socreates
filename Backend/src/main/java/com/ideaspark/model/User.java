@@ -62,6 +62,9 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "auth_provider")
+    private String authProvider = "local";
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

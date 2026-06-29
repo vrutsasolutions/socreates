@@ -162,14 +162,19 @@ public class UserController {
             User user = userRepository.findByEmail(userDetails.getUsername())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            if (request == null || request.getPassword() == null || request.getPassword().isBlank()) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("message", "Password is required"));
-            }
+            boolean isGoogleUser = "google".equalsIgnoreCase(user.getAuthProvider());
 
-            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                return ResponseEntity.status(401)
-                        .body(Map.of("message", "Incorrect password"));
+            if (!isGoogleUser) {
+
+                if (request == null || request.getPassword() == null || request.getPassword().isBlank()) {
+                    return ResponseEntity.badRequest()
+                            .body(Map.of("message", "Password is required"));
+                }
+
+                if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                    return ResponseEntity.status(401)
+                            .body(Map.of("message", "Incorrect password"));
+                }
             }
 
             UUID userId = user.getId();
@@ -223,6 +228,7 @@ public class UserController {
         dto.setEmail(user.getEmail());
         dto.setProfileImage(user.getProfileImage());
         dto.setBio(user.getBio());
+        dto.setAuthProvider(user.getAuthProvider());
         dto.setPremium(user.isPremium());
         dto.setIdeasCount(ideaRepository.countByCreatorId(user.getId()));
         dto.setLikesCount(ideaRepository.sumLikeCountByCreatorId(user.getId()));
