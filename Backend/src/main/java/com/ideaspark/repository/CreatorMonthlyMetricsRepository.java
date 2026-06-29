@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,13 +23,21 @@ public interface CreatorMonthlyMetricsRepository extends JpaRepository<CreatorMo
      * the denominator of the live share_percent formula:
      *   share_percent = (this creator's raw_score / total_score) * 100
      *
-     * Eligibility mirrors the payout-workflow doc (creator_pro_active +
-     * is_verified_creator); policy_violations isn't tracked on User yet, so
-     * it's intentionally omitted here rather than guessed.
+     * Eligibility = verified AND currently has an active "creator" plan
+     * Membership row (NOT User.is_creator_pro — that column is never
+     * written to by any code path and is always NULL in the DB, even for
+     * genuinely subscribed creators; see MembershipRepository#hasActiveCreatorPro
+     * for the same check used elsewhere). policy_violations isn't tracked
+     * on User yet, so it's intentionally omitted rather than guessed.
      */
     @Query("SELECT COALESCE(SUM(m.rawScore), 0) FROM CreatorMonthlyMetrics m " +
            "WHERE m.month = :month " +
-           "AND m.creator.creatorPro = true " +
-           "AND m.creator.isVerified = true")
-    BigDecimal sumRawScoreForEligibleCreators(@Param("month") LocalDate month);
+           "AND m.creator.isVerified = true " +
+           "AND EXISTS (SELECT 1 FROM Membership mem " +
+           "            WHERE mem.user = m.creator " +
+           "            AND mem.plan = 'creator' " +
+           "            AND mem.status = 'active' " +
+           "            AND mem.endDate > :now)")
+    BigDecimal sumRawScoreForEligibleCreators(@Param("month") LocalDate month,
+                                               @Param("now") LocalDateTime now);
 }
