@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +28,7 @@ public class CreatorService {
     private final CreatorEarningRepository        earningRepository;
     private final CreatorMonthlyMetricsRepository metricsRepository;
     private final RevenuePoolRepository           poolRepository;
+    private final MembershipRepository            membershipRepository;
 
     // ── Score weights — must mirror the distribution cron job ────────────────
     // Formula: raw_score = (views*0.25) + (saves*0.40) + (likes*0.20) + (comments*0.15)
@@ -122,9 +124,15 @@ public class CreatorService {
         int monthlyScore = computeDisplayScore(metrics);
 
         // ── Assemble ─────────────────────────────────────────────────────────
+        // NOTE: User.is_creator_pro (creator.getCreatorPro()) is never written
+        // to by any code path in this app — it's always NULL in the DB, even
+        // for genuinely subscribed creators. The real source of truth is an
+        // active "creator" plan Membership row (same fallback the frontend's
+        // hasCreatorPro() already uses). See MembershipRepository#hasActiveCreatorPro.
+        boolean isCreatorPro = membershipRepository.hasActiveCreatorPro(creatorId, LocalDateTime.now());
         return CreatorDashboardDTO.builder()
                 .status(CreatorDashboardDTO.StatusBlock.builder()
-                        .creatorPro(Boolean.TRUE.equals(creator.getCreatorPro()))
+                        .creatorPro(isCreatorPro)
                         .verified(creator.isVerified())
                         .premiumPublishing(Boolean.TRUE.equals(creator.getPremiumPublishing()))
                         .build())
@@ -363,8 +371,11 @@ public class CreatorService {
 
         // Ineligible creators (not Creator Pro / not verified) get no share,
         // even if they have engagement — same rule the distribution job uses.
+        // (creator.getCreatorPro() is never populated — see the note in
+        // getDashboard() above — so we check the real active membership.)
         User creator = metrics.getCreator();
-        boolean eligible = Boolean.TRUE.equals(creator.getCreatorPro()) && creator.isVerified();
+        boolean eligible = membershipRepository.hasActiveCreatorPro(creator.getId(), LocalDateTime.now())
+                && creator.isVerified();
         if (!eligible) {
             return 0;
         }
@@ -374,7 +385,8 @@ public class CreatorService {
             return 0;
         }
 
-        BigDecimal totalScore = metricsRepository.sumRawScoreForEligibleCreators(metrics.getMonth());
+        BigDecimal totalScore = metricsRepository.sumRawScoreForEligibleCreators(
+                metrics.getMonth(), LocalDateTime.now());
         if (totalScore == null || totalScore.compareTo(BigDecimal.ZERO) <= 0) {
             return 0;
         }
