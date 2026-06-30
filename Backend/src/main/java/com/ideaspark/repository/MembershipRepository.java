@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,15 @@ import java.util.UUID;
 public interface MembershipRepository extends JpaRepository<Membership, UUID> {
     Optional<Membership> findTopByUserIdAndStatusOrderByEndDateDesc(UUID userId, String status);
     boolean existsByUserIdAndStatus(UUID userId, String status);
+
+    /**
+     * Every membership row for this user in the given status. cancel() uses
+     * this to revoke ALL active memberships at once — subscribe() never
+     * supersedes a prior active row, so renewals/upgrades/re-subscribes can
+     * leave several "active" rows; canceling only the latest would leave a
+     * stale active row that getStatus() would later resurrect.
+     */
+    List<Membership> findByUserIdAndStatus(UUID userId, String status);
 
     /**
      * True if this user currently holds an active, unexpired Creator Pro

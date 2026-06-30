@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -58,12 +59,16 @@ public class MembershipService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        membershipRepository
-                .findTopByUserIdAndStatusOrderByEndDateDesc(user.getId(), "active")
-                .ifPresent(m -> {
-                    m.setStatus("canceled");
-                    membershipRepository.save(m);
-                });
+        // Cancel EVERY active membership, not just the latest. subscribe() never
+        // supersedes a prior active row, so a user can hold several "active"
+        // memberships (renewal / upgrade / re-subscribe in test mode). Canceling
+        // only the top one would leave a stale active row behind while the user
+        // is already non-premium — getStatus() would then resurrect it. Revoke
+        // all of them so a cancel is always complete and consistent.
+        List<Membership> active =
+                membershipRepository.findByUserIdAndStatus(user.getId(), "active");
+        active.forEach(m -> m.setStatus("canceled"));
+        membershipRepository.saveAll(active);
 
         user.setPremium(false);
         userRepository.save(user);
