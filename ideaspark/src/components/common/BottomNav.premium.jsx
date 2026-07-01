@@ -157,7 +157,7 @@ export default function BottomNav() {
             top:        8,
             height:     3,
             borderRadius: 999,
-            background: 'var(--sc-primary-500, #3347E8)',
+            background: 'var(--sc-primary-500, #1565C0)',
             transition: 'left 300ms cubic-bezier(0.34,1.56,0.64,1), width 300ms cubic-bezier(0.34,1.56,0.64,1), opacity 200ms ease',
             ...pillStyle,
           }}
@@ -181,12 +181,12 @@ export default function BottomNav() {
                     height: 52,
                     marginTop: -20,
                     borderRadius: 16,
-                    background: 'linear-gradient(135deg, var(--sc-primary-400, #4F62F5), var(--sc-primary-600, #2435C9))',
+                    background: 'linear-gradient(135deg, var(--sc-primary-400, #1976D2), var(--sc-primary-600, #0D47A1))',
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: 'var(--sc-shadow-brand, 0 8px 24px rgba(51,71,232,0.32))',
+                    boxShadow: 'var(--sc-shadow-brand, 0 8px 24px rgba(21,101,192,0.32))',
                     transition: 'transform 250ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 250ms ease',
                     cursor: 'pointer',
                     flexShrink: 0,
@@ -206,7 +206,7 @@ export default function BottomNav() {
                   paddingBottom: 6,
                   minWidth: 48,
                   color: isActive
-                    ? 'var(--sc-primary-500, #3347E8)'
+                    ? 'var(--sc-primary-500, #1565C0)'
                     : 'var(--sc-text-muted, #9DA5BE)',
                   transition: 'color 180ms ease',
                 }}>
@@ -222,7 +222,7 @@ export default function BottomNav() {
                         style={{
                           width: 22, height: 22, borderRadius: '50%',
                           objectFit: 'cover', display: 'block',
-                          boxShadow: isActive ? '0 0 0 2px var(--sc-primary-500, #3347E8)' : 'none',
+                          boxShadow: isActive ? '0 0 0 2px var(--sc-primary-500, #1565C0)' : 'none',
                         }}
                       />
                     ) : (
@@ -237,7 +237,7 @@ export default function BottomNav() {
                     letterSpacing: isActive ? '-0.01em' : '0.01em',
                     fontFamily: 'var(--sc-font-body, Inter, sans-serif)',
                     color: isActive
-                      ? 'var(--sc-primary-500, #3347E8)'
+                      ? 'var(--sc-primary-500, #1565C0)'
                       : 'var(--sc-text-muted, #9DA5BE)',
                     transition: 'all 180ms ease',
                   }}>

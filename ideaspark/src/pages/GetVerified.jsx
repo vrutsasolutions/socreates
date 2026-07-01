@@ -13,7 +13,7 @@ export default function GetVerified() {
     <div className="min-h-screen bg-[#F4F7FF] flex flex-col">
 
       {/* Header with step indicator */}
-      <header className="bg-[#1565C0] px-6 pt-6 pb-10 relative overflow-hidden shadow-lg border-b border-white/10">
+      <header className="bg-[#1565C0] px-4 pt-4 pb-10 relative overflow-hidden shadow-lg border-b border-white/10">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
           <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
@@ -25,7 +25,7 @@ export default function GetVerified() {
           <div className="flex gap-2 mb-5">
             <div className="flex-1 h-1 bg-white rounded-full" />
             <div className="flex-1 h-1 bg-white rounded-full" />
-            <div className="flex-1 h-1 bg-[#F59E0B] rounded-full" />
+            <div className="flex-1 h-1 bg-white rounded-full" />
           </div>
           <h1 className="text-white text-2xl font-bold tracking-tight">One last thing</h1>
         </div>
