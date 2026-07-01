@@ -5,14 +5,12 @@ import com.ideaspark.dto.CreatorDashboardDTO;
 import com.ideaspark.dto.CreatorEarningDTO;
 import com.ideaspark.dto.PayoutDetailsRequest;
 import com.ideaspark.dto.PayoutRequest;
-import com.ideaspark.dto.SeedEarningRequest;
 import com.ideaspark.repository.IdeaRepository;
 import com.ideaspark.repository.UserRepository;
 import com.ideaspark.service.CreatorPayoutService;
 import com.ideaspark.service.CreatorService;
 import com.ideaspark.service.RazorpayXService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -40,10 +38,6 @@ public class CreatorController {
     private final CreatorPayoutService payoutService;
     private final IdeaRepository       ideaRepository;
     private final UserRepository       userRepository;
-
-    /** DEV ONLY — gates the seed-earning helper. False in production. */
-    @Value("${app.dev-seed-enabled:false}")
-    private boolean devSeedEnabled;
 
     // ── Unauthenticated helper ───────────────────────────────────────────────
     private ResponseEntity<ApiResponse> unauthenticated() {
@@ -195,29 +189,6 @@ public class CreatorController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "Payout failed: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * DEV ONLY — POST /api/creator/dev/seed-earning
-     * Fabricates a Pending earnings row so the payout flow can be tested.
-     * Returns 403 unless app.dev-seed-enabled=true. Body: { month?, amount? }.
-     */
-    @PostMapping("/dev/seed-earning")
-    public ResponseEntity<?> seedEarning(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody(required = false) SeedEarningRequest req) {
-        if (userDetails == null) return unauthenticated();
-        if (!devSeedEnabled) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ApiResponse(false, "Dev seeding is disabled."));
-        }
-        SeedEarningRequest body = req != null ? req : new SeedEarningRequest();
-        try {
-            return ResponseEntity.ok(
-                    payoutService.seedEarning(userDetails.getUsername(), body.getMonth(), body.getAmount()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 }

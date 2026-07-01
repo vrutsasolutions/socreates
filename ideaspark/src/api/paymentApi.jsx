@@ -127,7 +127,10 @@ export const requestPayout = (payload) =>
       })
     : api.post('/creator/payouts', payload);
 
-/** DEV ONLY — fabricate a Pending earning to test payouts.
- *  Backend gates this behind app.dev-seed-enabled. payload: { month?, amount? } */
-export const seedTestEarning = (payload = {}) =>
-  api.post('/creator/dev/seed-earning', payload);
+/** Run the monthly revenue distribution for a month (admin action).
+ *  Builds the revenue pool from captured membership payments and writes a
+ *  Pending earnings row per eligible creator. `month` = ISO 1st-of-month, e.g.
+ *  '2026-07-01'. Returns { message, month, totalRevenuePaise, creatorPoolPaise,
+ *  socreateSharePaise, earningsCreated }. */
+export const distributeRevenue = (month) =>
+  api.post(`/admin/pools/${month}/distribute`);

@@ -285,6 +285,24 @@ double-pays). **`PayoutResult`** = `{ month, status, earning, payoutId, payoutSt
 "not configured". Errors: `400` (bad input / no such month), `409` (already
 paid / nothing to withdraw), `502` (RazorpayX rejected), `503` (not configured).
 
+**Where earnings come from — revenue distribution** (`AdminRevenueController` /
+`RevenueDistributionService`, backend teammate):
+
+| Method | Path | Response |
+|---|---|---|
+| POST | `/api/admin/pools/{month}/distribute` | `{ message, month, totalRevenuePaise, creatorPoolPaise, socreateSharePaise, earningsCreated }` |
+
+`{month}` = ISO 1st-of-month (e.g. `2026-07-01`). Sums **captured membership
+payments** for the month, builds/locks the `RevenuePool` (currently a flat
+50/50 creator/SoCreate split), and writes a `Pending` `creator_earnings` row
+per **eligible** creator (Creator Pro + verified + a metrics row with
+`raw_score > 0`). Idempotent: a second call returns `{message:"Already
+distributed"}`. **Not role-gated** on the backend yet — any authenticated user
+can call it (teammate follow-up). Frontend calls it from the CreatorDashboard
+"Run monthly distribution" button (`distributeRevenue(month)` in `paymentApi.jsx`),
+then refetches `/creator/earnings` so the new rows + Withdraw buttons appear.
+Earnings stay ₹0 (no Withdraw) until a distribution with real captured revenue runs.
+
 ---
 
 ## 9. Messaging / DM ✅  `/api/messages`  — frontend: `src/api/messagingApi.jsx`

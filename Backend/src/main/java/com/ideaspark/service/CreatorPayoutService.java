@@ -1,6 +1,5 @@
 package com.ideaspark.service;
 
-import com.ideaspark.dto.CreatorEarningDTO;
 import com.ideaspark.dto.PayoutDetailsRequest;
 import com.ideaspark.dto.PayoutDetailsResponse;
 import com.ideaspark.dto.PayoutResultResponse;
@@ -13,7 +12,6 @@ import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -162,48 +160,6 @@ public class CreatorPayoutService {
                 .earning((int) (amountPaise / 100))
                 .payoutId(payoutId)
                 .payoutStatus(payoutStatus)
-                .build();
-    }
-
-    // ── DEV ONLY: seed a testable earning ─────────────────────────────────────
-
-    /**
-     * Fabricates (or tops up) a Pending earnings row for the creator so the
-     * payout flow can be exercised without a real revenue-pool distribution.
-     * Gated by app.dev-seed-enabled at the controller — never reachable in prod.
-     */
-    @Transactional
-    public CreatorEarningDTO seedEarning(String email, String monthStr, Integer amountRupees) {
-        User user = requireUser(email);
-        LocalDate month = (monthStr == null || monthStr.isBlank())
-                ? LocalDate.now().withDayOfMonth(1)
-                : parseMonth(monthStr);
-        int rupees = (amountRupees == null || amountRupees <= 0) ? 100 : amountRupees;
-
-        CreatorEarning earning = earningRepository
-                .findByCreatorIdAndMonth(user.getId(), month)
-                .orElseGet(() -> CreatorEarning.builder()
-                        .creator(user)
-                        .month(month)
-                        .status("Pending")
-                        .build());
-
-        earning.setRevenuePaise((long) rupees * 100);
-        earning.setStatus("Pending");
-        earning.setRazorpayPayoutId(null);
-        earning.setPaidAt(null);
-        if (earning.getScorePercent() == null) {
-            earning.setScorePercent(BigDecimal.valueOf(50));   // display-only placeholder
-        }
-        earningRepository.save(earning);
-
-        int score = earning.getScorePercent() != null
-                ? earning.getScorePercent().intValue() : 0;
-        return CreatorEarningDTO.builder()
-                .month(month.toString())
-                .score(score)
-                .earning(rupees)
-                .status("Pending")
                 .build();
     }
 
