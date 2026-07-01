@@ -31,5 +31,18 @@ public interface MembershipPaymentRepository extends JpaRepository<MembershipPay
            "WHERE p.status = 'captured' AND p.paidAt >= :start AND p.paidAt < :end")
     Long sumCapturedAmountBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
+    /**
+     * Sum of captured Creator Pro payments (plan_type starting "creator_", e.g.
+     * "creator_monthly" / "creator_yearly") in a date range. The remainder of
+     * {@link #sumCapturedAmountBetween} is Reader Premium revenue — the two
+     * are split at different rates (50/50 vs 25/75) per the "SoCreate Creator
+     * Pro Revenue Distribution Proposal", so the distribution job needs them
+     * separately, not just the combined total.
+     */
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM MembershipPayment p " +
+           "WHERE p.status = 'captured' AND p.paidAt >= :start AND p.paidAt < :end " +
+           "AND p.planType LIKE 'creator%'")
+    Long sumCapturedCreatorProAmountBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
     List<MembershipPayment> findByUserIdOrderByCreatedAtDesc(UUID userId);
 }

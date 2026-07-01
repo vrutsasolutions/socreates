@@ -26,6 +26,7 @@ public class RevenueDistributionService {
     private final MembershipPaymentRepository paymentRepository;
     private final CreatorMonthlyMetricsRepository metricsRepository;
     private final CreatorEarningRepository earningRepository;
+    private final CreatorService creatorService;
 
     @Transactional
     public Map<String, Object> distribute(String month) {
@@ -46,8 +47,17 @@ public class RevenueDistributionService {
         Long totalRevenuePaise = paymentRepository.sumCapturedAmountBetween(start, end);
         if (totalRevenuePaise == null) totalRevenuePaise = 0L;
 
-        long creatorPoolPaise = totalRevenuePaise / 2;
-        long socreateSharePaise = totalRevenuePaise - creatorPoolPaise;
+        // Split total revenue into Reader Premium vs Creator Pro before applying
+        // the pool formula — Reader Premium is 50/50, Creator Pro is 25/75, per
+        // the "SoCreate Creator Pro Revenue Distribution Proposal". These are
+        // NOT the same rate, so summing everything and halving it (the old
+        // behaviour) silently threw away the Creator Pro split entirely.
+        Long creatorProRevenuePaise = paymentRepository.sumCapturedCreatorProAmountBetween(start, end);
+        if (creatorProRevenuePaise == null) creatorProRevenuePaise = 0L;
+        long readerRevenuePaise = totalRevenuePaise - creatorProRevenuePaise;
+
+        long creatorPoolPaise = creatorService.creatorPoolPaise(readerRevenuePaise, creatorProRevenuePaise);
+        long socreateSharePaise = creatorService.socreateSharePaise(readerRevenuePaise, creatorProRevenuePaise);
 
         if (pool == null) {
             pool = new RevenuePool();
@@ -55,8 +65,8 @@ public class RevenueDistributionService {
         }
 
         pool.setTotalRevenuePaise(totalRevenuePaise);
-        pool.setReaderRevenuePaise(totalRevenuePaise);
-        pool.setCreatorProRevenuePaise(0L);
+        pool.setReaderRevenuePaise(readerRevenuePaise);
+        pool.setCreatorProRevenuePaise(creatorProRevenuePaise);
         pool.setCreatorPoolPaise(creatorPoolPaise);
         pool.setSocreatSharePaise(socreateSharePaise);
         pool.setStatus("distributed");
@@ -110,6 +120,8 @@ public class RevenueDistributionService {
                 "message", "Distribution completed",
                 "month", targetMonth.toString(),
                 "totalRevenuePaise", totalRevenuePaise,
+                "readerRevenuePaise", readerRevenuePaise,
+                "creatorProRevenuePaise", creatorProRevenuePaise,
                 "creatorPoolPaise", creatorPoolPaise,
                 "socreateSharePaise", socreateSharePaise,
                 "earningsCreated", earningsCreated
