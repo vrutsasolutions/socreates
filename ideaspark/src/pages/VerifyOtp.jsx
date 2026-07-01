@@ -156,7 +156,7 @@ export default function VerifyOtp() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-300/40 text-[15px]"
+            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-300/40 text-[15px]"
           >
             {loading ? 'Verifying...' : 'Verify & Continue'}
           </button>

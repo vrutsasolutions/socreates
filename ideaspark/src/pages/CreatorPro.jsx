@@ -38,7 +38,7 @@ export default function CreatorPro() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-12">
-<header className="bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
+<header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
   <div className="pointer-events-none absolute inset-0 overflow-hidden">
     <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
     <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />

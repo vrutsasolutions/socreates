@@ -170,8 +170,8 @@ export default function Home() {
         aria-label="SoCreate AI"
         className="fixed right-4 bottom-24 z-40 w-14 h-14 rounded-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
         style={{
-          background: 'linear-gradient(135deg, #4F62F5, #2435C9)',
-          boxShadow: '0 8px 24px rgba(36,53,201,0.40)',
+          background: 'linear-gradient(135deg, #1976D2, #0D47A1)',
+          boxShadow: '0 8px 24px rgba(13,71,161,0.40)',
         }}
       >
         <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

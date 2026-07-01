@@ -96,7 +96,7 @@ export default function PayoutModal({ row, onClose, onPaid }) {
               <p className="text-[#90A4AE] text-xs mt-0.5">{row.month}</p>
             </div>
             <button onClick={onClose} disabled={busy} aria-label="Close"
-              className="w-8 h-8 flex items-center justify-center rounded-full text-[#546E7A] hover:bg-[#F0F6FF] disabled:opacity-40">
+              className="w-8 h-8 flex items-center justify-center rounded-full text-[#546E7A] hover:bg-[#F0F6FF] active:scale-90 transition-all disabled:opacity-50">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -156,7 +156,7 @@ export default function PayoutModal({ row, onClose, onPaid }) {
               )}
 
               <button onClick={handleSave} disabled={busy}
-                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] disabled:opacity-60 text-white font-bold rounded-xl py-3 transition-colors">
+                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 disabled:opacity-50 text-white font-bold rounded-xl py-3 transition-all">
                 {busy ? 'Saving…' : 'Save & continue'}
               </button>
               <p className="text-[#90A4AE] text-[11px] text-center leading-relaxed">
@@ -185,7 +185,7 @@ export default function PayoutModal({ row, onClose, onPaid }) {
               </div>
 
               <button onClick={handleWithdraw} disabled={busy}
-                className="w-full bg-[#16A34A] hover:bg-[#15803D] disabled:opacity-60 text-white font-bold rounded-xl py-3 transition-colors">
+                className="w-full bg-[#16A34A] hover:bg-[#15803D] active:scale-95 disabled:opacity-50 text-white font-bold rounded-xl py-3 transition-all">
                 {busy ? 'Processing…' : `Withdraw ₹${Number(row.earning ?? 0).toLocaleString('en-IN')}`}
               </button>
               <p className="text-[#90A4AE] text-[11px] text-center leading-relaxed">
@@ -214,7 +214,7 @@ export default function PayoutModal({ row, onClose, onPaid }) {
                 </div>
               )}
               <button onClick={onClose}
-                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold rounded-xl py-3 transition-colors">
+                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 text-white font-bold rounded-xl py-3 transition-all">
                 Done
               </button>
             </div>

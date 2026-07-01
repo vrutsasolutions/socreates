@@ -104,8 +104,8 @@ export default function SharePostSheet({ post, onClose, onToast }) {
     <div className="fixed inset-0 z-50 bg-[#F4F7FF] flex flex-col" onClick={(e) => e.stopPropagation()}>
       <header className="relative bg-[#1565C0] px-4 pt-5 pb-6 overflow-hidden">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute w-40 h-40 rounded-full border-[28px] border-white/5 -top-16 -right-10" />
-          <div className="absolute w-28 h-28 rounded-full border-[20px] border-white/5 -bottom-10 -left-6" />
+          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
+          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
         </div>
 
         <div className="relative z-10 flex items-center">

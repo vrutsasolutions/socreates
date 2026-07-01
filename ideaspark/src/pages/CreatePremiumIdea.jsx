@@ -129,7 +129,7 @@ export default function CreatePremiumIdea() {
               <div className="pt-2">
                 <button
                   onClick={() => navigate(`/add-idea?premium=1&price=${price || '99'}`)}
-                  className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-[0.97] transition-all shadow-lg shadow-blue-300/40 text-[15px]"
+                  className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blue-300/40 text-[15px]"
                 >
                   Publish Premium Idea
                 </button>
@@ -170,7 +170,7 @@ export default function CreatePremiumIdea() {
               <div className="pt-2">
                 <button
                   onClick={() => navigate('/membership')}
-                  className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-white font-bold py-4 rounded-2xl active:scale-[0.97] transition-all shadow-lg shadow-amber-300/40 text-[15px]"
+                  className="w-full bg-[#1565C0] hover:bg-[#D97706] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-amber-300/40 text-[15px]"
                 >
                   Get Verified — View Plans
                 </button>
