@@ -1,12 +1,17 @@
 package com.ideaspark.controller;
 
 import com.ideaspark.dto.*;
+import com.ideaspark.model.MembershipPayment;
+import com.ideaspark.model.User;
+import com.ideaspark.repository.MembershipPaymentRepository;
+import com.ideaspark.repository.UserRepository;
 import com.ideaspark.service.MembershipService;
 import com.ideaspark.service.RazorpayService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -18,12 +23,25 @@ public class MembershipController {
 
     private final MembershipService membershipService;
     private final RazorpayService razorpayService;
+    private final MembershipPaymentRepository membershipPaymentRepository;
+    private final UserRepository userRepository;
 
     // POST /api/payment/create-order
     // Creates a Razorpay test-mode order. Amount is computed server-side (paise)
     // from the plan/billing — the client's display price is never trusted.
+    //
+    // Also persists a "created" MembershipPayment row keyed on the new
+    // gateway_order_id, tied to the logged-in user. This is what lets the
+    // /api/webhooks/razorpay handler — which only ever sees order_id /
+    // payment_id, never a user — find its way back to the right user when
+    // the webhook arrives later. Without this row, a webhook for a captured
+    // payment has nobody to attribute it to (see RazorpayWebhookService).
     @PostMapping("/create-order")
-    public ResponseEntity<?> createOrder(@RequestBody CheckoutRequest req) {
+    @Transactional
+    public ResponseEntity<?> createOrder(
+            @RequestBody CheckoutRequest req,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
         if (!razorpayService.isConfigured()) {
             return ResponseEntity.status(503).body(Map.of(
                     "message",
@@ -33,6 +51,24 @@ public class MembershipController {
             int amount = razorpayService.amountPaiseFor(req.getPlan(), req.getBilling());
             String orderId = razorpayService.createOrder(
                     amount, "rcpt_" + System.currentTimeMillis());
+
+            User user = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            String planType = req.getPlan() + "_" + req.getBilling(); // e.g. "creator_yearly"
+
+            membershipPaymentRepository.save(MembershipPayment.builder()
+                    .user(user)
+                    .planType(planType)
+                    .amount(amount)
+                    .currency("INR")
+                    .paymentGateway("razorpay")
+                    .gatewayOrderId(orderId)
+                    .status("created")
+                    .signatureVerified(false)
+                    .webhookReceived(false)
+                    .build());
+
             return ResponseEntity.ok(Map.of(
                     "orderId", orderId,
                     "amount", amount,
