@@ -89,3 +89,45 @@ export const fetchMySubscription = () =>
 /** Fetch historical monthly creator earnings. */
 export const fetchCreatorEarnings = () =>
   api.get('/creator/earnings');
+
+// ── Creator payouts (RazorpayX, test mode) ────────────────────────────────
+//  Flow: creator saves payout details once (creates a RazorpayX contact +
+//  fund account on the backend), then withdraws a Pending earnings row, which
+//  fires a RazorpayX payout and flips the row to "Paid". Gated behind the same
+//  USE_MOCK.payment flag as the rest of this module.
+
+/** Get the creator's saved payout destination (masked). */
+export const getPayoutDetails = () =>
+  USE_MOCK.payment
+    ? mockResponse({ configured: false })
+    : api.get('/creator/payout-details');
+
+/** Save/update the payout destination.
+ *  payload: { method:'vpa', vpa } | { method:'bank_account', accountName, accountNumber, ifsc } */
+export const savePayoutDetails = (payload) =>
+  USE_MOCK.payment
+    ? mockResponse({
+        configured: true,
+        method: payload.method,
+        destination: payload.method === 'vpa'
+          ? payload.vpa
+          : `${(payload.ifsc || 'BANK').slice(0, 4)} ****${String(payload.accountNumber || '').slice(-4)}`,
+        accountName: payload.accountName ?? null,
+      })
+    : api.put('/creator/payout-details', payload);
+
+/** Withdraw one Pending earnings row. payload: { month: '2026-05-01' } */
+export const requestPayout = (payload) =>
+  USE_MOCK.payment
+    ? mockResponse({
+        month: payload.month,
+        status: 'Paid',
+        payoutId: 'pout_mock_' + Date.now(),
+        payoutStatus: 'processing',
+      })
+    : api.post('/creator/payouts', payload);
+
+/** DEV ONLY — fabricate a Pending earning to test payouts.
+ *  Backend gates this behind app.dev-seed-enabled. payload: { month?, amount? } */
+export const seedTestEarning = (payload = {}) =>
+  api.post('/creator/dev/seed-earning', payload);

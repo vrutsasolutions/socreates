@@ -77,6 +77,18 @@ public class CreatorEarning {
     @Column(nullable = false)
     private String status = "Pending";
 
+    /**
+     * RazorpayX payout id (pout_...) once this row has been withdrawn.
+     * Null while status is "Pending". Used for reconciliation and to make the
+     * withdrawal idempotent (reference_id = this row's id).
+     */
+    @Column(name = "razorpay_payout_id")
+    private String razorpayPayoutId;
+
+    /** When the payout was initiated. Null until withdrawn. */
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

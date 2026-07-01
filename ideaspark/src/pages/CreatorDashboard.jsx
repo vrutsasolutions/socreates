@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
-import { fetchCreatorEarnings } from '../api/paymentApi';
+import { fetchCreatorEarnings, seedTestEarning } from '../api/paymentApi';
+import PayoutModal from '../components/common/PayoutModal';
 
 /* ── Fallback data (used until the live endpoint ships) ─────────── */
 const MOCK_DASHBOARD = {
@@ -34,8 +35,8 @@ const MOCK_DASHBOARD = {
 };
 
 const MOCK_REVENUE = [
-  { month: 'June, 2026', score: 70, earning: 15000, status: 'Pending' },
-  { month: 'May, 2026',  score: 90, earning: 25000, status: 'Paid' },
+  { monthIso: '2026-06-01', month: 'June, 2026', score: 70, earning: 15000, status: 'Pending' },
+  { monthIso: '2026-05-01', month: 'May, 2026',  score: 90, earning: 25000, status: 'Paid' },
 ];
 
 const fmt = (n) => Number(n ?? 0).toLocaleString('en-IN');
@@ -44,6 +45,8 @@ const fmt = (n) => Number(n ?? 0).toLocaleString('en-IN');
    { month, score, earning, status } shape the table renders. */
 function normalizeRevenue(row) {
   return {
+    // Raw ISO date (1st of month) — needed to withdraw this row via the payout API.
+    monthIso: row.month ?? row.monthIso ?? null,
     month:   row.monthLabel ?? fmtMonth(row.month) ?? '—',
     score:   row.score ?? row.sharePercent ?? row.score_percent ?? 0,
     earning: row.earning
@@ -66,6 +69,17 @@ export default function CreatorDashboard() {
   const [data, setData]       = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [payoutRow, setPayoutRow] = useState(null);   // row being withdrawn
+
+  // Flip a row to "Paid" locally after a successful payout so the table
+  // reflects it immediately (no refetch needed).
+  const markPaid = useCallback((monthIso) => {
+    setRevenue((rows) =>
+      (rows ?? MOCK_REVENUE).map((r) =>
+        r.monthIso === monthIso ? { ...r, status: 'Paid' } : r,
+      ),
+    );
+  }, []);
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
@@ -246,6 +260,20 @@ export default function CreatorDashboard() {
 
               {/* ── Revenue History ────────────────────────────── */}
               <Section title="Revenue History">
+                {import.meta.env.DEV && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await seedTestEarning({ amount: 100 });
+                        await loadRevenue();
+                      } catch (e) {
+                        alert(e?.response?.data?.message || 'Seed failed (is app.dev-seed-enabled=true?)');
+                      }
+                    }}
+                    className="mb-2 inline-flex items-center gap-1 rounded-lg border border-dashed border-[#BBDEFB] bg-[#F0F6FF] text-[#1565C0] text-xs font-semibold px-3 py-1.5 hover:bg-[#E3F2FD] transition-colors">
+                    + Add ₹100 test earning (dev)
+                  </button>
+                )}
                 <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
@@ -253,22 +281,45 @@ export default function CreatorDashboard() {
                         <th className="text-left  font-bold px-4 py-3">Month</th>
                         <th className="text-right font-bold px-3 py-3">Score</th>
                         <th className="text-right font-bold px-3 py-3">Earning</th>
-                        <th className="text-right font-bold px-4 py-3">Status</th>
+                        <th className="text-right font-bold px-3 py-3">Status</th>
+                        <th className="text-right font-bold px-4 py-3">Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {rev.map((row, i) => (
-                        <tr key={row.month + i} className="border-b border-[#F0F2F8] last:border-0">
-                          <td className="text-left  px-4 py-3.5 text-[#0D2137] font-medium">{row.month}</td>
-                          <td className="text-right px-3 py-3.5 text-[#546E7A]">{fmt(row.score)}</td>
-                          <td className="text-right px-3 py-3.5 text-[#546E7A]">{fmt(row.earning)}</td>
-                          <td className={`text-right px-4 py-3.5 font-semibold ${
-                            String(row.status).toLowerCase() === 'paid' ? 'text-[#16A34A]' : 'text-[#D97706]'
-                          }`}>
-                            {row.status}
-                          </td>
-                        </tr>
-                      ))}
+                      {rev.map((row, i) => {
+                        const paid       = String(row.status).toLowerCase() === 'paid';
+                        const canWithdraw = !paid && Number(row.earning) > 0 && row.monthIso;
+                        return (
+                          <tr key={row.month + i} className="border-b border-[#F0F2F8] last:border-0">
+                            <td className="text-left  px-4 py-3.5 text-[#0D2137] font-medium">{row.month}</td>
+                            <td className="text-right px-3 py-3.5 text-[#546E7A]">{fmt(row.score)}</td>
+                            <td className="text-right px-3 py-3.5 text-[#546E7A]">{fmt(row.earning)}</td>
+                            <td className={`text-right px-3 py-3.5 font-semibold ${
+                              paid ? 'text-[#16A34A]' : 'text-[#D97706]'
+                            }`}>
+                              {row.status}
+                            </td>
+                            <td className="text-right px-4 py-3.5">
+                              {canWithdraw ? (
+                                <button
+                                  onClick={() => setPayoutRow(row)}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-[#1565C0] hover:bg-[#0D47A1] text-white text-xs font-bold px-3 py-1.5 transition-colors active:scale-95">
+                                  Withdraw
+                                </button>
+                              ) : paid ? (
+                                <span className="text-[#16A34A] text-xs font-semibold inline-flex items-center gap-1">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Paid
+                                </span>
+                              ) : (
+                                <span className="text-[#B0BEC5] text-xs">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -277,6 +328,15 @@ export default function CreatorDashboard() {
           )}
         </div>
       </div>
+
+      {/* Payout (withdraw) modal */}
+      {payoutRow && (
+        <PayoutModal
+          row={payoutRow}
+          onClose={() => setPayoutRow(null)}
+          onPaid={(monthIso) => markPaid(monthIso)}
+        />
+      )}
     </div>
   );
 }

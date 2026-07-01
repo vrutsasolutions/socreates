@@ -53,6 +53,31 @@ public class User {
     @Column(name = "is_premium_publishing")
     private Boolean premiumPublishing = false;
 
+    // ── Creator payout details (RazorpayX) ──────────────────────────────────
+    // Saved once, reused for every withdrawal. contact_id / fund_account_id are
+    // the RazorpayX resource ids created when the creator saves their details.
+    // "method" is "vpa" | "bank_account"; only the fields for that method are set.
+    @Column(name = "payout_method")
+    private String payoutMethod;
+
+    @Column(name = "payout_vpa")
+    private String payoutVpa;
+
+    @Column(name = "payout_account_name")
+    private String payoutAccountName;
+
+    @Column(name = "payout_account_number")
+    private String payoutAccountNumber;
+
+    @Column(name = "payout_ifsc")
+    private String payoutIfsc;
+
+    @Column(name = "razorpay_contact_id")
+    private String razorpayContactId;
+
+    @Column(name = "razorpay_fund_account_id")
+    private String razorpayFundAccountId;
+
     @Column(name = "is_online")
     private Boolean online = false;
 

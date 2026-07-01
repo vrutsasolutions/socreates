@@ -248,6 +248,43 @@ and `membership: null`.
    refresh that re-hydrates from `/me` keeps the membership too.
 4. Populate `membership.stats` from real engagement data (currently mock placeholders).
 
+### 8a. Creator payouts ✅  `/api/creator`  — frontend: `src/api/paymentApi.jsx`
+
+Creators withdraw their **Pending** earnings (from the Revenue History table,
+`GET /api/creator/earnings`) to their own bank/UPI via **RazorpayX test mode**.
+Gated behind the same `USE_MOCK.payment` flag. JWT required (`/api/creator/**`).
+
+| Method | Path | Request | Response | Status |
+|---|---|---|---|---|
+| GET | `/payout-details` | — | `PayoutDetails` | ✅ |
+| PUT | `/payout-details` | `PayoutDetailsInput` | `PayoutDetails` | ✅ |
+| POST | `/payouts` | `{ month }` | `PayoutResult` | ✅ |
+
+**`PayoutDetailsInput`** — the destination the creator saves once (reused for
+every withdrawal). Only the fields for the chosen `method` are required:
+- `method: "vpa"` → `{ vpa }`  (e.g. `"name@bank"`)
+- `method: "bank_account"` → `{ accountName, accountNumber, ifsc }`
+
+Saving creates a RazorpayX **contact** + **fund account** server-side and
+persists their ids on the user (`razorpay_contact_id`, `razorpay_fund_account_id`).
+
+**`PayoutDetails`** (GET/PUT response) =
+`{ configured, method, destination, accountName }`
+- `configured: false` when nothing saved yet (frontend shows the add-details form)
+- `destination` — masked, e.g. `"HDFC ****4321"` or the raw VPA
+
+**`POST /payouts`** — body `{ month: "2026-05-01" }` (the ISO month string from
+`/earnings`). Fires a RazorpayX payout for that row's `revenue_paise`
+(mode `UPI` for VPA, `IMPS` for bank), flips the earnings row to `"Paid"`, and
+stores the payout id. `reference_id` = the row id → idempotent (a replay never
+double-pays). **`PayoutResult`** = `{ month, status, earning, payoutId, payoutStatus }`.
+
+**Config (backend):** reuses `razorpay.key-id` / `razorpay.key-secret`, plus
+`razorpayx.account-number` = the RazorpayX **test-mode virtual account number**
+(dashboard → Account Details). Blank → `/payouts` returns a clear 503
+"not configured". Errors: `400` (bad input / no such month), `409` (already
+paid / nothing to withdraw), `502` (RazorpayX rejected), `503` (not configured).
+
 ---
 
 ## 9. Messaging / DM ✅  `/api/messages`  — frontend: `src/api/messagingApi.jsx`

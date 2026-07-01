@@ -3,10 +3,16 @@ package com.ideaspark.controller;
 import com.ideaspark.dto.ApiResponse;
 import com.ideaspark.dto.CreatorDashboardDTO;
 import com.ideaspark.dto.CreatorEarningDTO;
+import com.ideaspark.dto.PayoutDetailsRequest;
+import com.ideaspark.dto.PayoutRequest;
+import com.ideaspark.dto.SeedEarningRequest;
 import com.ideaspark.repository.IdeaRepository;
 import com.ideaspark.repository.UserRepository;
+import com.ideaspark.service.CreatorPayoutService;
 import com.ideaspark.service.CreatorService;
+import com.ideaspark.service.RazorpayXService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -29,9 +36,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CreatorController {
 
-    private final CreatorService  creatorService;
-    private final IdeaRepository  ideaRepository;
-    private final UserRepository  userRepository;
+    private final CreatorService       creatorService;
+    private final CreatorPayoutService payoutService;
+    private final IdeaRepository       ideaRepository;
+    private final UserRepository       userRepository;
+
+    /** DEV ONLY — gates the seed-earning helper. False in production. */
+    @Value("${app.dev-seed-enabled:false}")
+    private boolean devSeedEnabled;
 
     // ── Unauthenticated helper ───────────────────────────────────────────────
     private ResponseEntity<ApiResponse> unauthenticated() {
@@ -120,5 +132,92 @@ public class CreatorController {
 
         ideaRepository.incrementReadCount(id);
         return ResponseEntity.ok(new ApiResponse(true, "Read tracked"));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    //  Payouts (RazorpayX, test mode)
+    // ────────────────────────────────────────────────────────────────────────
+
+    /**
+     * GET /api/creator/payout-details — the creator's saved payout destination.
+     *
+     * { "configured": false }  when nothing is saved yet, otherwise
+     * { "configured": true, "method": "bank_account",
+     *   "destination": "HDFC ****4321", "accountName": "Alex Johnson" }
+     */
+    @GetMapping("/payout-details")
+    public ResponseEntity<?> getPayoutDetails(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) return unauthenticated();
+        return ResponseEntity.ok(payoutService.getPayoutDetails(userDetails.getUsername()));
+    }
+
+    /**
+     * PUT /api/creator/payout-details — save/update the payout destination.
+     * Creates the RazorpayX contact + fund account and persists their ids.
+     * Body: { method: "vpa"|"bank_account", vpa | accountName+accountNumber+ifsc }
+     */
+    @PutMapping("/payout-details")
+    public ResponseEntity<?> savePayoutDetails(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody PayoutDetailsRequest req) {
+        if (userDetails == null) return unauthenticated();
+        try {
+            return ResponseEntity.ok(payoutService.savePayoutDetails(userDetails.getUsername(), req));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("message", e.getMessage()));
+        } catch (RazorpayXService.RazorpayXException e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Could not save payout details: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/creator/payouts — withdraw one Pending earnings row via RazorpayX.
+     * Body: { month: "2026-05-01" }. Flips the row to "Paid" on success.
+     */
+    @PostMapping("/payouts")
+    public ResponseEntity<?> requestPayout(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody PayoutRequest req) {
+        if (userDetails == null) return unauthenticated();
+        try {
+            return ResponseEntity.ok(payoutService.requestPayout(userDetails.getUsername(), req.getMonth()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
+        } catch (RazorpayXService.RazorpayXException e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Payout failed: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * DEV ONLY — POST /api/creator/dev/seed-earning
+     * Fabricates a Pending earnings row so the payout flow can be tested.
+     * Returns 403 unless app.dev-seed-enabled=true. Body: { month?, amount? }.
+     */
+    @PostMapping("/dev/seed-earning")
+    public ResponseEntity<?> seedEarning(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody(required = false) SeedEarningRequest req) {
+        if (userDetails == null) return unauthenticated();
+        if (!devSeedEnabled) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse(false, "Dev seeding is disabled."));
+        }
+        SeedEarningRequest body = req != null ? req : new SeedEarningRequest();
+        try {
+            return ResponseEntity.ok(
+                    payoutService.seedEarning(userDetails.getUsername(), body.getMonth(), body.getAmount()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }
