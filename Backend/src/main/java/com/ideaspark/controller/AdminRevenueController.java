@@ -2,8 +2,8 @@ package com.ideaspark.controller;
 
 import com.ideaspark.service.RevenueDistributionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,15 +13,14 @@ public class AdminRevenueController {
 
     private final RevenueDistributionService revenueDistributionService;
 
-    @Value("${admin.distribution.secret}")
-    private String adminSecret;
+    private static final String ADMIN_EMAIL = "vrutsasolutions@gmail.com";
 
     @PostMapping("/{month}/distribute")
     public ResponseEntity<?> distribute(
             @PathVariable String month,
-            @RequestHeader(value = "X-Admin-Secret", required = false) String providedSecret
+            Authentication authentication
     ) {
-        if (providedSecret == null || !providedSecret.equals(adminSecret)) {
+        if (authentication == null || !ADMIN_EMAIL.equalsIgnoreCase(authentication.getName())) {
             return ResponseEntity.status(403).body("Forbidden");
         }
 
