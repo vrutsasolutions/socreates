@@ -47,6 +47,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
     // Allow all CORS preflight requests
     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+    // Razorpay calls this with no JWT — only X-Razorpay-Signature.
+    // RazorpayWebhookService's HMAC check is what actually guards it.
+    .requestMatchers("/api/webhooks/**").permitAll()
     // Public endpoints — no token needed
     .requestMatchers("/api/auth/**","/api/ai/**").permitAll()
     .requestMatchers("/api/ideas").permitAll()
