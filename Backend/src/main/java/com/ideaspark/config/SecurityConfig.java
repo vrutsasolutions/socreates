@@ -50,6 +50,13 @@ public class SecurityConfig {
     // Razorpay calls this with no JWT — only X-Razorpay-Signature.
     // RazorpayWebhookService's HMAC check is what actually guards it.
     .requestMatchers("/api/webhooks/**").permitAll()
+    // No user JWT for this either — it's an ops/cron trigger, not something
+    // any logged-in user should be able to call. AdminRevenueController's
+    // X-Admin-Secret check is what actually guards it (same pattern as the
+    // webhook route above). Leaving this under anyRequest().authenticated()
+    // meant it needed a valid user JWT AND accepted it from ANY logged-in
+    // user, not just an admin — the opposite of what the secret was for.
+    .requestMatchers("/api/admin/pools/**").permitAll()
     // Public endpoints — no token needed
     .requestMatchers("/api/auth/**","/api/ai/**").permitAll()
     .requestMatchers("/api/ideas").permitAll()
