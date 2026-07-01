@@ -46,6 +46,48 @@ public class Membership {
     @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
 
+    // ── Razorpay Subscriptions fields ───────────────────────────
+    // This table is the de-facto "subscriptions" table — it gained these
+    // columns instead of a separate one, since the rest of the app already
+    // reads membership for "is this user currently subscribed". Filled in
+    // once the subscribe/webhook flow moves from one-time Orders to real
+    // Razorpay Subscriptions.
+
+    /** Razorpay's sub_XXXXXXXXXX. Null until the recurring-subscription flow is wired up. */
+    @Column(name = "razorpay_subscription_id")
+    private String razorpaySubscriptionId;
+
+    /** Mirrors plans.razorpay_plan_id at the time this subscription was created. */
+    @Column(name = "razorpay_plan_id")
+    private String razorpayPlanId;
+
+    /** Next charge date as reported by Razorpay (subscription.charged webhook updates this). */
+    @Column(name = "next_billing_date")
+    private LocalDateTime nextBillingDate;
+
+    /** Set when /cancel is called or a subscription.cancelled webhook arrives. */
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    /**
+     * Last webhook event type processed for this subscription
+     * (e.g. "subscription.activated", "subscription.charged"). Useful for
+     * debugging out-of-order or duplicate webhook delivery.
+     */
+    @Column(name = "webhook_status")
+    private String webhookStatus;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @PrePersist
-    protected void onCreate() { startDate = LocalDateTime.now(); }
+    protected void onCreate() {
+        startDate = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
