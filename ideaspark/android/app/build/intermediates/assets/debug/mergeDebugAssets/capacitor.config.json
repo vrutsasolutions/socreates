@@ -1,0 +1,14 @@
+{
+	"appId": "com.ideaspark.app",
+	"appName": "IdeaSpark",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "http",
+		"cleartext": true
+	},
+	"plugins": {
+		"CapacitorHttp": {
+			"enabled": true
+		}
+	}
+}
