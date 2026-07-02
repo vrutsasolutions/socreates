@@ -12,7 +12,15 @@ import java.util.UUID;
  * Maps to the existing  audit_log  table in Supabase.
  *
  * Columns (exact match):
- *   id           int8/uuid  PK
+ *   id           uuid       PK — confirmed live 2026-07-02: the entity used
+ *                               to declare this as Long/IDENTITY (the doc's
+ *                               original "int8/uuid" note flagged the
+ *                               ambiguity), which threw
+ *                               DataIntegrityViolationException ("Bad value
+ *                               for type long : <uuid>") on every insert.
+ *                               writeAudit() swallows that exception by
+ *                               design, so it failed silently until the
+ *                               6b scheduled-job test surfaced it in the logs.
  *   user_id      uuid       nullable — null for system/webhook-originated rows
  *   action       text       — e.g. "INVALID_WEBHOOK_SIGNATURE", "DISTRIBUTION_COMPLETED"
  *   entity_type  text       — e.g. "payment", "revenue_pool", "membership"
@@ -36,8 +44,9 @@ import java.util.UUID;
 public class AuditLog {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "uuid")
+    private UUID id;
 
     /** Null for system/webhook-originated actions (no real user attached). */
     @Column(name = "user_id")
