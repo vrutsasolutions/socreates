@@ -1,13 +1,18 @@
 package com.ideaspark.service;
 
+import com.ideaspark.model.AuditLog;
 import com.ideaspark.model.CreatorEarning;
 import com.ideaspark.model.CreatorMonthlyMetrics;
 import com.ideaspark.model.RevenuePool;
+import com.ideaspark.repository.AuditLogRepository;
 import com.ideaspark.repository.CreatorEarningRepository;
 import com.ideaspark.repository.CreatorMonthlyMetricsRepository;
 import com.ideaspark.repository.MembershipPaymentRepository;
 import com.ideaspark.repository.RevenuePoolRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +20,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -22,11 +29,79 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RevenueDistributionService {
 
+    private static final Logger log = LoggerFactory.getLogger(RevenueDistributionService.class);
+
     private final RevenuePoolRepository poolRepository;
     private final MembershipPaymentRepository paymentRepository;
     private final CreatorMonthlyMetricsRepository metricsRepository;
     private final CreatorEarningRepository earningRepository;
     private final CreatorService creatorService;
+    private final AuditLogRepository auditLogRepository;
+
+    // ────────────────────────────────────────────────────────────────────────
+    //  P1 item 6b — automatic monthly run
+    // ────────────────────────────────────────────────────────────────────────
+    //
+    // Fires at 00:30 IST on the 1st of every month — i.e. right after the
+    // previous month has fully closed, which is exactly the guard distribute()
+    // already enforces below (targetMonth must be strictly before the current
+    // month). 30 minutes past midnight gives a small buffer clear of any
+    // last-minute captured-at-23:59:59-on-the-31st webhook writes finishing
+    // their transaction.
+    //
+    // Calls distribute() directly, in-process — no HTTP, no JWT, no
+    // ROLE_ADMIN check, none of that applies here since this isn't a
+    // request coming from a browser. The admin endpoint (AdminRevenueController)
+    // stays in place as the manual/backup trigger for re-running a month by
+    // hand if this scheduled run ever needs to be redone.
+    //
+    // Zone is pinned explicitly to Asia/Kolkata so this doesn't silently
+    // depend on whatever timezone the deployment server's OS happens to be
+    // set to (which is very likely UTC, not IST, on most hosting providers —
+    // that would fire this ~5.5 hours off from the intended local time).
+    @Scheduled(cron = "0 30 0 1 * *", zone = "Asia/Kolkata")
+    public void runMonthlyDistribution() {
+        YearMonth previousMonth = YearMonth.now().minusMonths(1);
+        String monthParam = previousMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
+        log.info("Scheduled monthly distribution starting for {}", monthParam);
+
+        try {
+            Map<String, Object> result = distribute(monthParam);
+            log.info("Scheduled monthly distribution finished for {}: {}", monthParam, result);
+
+            writeAudit("DISTRIBUTION_SCHEDULED_COMPLETED", monthParam,
+                    "{\"month\":\"" + monthParam + "\",\"result\":\"" + escapeJson(String.valueOf(result)) + "\"}");
+        } catch (Exception e) {
+            // A scheduled task must never throw past this point — an
+            // uncaught exception here would just vanish into Spring's task
+            // executor with nothing but a stack trace in the server log, and
+            // no record that a month's payout run silently failed to happen.
+            log.error("Scheduled monthly distribution FAILED for {}", monthParam, e);
+
+            writeAudit("DISTRIBUTION_SCHEDULED_FAILED", monthParam,
+                    "{\"month\":\"" + monthParam + "\",\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+        }
+    }
+
+    private void writeAudit(String action, String entityId, String metadata) {
+        try {
+            auditLogRepository.save(AuditLog.builder()
+                    .userId(null) // system-originated, no real user attached
+                    .action(action)
+                    .entityType("revenue_pool")
+                    .entityId(entityId)
+                    .metadata(metadata)
+                    .build());
+        } catch (Exception ex) {
+            // Audit logging must never break the caller.
+            log.warn("Failed to write audit log for {}", action, ex);
+        }
+    }
+
+    private String escapeJson(String s) {
+        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
 
     @Transactional
     public Map<String, Object> distribute(String month) {
