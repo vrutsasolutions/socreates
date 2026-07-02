@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  IdeaSpark talks to an http:// backend over the LAN (see ideaspark/.env
+  VITE_API_BASE_URL / VITE_WS_URL). Android blocks cleartext traffic by
+  default on targetSdk >= 28, which would make every API/WebSocket call fail
+  silently inside the WebView. This config permits cleartext for the dev/test
+  build.
+
+  NOTE: This is appropriate for a debug/emulator verification build. For a
+  Play Store release the backend should be served over HTTPS and this should
+  be scoped to specific domains (or removed).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

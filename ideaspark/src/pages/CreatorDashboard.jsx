@@ -41,6 +41,12 @@ const MOCK_REVENUE = [
 
 const fmt = (n) => Number(n ?? 0).toLocaleString('en-IN');
 
+// Same account as the backend's app.admin.email (SecurityConfig / hasRole("ADMIN")).
+// Purely a UI gate — hiding the button for non-admins is a UX nicety; the
+// backend is what actually enforces this and rejects everyone else with 403
+// regardless of what's shown here.
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'vrutsasolutions@gmail.com';
+
 /* Normalize a revenue-history row coming from /api/creator/earnings into the
    { month, score, earning, status } shape the table renders. */
 function normalizeRevenue(row) {
@@ -66,6 +72,7 @@ function fmtMonth(iso) {
 export default function CreatorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isAdmin = !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const [data, setData]       = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -110,12 +117,15 @@ export default function CreatorDashboard() {
     loadRevenue();
   }, [fetchDashboard, loadRevenue]);
 
-  // Run the monthly revenue distribution for the current calendar month, then
-  // refresh the earnings so the newly-created Pending rows (and their Withdraw
-  // buttons) show up.
+  // Run the monthly revenue distribution for the most recently CLOSED month
+  // (i.e. last month, not this one). The backend now rejects the current or
+  // any future month (RevenueDistributionService.parseTargetMonth guard) —
+  // this used to send the current month, which is exactly the mid-month,
+  // partial-data bug that guard exists to prevent.
   const runDistribution = useCallback(async () => {
-    const now   = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1); // JS Date normalizes Jan → prior Dec
+    const month = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`;
     setDistBusy(true);
     setDistMsg('');
     try {
@@ -286,25 +296,29 @@ export default function CreatorDashboard() {
 
               {/* ── Revenue History ────────────────────────────── */}
               <Section title="Revenue History">
-                {/* Admin: run the monthly revenue distribution. Builds the pool
-                    from captured payments and writes each creator's Pending
-                    earning, after which their Withdraw button appears. */}
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={runDistribution}
-                    disabled={distBusy}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#BBDEFB] bg-[#F0F6FF] text-[#1565C0] text-xs font-semibold px-3 py-1.5 hover:bg-[#E3F2FD] disabled:opacity-60 transition-colors">
-                    {distBusy ? (
-                      <span className="w-3.5 h-3.5 border-2 border-[#BBDEFB] border-t-[#1565C0] rounded-full animate-spin" />
-                    ) : (
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-14.9-2M4 15a8 8 0 0014.9 2" />
-                      </svg>
-                    )}
-                    {distBusy ? 'Distributing…' : 'Run monthly distribution'}
-                  </button>
-                  {distMsg && <span className="text-[11px] text-[#546E7A]">{distMsg}</span>}
-                </div>
+                {/* Admin-only: run the monthly revenue distribution. Builds the
+                    pool from captured payments and writes each creator's Pending
+                    earning, after which their Withdraw button appears. Backend
+                    (hasRole("ADMIN")) is the real gate — this just keeps the
+                    button from being shown to creators it will always 403 for. */}
+                {isAdmin && (
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={runDistribution}
+                      disabled={distBusy}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#BBDEFB] bg-[#F0F6FF] text-[#1565C0] text-xs font-semibold px-3 py-1.5 hover:bg-[#E3F2FD] disabled:opacity-60 transition-colors">
+                      {distBusy ? (
+                        <span className="w-3.5 h-3.5 border-2 border-[#BBDEFB] border-t-[#1565C0] rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-14.9-2M4 15a8 8 0 0014.9 2" />
+                        </svg>
+                      )}
+                      {distBusy ? 'Distributing…' : 'Run monthly distribution'}
+                    </button>
+                    {distMsg && <span className="text-[11px] text-[#546E7A]">{distMsg}</span>}
+                  </div>
+                )}
                 <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
