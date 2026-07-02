@@ -30,7 +30,21 @@ public class RevenueDistributionService {
 
     @Transactional
     public Map<String, Object> distribute(String month) {
-        LocalDate targetMonth = LocalDate.parse(month).withDayOfMonth(1);
+        LocalDate targetMonth = parseTargetMonth(month);
+
+        // P0: a month is only "closed" once it has fully elapsed. Distributing
+        // the current (or a future) month means calling this mid-month against
+        // partial revenue data — and because the check above short-circuits on
+        // status="distributed" with no way to re-run, that under-counts every
+        // creator for the rest of the month with no fix except a manual DB
+        // edit. Reject anything that isn't strictly in the past.
+        LocalDate firstDayOfCurrentMonth = LocalDate.now().withDayOfMonth(1);
+        if (!targetMonth.isBefore(firstDayOfCurrentMonth)) {
+            throw new IllegalStateException(
+                    "Cannot distribute " + targetMonth + " — it isn't closed yet. " +
+                    "Only months before " + firstDayOfCurrentMonth + " (the current month) can be distributed.");
+        }
+
         LocalDateTime start = targetMonth.atStartOfDay();
         LocalDateTime end = targetMonth.plusMonths(1).atStartOfDay();
         LocalDateTime now = LocalDateTime.now();
@@ -126,5 +140,23 @@ public class RevenueDistributionService {
                 "socreateSharePaise", socreateSharePaise,
                 "earningsCreated", earningsCreated
         );
+    }
+
+    // Accepts either a bare month ("2026-07" — what an admin UI naturally
+    // sends when asking "distribute July 2026") or a full ISO date
+    // ("2026-07-01"), and normalizes both to the first day of that month.
+    // Anything else fails fast with a clear 400 instead of a raw
+    // DateTimeParseException stack trace.
+    private static LocalDate parseTargetMonth(String month) {
+        try {
+            return java.time.YearMonth.parse(month).atDay(1);
+        } catch (java.time.format.DateTimeParseException ex) {
+            try {
+                return LocalDate.parse(month).withDayOfMonth(1);
+            } catch (java.time.format.DateTimeParseException ex2) {
+                throw new IllegalArgumentException(
+                        "Invalid month '" + month + "'. Expected 'yyyy-MM' (e.g. 2026-07) or 'yyyy-MM-dd'.");
+            }
+        }
     }
 }
