@@ -8,6 +8,7 @@ import org.springframework.context.annotation.*;
 import org.springframework.security.authentication.*;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,6 +23,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
@@ -50,13 +52,14 @@ public class SecurityConfig {
     // Razorpay calls this with no JWT — only X-Razorpay-Signature.
     // RazorpayWebhookService's HMAC check is what actually guards it.
     .requestMatchers("/api/webhooks/**").permitAll()
-    // No user JWT for this either — it's an ops/cron trigger, not something
-    // any logged-in user should be able to call. AdminRevenueController's
-    // X-Admin-Secret check is what actually guards it (same pattern as the
-    // webhook route above). Leaving this under anyRequest().authenticated()
-    // meant it needed a valid user JWT AND accepted it from ANY logged-in
-    // user, not just an admin — the opposite of what the secret was for.
-    .requestMatchers("/api/admin/pools/**").permitAll()
+    // Revenue-pool distribution is an ops/admin trigger, not something any
+    // logged-in user should be able to call. Previously this sat under
+    // anyRequest().authenticated(), which let ANY authenticated user kick
+    // off a distribution run for any month. Now it requires a valid JWT
+    // *and* the ROLE_ADMIN authority, which UserDetailsServiceImpl only
+    // grants to app.admin.email. AdminRevenueController also carries
+    // @PreAuthorize("hasRole('ADMIN')") as defense in depth.
+    .requestMatchers("/api/admin/pools/**").hasRole("ADMIN")
     // Public endpoints — no token needed
     .requestMatchers("/api/auth/**","/api/ai/**").permitAll()
     .requestMatchers("/api/ideas").permitAll()
