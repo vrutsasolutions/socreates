@@ -192,8 +192,6 @@ navigate('/verify-otp', {
     I agree to all{' '}
     <Link 
       to="/terms" 
-      target="_blank" 
-      rel="noopener noreferrer" 
       className="text-[#1565C0] font-semibold hover:underline cursor-pointer"
     >
       terms &amp; conditions
