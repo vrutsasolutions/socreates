@@ -2,63 +2,144 @@ import LegalPage from '../components/common/LegalPage';
 
 const SECTIONS = [
   {
-    heading: 'Acceptance of terms',
+    heading: 'Acceptance of these terms',
     paragraph:
-      "By creating an account or using SoCreate, you agree to be bound by these terms. If you don't agree, please don't use the platform.",
+      `SoCreate is an idea-sharing and social publishing platform operated by Vrutsa Solutions, Chennai, Tamil Nadu, India ("SoCreate", "we", "us", "our"). By creating an account, signing in with Google, or otherwise accessing or using the SoCreate website or mobile application (together, the "Platform"), you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree, please do not use the Platform.`,
   },
   {
-    heading: 'User accounts',
+    heading: 'Eligibility',
     bullets: [
-      "You're responsible for keeping your login secure",
-      'One account per person, no impersonating other members',
+      `You must be at least 13 years old to create an account.`,
+      `You must be at least 18 years old (or have the consent of a parent or legal guardian) to purchase a subscription, monetize content, or receive payouts.`,
+      `You must be capable of entering into a legally binding contract under applicable law, including the Indian Contract Act, 1872.`,
     ],
   },
   {
-    heading: 'Posting ideas',
+    heading: 'Your account',
     bullets: [
-      'You keep ownership of ideas you post',
-      'You grant SoCreate a license to display your ideas to other members',
-      "Don't post ideas that infringe someone else's rights",
+      `You are responsible for the accuracy of your registration details and for keeping your password, OTPs, and login sessions secure.`,
+      `One account per person; you may not impersonate any person or entity, use a misleading username, or transfer your account to anyone else.`,
+      `You are responsible for all activity that occurs under your account; notify us immediately of any unauthorized use.`,
+      `We may suspend or terminate accounts that violate these terms, applicable law, or the security of the Platform.`,
     ],
   },
   {
-    heading: 'Premium subscription',
+    heading: 'Your content and license to us',
     bullets: [
-      'Premium unlocks early access to new ideas and premium-only ideas',
-      'Premium includes creative tools for posting and monetizing your ideas',
-      'Billed on a recurring basis until you cancel',
+      `You retain full ownership of the ideas, posts, images, comments, and messages you create on SoCreate ("Content").`,
+      `By posting Content, you grant SoCreate a worldwide, non-exclusive, royalty-free license to host, store, reproduce, display, distribute, and adapt (for technical purposes such as resizing or formatting) that Content in order to operate, promote, and improve the Platform.`,
+      `This license ends when you delete the Content or your account, except where the Content has been shared with others (for example, in messages) or where retention is required by law.`,
+      `You represent that you own or have the necessary rights to everything you post, and that your Content does not infringe any third-party intellectual property, privacy, or other rights.`,
     ],
   },
   {
-    heading: 'Monetizing ideas',
-    bullets: [
-      'You can offer your ideas for paid access or collaboration on the platform',
-      'SoCreate may take a service fee on monetized ideas, shown at checkout',
-    ],
-  },
-  {
-    heading: 'Community conduct',
-    bullets: [
-      'Be respectful in chat and comments with fellow members',
-      "No harassment, spam, or scraping other members' ideas",
-    ],
-  },
-  {
-    heading: 'Intellectual property',
+    heading: 'Public nature of ideas',
     paragraph:
-      "SoCreate's brand, design, and platform code are owned by us or our licensors. Using the service doesn't transfer any ownership rights to you.",
+      `Ideas posted to the public feed are visible to other members by design and may be viewed, liked, saved, commented on, and shared within the Platform. SoCreate does not guarantee the confidentiality of any idea you choose to publish. If an idea is commercially sensitive, do not post it publicly. SoCreate is not responsible for the independent development of similar ideas by other members.`,
+  },
+  {
+    heading: 'Premium subscriptions',
+    bullets: [
+      `SoCreate offers paid plans, including Go Premium (reader) and Creators Pro, on monthly or yearly billing cycles.`,
+      `Payments are processed by third-party payment gateways, currently Razorpay and Stripe; prices displayed at checkout (in INR unless stated otherwise) are the final amounts, and the server-confirmed amount is authoritative.`,
+      `Subscriptions renew automatically at the end of each billing period until cancelled from the Membership or Account Subscription page.`,
+      `Cancellation stops future renewals; you retain premium access until the end of the current paid period.`,
+      `Except where required by applicable law (including the Consumer Protection Act, 2019), fees already paid are non-refundable, including for partially used billing periods.`,
+      `We may change plan prices or features with reasonable prior notice; changes apply from your next renewal.`,
+    ],
+  },
+  {
+    heading: 'Creator monetization and Revenue Pool Sharing',
+    bullets: [
+      `Eligible creators (Creators Pro subscribers who are verified and meet engagement criteria) may earn a share of platform subscription revenue through the Revenue Pool Sharing (RPS) program.`,
+      `Each month, a portion of captured membership revenue is allocated to a creator pool and distributed among eligible creators based on engagement metrics determined by SoCreate; the split and eligibility criteria may be updated from time to time with notice.`,
+      `Earnings are indicative until a monthly distribution is finalized; SoCreate may withhold or reverse earnings attributable to fraud, artificial engagement, chargebacks, or violations of these terms.`,
+      `You are solely responsible for any taxes (including income tax and GST, where applicable) on amounts you earn through the Platform.`,
+    ],
+  },
+  {
+    heading: 'Payouts',
+    bullets: [
+      `To withdraw earnings, you must provide accurate payout details (UPI ID or bank account name, number, and IFSC); payouts are processed through RazorpayX to the destination you save.`,
+      `You confirm that the payout destination belongs to you; SoCreate is not liable for transfers to incorrectly entered details.`,
+      `We may require identity or KYC verification before releasing payouts and may delay or decline payouts where required by law, our payment partners, or fraud prevention.`,
+      `Minimum payout thresholds, processing timelines, and gateway charges (if any) will be shown in the Creator Dashboard.`,
+    ],
+  },
+  {
+    heading: 'AI features',
+    bullets: [
+      `SoCreate offers AI-assisted tools (powered by third-party models such as Google Gemini) to generate, enhance, summarize, and categorize ideas and to power the AI assistant.`,
+      `AI output may be inaccurate, incomplete, or similar to output generated for other users; you are responsible for reviewing AI-assisted content before publishing it as your own.`,
+      `You must not use AI features to generate unlawful, infringing, or harmful content.`,
+    ],
+  },
+  {
+    heading: 'Messaging and community conduct',
+    bullets: [
+      `Direct messaging supports text, images, voice notes, files, and shared ideas; free accounts may have messaging limits when contacting verified creators, and limits are shown in the app.`,
+      `Be respectful; no harassment, hate speech, threats, sexual content involving minors, spam, or unsolicited bulk messaging.`,
+      `No scraping, copying, or republishing other members' ideas or personal data without their permission.`,
+      `No attempts to manipulate engagement metrics, RPS earnings, likes, or follower counts through bots, fake accounts, or coordinated inauthentic activity.`,
+      `No uploading of malware, no probing or disrupting the Platform's security, APIs, or infrastructure, and no reverse engineering except as permitted by law.`,
+    ],
+  },
+  {
+    heading: 'Content moderation',
+    paragraph:
+      `We may review, remove, restrict, or demote Content, and suspend or terminate accounts, that we reasonably believe violate these terms or applicable law, including the Information Technology Act, 2000 and rules made under it. Where feasible, we will notify you of significant enforcement actions and provide a way to appeal by writing to legal@socreate.com.`,
+  },
+  {
+    heading: 'Intellectual property of SoCreate',
+    paragraph:
+      `The SoCreate name, logo, design, software, and Platform features are owned by Vrutsa Solutions or its licensors and are protected by intellectual property laws. Using the Platform does not grant you any ownership of, or license to, our intellectual property except the limited right to use the Platform as intended.`,
+  },
+  {
+    heading: 'Third-party services',
+    paragraph:
+      `The Platform relies on third-party services, including Razorpay and Stripe for payments, RazorpayX for payouts, Google for sign-in and AI, and cloud infrastructure providers for hosting and media storage. Your use of those services may also be subject to their own terms, and we are not responsible for their acts or omissions.`,
+  },
+  {
+    heading: 'Termination',
+    bullets: [
+      `You may stop using SoCreate or delete your account at any time from Settings.`,
+      `We may suspend or terminate your access for breach of these terms, legal requirements, or risk to the Platform or other members.`,
+      `On termination, your right to use the Platform ends; provisions relating to ownership, licenses already granted, payments due, liability, and dispute resolution survive.`,
+      `Undisputed, eligible creator earnings accrued before termination will be paid out in the ordinary course, unless withheld for fraud or legal reasons.`,
+    ],
+  },
+  {
+    heading: 'Disclaimers',
+    paragraph:
+      `The Platform is provided on an "as is" and "as available" basis without warranties of any kind, express or implied, including fitness for a particular purpose, uninterrupted availability, or that Content (including AI output) is accurate or reliable. Ideas on the Platform are user-generated and do not constitute professional, legal, financial, or investment advice.`,
   },
   {
     heading: 'Limitation of liability',
     paragraph:
-      'The service is provided "as is". To the extent permitted by law, we aren\'t liable for indirect or consequential damages.',
+      `To the maximum extent permitted by law, SoCreate and Vrutsa Solutions shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or for loss of profits, data, goodwill, or business opportunities, arising from your use of the Platform. Our aggregate liability for all claims in any 12-month period shall not exceed the greater of the amounts you paid to SoCreate in that period or INR 5,000. Nothing in these terms limits liability that cannot be limited under applicable law.`,
+  },
+  {
+    heading: 'Indemnity',
+    paragraph:
+      `You agree to indemnify and hold harmless SoCreate, Vrutsa Solutions, and their officers and employees from claims, damages, and expenses (including reasonable legal fees) arising from your Content, your use of the Platform, or your breach of these terms or applicable law.`,
+  },
+  {
+    heading: 'Governing law and disputes',
+    paragraph:
+      `These terms are governed by the laws of India. Subject to any mandatory consumer protections available to you, the courts at Chennai, Tamil Nadu shall have exclusive jurisdiction over disputes arising out of or relating to these terms or the Platform.`,
+  },
+  {
+    heading: 'Changes to these terms',
+    paragraph:
+      `We may update these terms from time to time. Material changes will be notified in-app or by email before they take effect. Continued use of the Platform after the effective date constitutes acceptance of the updated terms.`,
   },
   {
     heading: 'Contact us',
-    paragraph: 'Questions about these terms can be sent to legal@socreate.com.',
+    paragraph:
+      `Questions about these terms can be sent to legal@socreate.com or to Vrutsa Solutions, Chennai, Tamil Nadu, India.`,
   },
 ];
 
 export default function TermsOfService() {
-  return <LegalPage title="Terms of Service" lastUpdated="June 29, 2026" sections={SECTIONS} />;
+  return <LegalPage title="Terms of Service" lastUpdated="July 3, 2026" sections={SECTIONS} />;
 }
