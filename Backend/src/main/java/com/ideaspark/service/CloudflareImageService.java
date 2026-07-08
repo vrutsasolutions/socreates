@@ -16,6 +16,7 @@ import java.util.UUID;
 public class CloudflareImageService {
 
     private final S3Client s3Client;
+    private final FileSecurityValidator fileSecurityValidator;
 
     @Value("${cloudflare.r2.bucket-name}")
     private String bucketName;
@@ -29,6 +30,9 @@ public class CloudflareImageService {
                 return null;
             }
 
+            // SECURITY: verify this is actually an image by content (magic bytes).
+            fileSecurityValidator.validateImage(file);
+
             String originalName = file.getOriginalFilename() != null
                     ? file.getOriginalFilename().replaceAll("\\s+", "-")
                     : "image";
@@ -41,13 +45,12 @@ public class CloudflareImageService {
                     .contentType(file.getContentType())
                     .build();
 
-            s3Client.putObject(
-                    request,
-                    RequestBody.fromBytes(file.getBytes())
-            );
+            s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
 
             return publicUrl + "/" + fileName;
 
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Cloudflare R2 upload failed: " + e.getMessage(), e);
         }
@@ -76,18 +79,12 @@ public class CloudflareImageService {
 
             key = key.trim();
 
-            System.out.println("Public URL = " + normalizedPublicUrl);
-            System.out.println("Incoming URL = " + imageUrl);
-            System.out.println("Deleting R2 object key = [" + key + "]");
-
             DeleteObjectRequest request = DeleteObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
                     .build();
 
             s3Client.deleteObject(request);
-
-            System.out.println("Deleted from R2 successfully");
 
         } catch (Exception e) {
             System.out.println("Cloudflare R2 delete failed: " + e.getMessage());

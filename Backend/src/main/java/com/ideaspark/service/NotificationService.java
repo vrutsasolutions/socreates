@@ -1,5 +1,6 @@
 package com.ideaspark.service;
 
+import com.ideaspark.dto.NotificationRequest;
 import com.ideaspark.model.Notification;
 import com.ideaspark.model.User;
 import com.ideaspark.repository.NotificationRepository;
@@ -19,13 +20,15 @@ public class NotificationService {
     private final SimpMessagingTemplate messagingTemplate;
 
     public NotificationService(NotificationRepository notificationRepository,
-                               UserRepository userRepository,
-                               SimpMessagingTemplate messagingTemplate) {
+            UserRepository userRepository,
+            SimpMessagingTemplate messagingTemplate) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
     }
 
+    // Original — used internally by trusted code (IdeaService, FollowService, etc.)
+    // where the Notification is built directly in Java, not from user input.
     public Notification sendNotification(Notification notification) {
         if (notification.getCreatedAt() == null) {
             notification.setCreatedAt(java.time.LocalDateTime.now());
@@ -36,10 +39,27 @@ public class NotificationService {
             messagingTemplate.convertAndSendToUser(
                     saved.getUser().getEmail(),
                     "/queue/notifications",
-                    saved
-            );
+                    saved);
         }
         return saved;
+    }
+
+    // New — used only by the admin-only /send endpoint, built from a
+    // caller-supplied DTO with restricted, validated fields.
+    public Notification sendNotificationFromRequest(NotificationRequest request) {
+        User targetUser = userRepository.findById(request.getTargetUserId())
+                .orElseThrow(() -> new RuntimeException("Target user not found"));
+
+        Notification notification = Notification.builder()
+                .user(targetUser)
+                .message(request.getMessage())
+                .referenceId(request.getReferenceId())
+                .type(request.getType() != null ? request.getType() : Notification.NotificationType.SYSTEM)
+                .conversationId(request.getConversationId())
+                .readStatus(false)
+                .build();
+
+        return sendNotification(notification);
     }
 
     public List<Notification> listFor(String email) {
@@ -57,9 +77,16 @@ public class NotificationService {
         return notificationRepository.countByUserAndReadStatusFalse(user);
     }
 
-    public void markRead(UUID id) {
+    public void markRead(UUID id, String email) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
+
+        if (!notification.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("You do not have permission to modify this notification");
+        }
+
         notification.setReadStatus(true);
         notificationRepository.save(notification);
     }
@@ -76,5 +103,3 @@ public class NotificationService {
         notificationRepository.saveAll(notifications);
     }
 }
-
-

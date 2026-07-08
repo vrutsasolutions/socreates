@@ -61,7 +61,10 @@ public class SecurityConfig {
     // @PreAuthorize("hasRole('ADMIN')") as defense in depth.
     .requestMatchers("/api/admin/pools/**").hasRole("ADMIN")
     // Public endpoints — no token needed
-    .requestMatchers("/api/auth/**","/api/ai/**").permitAll()
+    .requestMatchers("/api/auth/**").permitAll()
+    // AI endpoints burn Groq quota per call — must be logged in to use them,
+    // so anonymous callers can't run up the bill. See AiController.
+    .requestMatchers("/api/ai/**").authenticated()
     .requestMatchers("/api/ideas").permitAll()
     .requestMatchers("/api/ideas/{id}").permitAll()
     .requestMatchers("/api/search").permitAll()

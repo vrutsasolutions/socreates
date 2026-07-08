@@ -15,6 +15,7 @@ import java.util.UUID;
 public class MessageUploadService {
 
     private final S3Client s3Client;
+    private final FileSecurityValidator fileSecurityValidator;
 
     @Value("${cloudflare.r2.bucket-name}")
     private String bucketName;
@@ -22,43 +23,23 @@ public class MessageUploadService {
     @Value("${cloudflare.r2.public-url}")
     private String publicUrl;
 
-    // Allowed image types
-    private static final java.util.Set<String> ALLOWED_IMAGE_TYPES = java.util.Set.of(
-            "image/jpeg", "image/png", "image/webp", "image/gif"
-    );
-
-    // FIX (Bug 1): Browser MediaRecorder sends codec-qualified MIME types like
-    // "audio/webm;codecs=opus" — the bare "audio/webm" check was rejecting them.
-    // Added all common codec-qualified variants to prevent false rejections.
-    private static final java.util.Set<String> ALLOWED_VOICE_TYPES = java.util.Set.of(
-            "audio/mpeg",
-            "audio/mp3",
-            "audio/mp4",
-            "audio/wav",
-            "audio/x-m4a",
-            "audio/ogg",
-            "audio/ogg;codecs=opus",          // ✅ FIX: Firefox MediaRecorder default
-            "audio/webm",
-            "audio/webm;codecs=opus",          // ✅ FIX: Chrome/Edge MediaRecorder default
-            "audio/webm;codecs=vorbis"         // ✅ FIX: Chrome fallback
-    );
-
     public String uploadImage(MultipartFile file) {
-        validateFile(file, ALLOWED_IMAGE_TYPES, 10 * 1024 * 1024, "Image"); // 10 MB limit
+        validateSize(file, 10 * 1024 * 1024, "Image");
+        fileSecurityValidator.validateImage(file);
         return upload(file, "messages/images");
     }
 
     public String uploadVoice(MultipartFile file) {
-        validateFile(file, ALLOWED_VOICE_TYPES, 5 * 1024 * 1024, "Voice"); // 5 MB limit
+        validateSize(file, 5 * 1024 * 1024, "Voice");
+        fileSecurityValidator.validateVoice(file);
         return upload(file, "messages/voice");
     }
 
-    // Documents / arbitrary files — any content type, up to 20 MB.
+    // Documents — now a real whitelist (pdf/office/text/images), not
+    // "any content type" like before.
     public String uploadFile(MultipartFile file) {
-        if (file == null || file.isEmpty())
-            throw new RuntimeException("File is empty");
-        if (file.getSize() > 20L * 1024 * 1024)
-            throw new RuntimeException("File too large (max 20 MB)");
+        validateSize(file, 20 * 1024 * 1024, "File");
+        fileSecurityValidator.validateDocument(file);
         return upload(file, "messages/files");
     }
 
@@ -85,13 +66,9 @@ public class MessageUploadService {
         }
     }
 
-    private void validateFile(MultipartFile file, java.util.Set<String> allowedTypes,
-                               long maxBytes, String label) {
+    private void validateSize(MultipartFile file, long maxBytes, String label) {
         if (file == null || file.isEmpty())
             throw new RuntimeException(label + " file is empty");
-
-        if (!allowedTypes.contains(file.getContentType()))
-            throw new RuntimeException("Unsupported " + label + " type: " + file.getContentType());
 
         if (file.getSize() > maxBytes)
             throw new RuntimeException(label + " file too large (max "

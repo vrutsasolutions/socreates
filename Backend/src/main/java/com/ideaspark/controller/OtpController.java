@@ -2,6 +2,7 @@ package com.ideaspark.controller;
 
 import com.ideaspark.service.EmailService;
 import com.ideaspark.service.OtpService;
+import com.ideaspark.service.RateLimiterService;
 import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,12 +13,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+
 public class OtpController {
 
     private final OtpService otpService;
     private final EmailService emailService;
     private final UserRepository userRepository;
+    private final RateLimiterService rateLimiterService;
 
     @PostMapping("/send-otp")
     public ResponseEntity<Map<String, String>> sendOtp(
@@ -31,6 +33,11 @@ public class OtpController {
         }
 
         email = email.trim().toLowerCase();
+
+        if (!rateLimiterService.allowSend(email)) {
+        return ResponseEntity.status(429)
+                .body(Map.of("message", "Too many OTP requests. Please try again later."));
+    }
 
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest()
@@ -56,6 +63,10 @@ public class OtpController {
         }
 
         email = email.trim().toLowerCase();
+        if (!rateLimiterService.allowVerify(email)) {
+        return ResponseEntity.status(429)
+                .body(Map.of("message", "Too many attempts. Please try again later."));
+    }
 
        boolean valid = otpService.validateOtp(email, otp, "REGISTER");
 
