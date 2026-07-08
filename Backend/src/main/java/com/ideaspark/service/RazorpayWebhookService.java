@@ -39,7 +39,10 @@ public class RazorpayWebhookService {
 
     private final MembershipPaymentRepository paymentRepository;
     private final AuditLogRepository auditLogRepository;
-    private final UserRepository userRepository;
+
+    private final RazorpayPaymentWebhookHandler paymentWebhookHandler;
+    private final RazorpayRefundWebhookHandler refundWebhookHandler;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${razorpay.webhook-secret:}")
@@ -47,10 +50,14 @@ public class RazorpayWebhookService {
 
     public RazorpayWebhookService(MembershipPaymentRepository paymentRepository,
                                    AuditLogRepository auditLogRepository,
-                                   UserRepository userRepository) {
+
+                                   RazorpayPaymentWebhookHandler paymentWebhookHandler,
+                                   RazorpayRefundWebhookHandler refundWebhookHandler) {
         this.paymentRepository = paymentRepository;
         this.auditLogRepository = auditLogRepository;
-        this.userRepository = userRepository;
+        this.paymentWebhookHandler = paymentWebhookHandler;
+        this.refundWebhookHandler = refundWebhookHandler;
+
     }
 
     public ResponseEntity<String> process(String rawPayload, String signature) {
@@ -126,8 +133,11 @@ public class RazorpayWebhookService {
             return ResponseEntity.ok("Already processed");
         }
 
-        // ── 4. Process in a transaction ──
-        return handleNewPayment(eventType, razorpayPaymentId, razorpayOrderId,
+
+        // ── 4. Process in a transaction — delegated to a separate bean so
+        // @Transactional actually applies (see class javadoc). ──
+        return paymentWebhookHandler.handleNewPayment(eventType, razorpayPaymentId, razorpayOrderId,
+
                 status, method, amountPaise, subscriptionEntity, rawPayload);
     }
 
