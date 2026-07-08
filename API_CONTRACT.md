@@ -206,6 +206,7 @@ these endpoints ship; flip to `false` to go live.
 | POST | `/subscribe` | `Checkout` + `{ paymentId, orderId, signature }` | `{ user }` | ⏳ |
 | POST | `/stripe/checkout` | `Checkout` | `{ checkoutUrl }` | ⏳ |
 | POST | `/cancel` | `{}` | `{ user }` | ⏳ |
+| POST | `/refund` | `{}` | `{ user }` | ✅ |
 
 **`Checkout`** (what the frontend sends to start a purchase) =
 `{ plan, billing, gateway, planLabel, price }`
@@ -226,6 +227,25 @@ these endpoints ship; flip to `false` to go live.
 
 **`/cancel`** ends the active membership and returns the user with `isPremium: false`
 and `membership: null`.
+
+**`/refund`** (self-service, JWT required) reverses the caller's **most recent
+captured payment** via Razorpay and revokes premium immediately — same
+`{ user: {...isPremium:false, membership:null} }` response as `/cancel`, so the
+frontend persists it identically (`login(user, token)`). Two things are split by
+design:
+- **Access** is revoked synchronously in the request (so the UI updates at once).
+- **Money truth** is finalized asynchronously: Razorpay processes the refund and
+  fires a `refund.processed` webhook, at which point the backend flips the
+  `membership_payments` row to `status = "refunded"` (this is what the monthly
+  revenue-pool job excludes). A `refund.failed` webhook leaves the row `captured`.
+
+`400` if the account has no refundable (captured) payment; `503` if Razorpay keys
+aren't configured. Frontend: `refundMembership()` in `paymentApi.jsx`, wired to the
+"Request Refund" button on the Active-subscription view (`AccountSubscription.jsx`).
+
+> **Razorpay dashboard:** enable the `refund.created` / `refund.processed` /
+> `refund.failed` events on the `/api/webhooks/razorpay` webhook, alongside the
+> existing `payment.*` events, for the async half to fire.
 
 ### Shapes
 

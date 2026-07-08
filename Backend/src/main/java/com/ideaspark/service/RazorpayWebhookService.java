@@ -26,13 +26,20 @@ import java.security.MessageDigest;
  *      (a separate bean, so @Transactional actually goes through the proxy —
  *      see RazorpayPaymentProcessor's javadoc for why).
  *   5. Always returns within the method (no slow work) so Razorpay doesn't retry.
+ *
+ * NOTE: the actual DB-writing work (step 3b/4) lives in the separate
+ * {@link RazorpayPaymentWebhookHandler} bean, injected below, rather than a
+ * private/protected method on this class. @Transactional only works through
+ * Spring's proxy — a same-object call (this.someMethod()) skips the proxy
+ * entirely and silently runs with no transaction. Delegating to a distinct
+ * injected bean forces the call through the proxy so the transaction is real.
  */
 @Service
 public class RazorpayWebhookService {
 
     private final MembershipPaymentRepository paymentRepository;
     private final AuditLogRepository auditLogRepository;
-    private final RazorpayPaymentProcessor paymentProcessor;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${razorpay.webhook-secret:}")
@@ -40,10 +47,10 @@ public class RazorpayWebhookService {
 
     public RazorpayWebhookService(MembershipPaymentRepository paymentRepository,
                                    AuditLogRepository auditLogRepository,
-                                   RazorpayPaymentProcessor paymentProcessor) {
+                                   UserRepository userRepository) {
         this.paymentRepository = paymentRepository;
         this.auditLogRepository = auditLogRepository;
-        this.paymentProcessor = paymentProcessor;
+        this.userRepository = userRepository;
     }
 
     public ResponseEntity<String> process(String rawPayload, String signature) {
@@ -71,6 +78,29 @@ public class RazorpayWebhookService {
         }
 
         String eventType = root.path("event").asText(null);
+
+        // ── Refund events (refund.created / refund.processed / refund.failed) ──
+        // MUST be routed here BEFORE the payment-entity path below. A refund
+        // event still carries the original payment entity, whose id already
+        // exists in membership_payments — so it would otherwise be swallowed by
+        // the idempotency guard ("Already processed") and the refund never
+        // recorded. The refund entity's own payment_id ties it back to the row.
+        if (eventType != null && eventType.startsWith("refund.")) {
+            JsonNode refundEntity = root.path("payload").path("refund").path("entity");
+            String refundPaymentId = refundEntity.path("payment_id").asText(null);
+            if (refundPaymentId == null) {
+                // Fall back to the payment entity id if the refund entity omits it.
+                refundPaymentId = root.path("payload").path("payment").path("entity")
+                        .path("id").asText(null);
+            }
+            if (refundPaymentId == null) {
+                writeAudit(null, "WEBHOOK_REFUND_MISSING_PAYMENT_ID", "webhook", eventType,
+                        rawPayload.length() > 2000 ? null : rawPayload);
+                return ResponseEntity.ok("Refund event missing payment id, acknowledged");
+            }
+            return refundWebhookHandler.handleRefund(eventType, refundEntity, refundPaymentId, rawPayload);
+        }
+
         JsonNode paymentEntity = root.path("payload").path("payment").path("entity");
         JsonNode subscriptionEntity = root.path("payload").path("subscription").path("entity");
 
@@ -96,8 +126,8 @@ public class RazorpayWebhookService {
             return ResponseEntity.ok("Already processed");
         }
 
-        // ── 4. Delegate to the separate transactional bean ──
-        return paymentProcessor.handleNewPayment(eventType, razorpayPaymentId, razorpayOrderId,
+        // ── 4. Process in a transaction ──
+        return handleNewPayment(eventType, razorpayPaymentId, razorpayOrderId,
                 status, method, amountPaise, subscriptionEntity, rawPayload);
     }
 

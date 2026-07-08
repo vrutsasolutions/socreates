@@ -123,12 +123,25 @@ public class CreatorPayoutService {
                 .findByCreatorIdAndMonth(user.getId(), month)
                 .orElseThrow(() -> new IllegalArgumentException("No earnings found for " + monthStr + "."));
 
-        if (!"Pending".equalsIgnoreCase(earning.getStatus())) {
-            throw new IllegalStateException("This month has already been paid out.");
-        }
         long amountPaise = earning.getRevenuePaise() != null ? earning.getRevenuePaise() : 0L;
         if (amountPaise <= 0) {
             throw new IllegalStateException("Nothing to withdraw for this month.");
+        }
+
+        // ── Fix #14: atomic claim, BEFORE calling RazorpayX ────────────────
+        // Replaces the old "check earning.getStatus() in Java, write 'Paid'
+        // later" pattern, which let two concurrent requests both pass the
+        // check and both fire a real RazorpayX payout for the same row.
+        // This single UPDATE ... WHERE status='Pending' is the actual lock:
+        // only one concurrent caller can ever flip Pending -> Processing,
+        // so only one can ever reach the RazorpayX call below. If this
+        // whole method later throws (including the RazorpayX call failing),
+        // @Transactional rolls the claim back to 'Pending' automatically,
+        // so the creator can simply retry — no separate cleanup needed.
+        int claimed = earningRepository.claimPendingForPayout(earning.getId());
+        if (claimed == 0) {
+            throw new IllegalStateException(
+                    "This month has already been paid out or a withdrawal is already in progress.");
         }
 
         // VPA → UPI, bank_account → IMPS. reference_id = row id makes the call

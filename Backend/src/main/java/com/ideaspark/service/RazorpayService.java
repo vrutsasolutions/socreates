@@ -2,6 +2,7 @@ package com.ideaspark.service;
 
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
+import com.razorpay.Refund;
 import com.razorpay.Utils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +54,27 @@ public class RazorpayService {
         req.put("payment_capture", true);
         Order order = client.orders.create(req);
         return order.get("id");
+    }
+
+    /**
+     * Initiate a refund against a captured payment. Pass amountPaise &lt;= 0 to
+     * refund the full amount, or a smaller value for a partial refund.
+     *
+     * This only KICKS OFF the refund — Razorpay processes it asynchronously and
+     * confirms via a refund.processed / refund.failed webhook. The webhook
+     * (see RazorpayRefundWebhookHandler) is the source of truth for whether the
+     * money actually moved; this method just returns the new refund id
+     * (e.g. "rfnd_ABC123") so the caller can log it.
+     */
+    public String refund(String paymentId, int amountPaise) throws Exception {
+        RazorpayClient client = new RazorpayClient(keyId, keySecret);
+        JSONObject req = new JSONObject();
+        if (amountPaise > 0) {
+            req.put("amount", amountPaise);
+        }
+        req.put("speed", "normal");
+        Refund refund = client.payments.refund(paymentId, req);
+        return refund.get("id");
     }
 
     /** Verify the order/payment/signature triple returned by the checkout. */

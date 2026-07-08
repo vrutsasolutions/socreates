@@ -83,20 +83,34 @@ public class MembershipController {
     }
 
     // POST /api/payment/subscribe
-    // Grants premium. For Razorpay, the order/payment/signature triple MUST
-    // verify before any membership is created.
+    // Grants premium. The order/payment/signature triple MUST verify, AND the
+    // plan/billing actually granted are read server-side in MembershipService
+    // from the MembershipPayment row created at /create-order time — never
+    // trusted from this request body. Two things this closes:
+    //   (a) previously any req.getGateway() value other than "razorpay"
+    //       skipped verification ENTIRELY and granted premium for free —
+    //       Stripe was never implemented, so this wasn't a real branch, just
+    //       an open bypass. Now anything but "razorpay" is rejected.
+    //   (b) previously req.getPlan()/req.getBilling() were trusted directly,
+    //       so a valid signature for a ₹99 Reader-Monthly order could be
+    //       replayed here with plan="creator", billing="yearly" to claim
+    //       ₹999 Creator-Pro-Yearly. Plan/billing now come from the order
+    //       row itself, not the client.
     @PostMapping("/subscribe")
     public ResponseEntity<?> subscribe(
             @RequestBody SubscribeRequest req,
             @AuthenticationPrincipal UserDetails user) {
 
-        if ("razorpay".equalsIgnoreCase(req.getGateway())) {
-            boolean ok = razorpayService.verifySignature(
-                    req.getOrderId(), req.getPaymentId(), req.getSignature());
-            if (!ok) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("message", "Payment verification failed"));
-            }
+        if (!"razorpay".equalsIgnoreCase(req.getGateway())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Unsupported payment gateway"));
+        }
+
+        boolean ok = razorpayService.verifySignature(
+                req.getOrderId(), req.getPaymentId(), req.getSignature());
+        if (!ok) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Payment verification failed"));
         }
 
         return ResponseEntity.ok(membershipService.subscribe(req, user.getUsername()));
@@ -106,6 +120,28 @@ public class MembershipController {
     @PostMapping("/cancel")
     public ResponseEntity<?> cancel(@AuthenticationPrincipal UserDetails user) {
         return ResponseEntity.ok(membershipService.cancel(user.getUsername()));
+    }
+
+    // POST /api/payment/refund
+    // Self-service refund of the caller's most recent captured payment. Access
+    // is revoked immediately; the refund.processed webhook later marks the
+    // payment row "refunded" (the money source of truth). Authenticated — falls
+    // under anyRequest().authenticated() in SecurityConfig.
+    @PostMapping("/refund")
+    public ResponseEntity<?> refund(@AuthenticationPrincipal UserDetails user) {
+        if (!razorpayService.isConfigured()) {
+            return ResponseEntity.status(503).body(Map.of(
+                    "message",
+                    "Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET."));
+        }
+        try {
+            return ResponseEntity.ok(membershipService.requestRefund(user.getUsername()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Refund failed: " + e.getMessage()));
+        }
     }
 
     // GET /api/payment/status

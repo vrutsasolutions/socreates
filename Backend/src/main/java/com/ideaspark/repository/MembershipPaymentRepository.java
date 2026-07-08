@@ -45,4 +45,11 @@ public interface MembershipPaymentRepository extends JpaRepository<MembershipPay
     Long sumCapturedCreatorProAmountBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     List<MembershipPayment> findByUserIdOrderByCreatedAtDesc(UUID userId);
+
+    /**
+     * The user's most recent payment in a given status — used by the
+     * self-service refund flow to find the "captured" payment to refund
+     * (there's exactly one meaningful one to reverse: the latest charge).
+     */
+    Optional<MembershipPayment> findFirstByUserIdAndStatusOrderByPaidAtDesc(UUID userId, String status);
 }
