@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { fetchMySubscription, cancelMembership } from '../api/paymentApi';
+import { fetchMySubscription, cancelMembership, refundMembership } from '../api/paymentApi';
 import Icon from '../components/common/Icon';
 
 const fmtDate = (iso) => {
@@ -46,6 +46,7 @@ export default function AccountSubscription() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [refunding, setRefunding] = useState(false);
   const [error, setError]     = useState('');
   // Distinct from `error` (cancel failures): a load failure surfaces a retry
   // state instead of silently showing stale/placeholder numbers.
@@ -96,6 +97,21 @@ export default function AccountSubscription() {
       setError(err?.response?.data?.message || 'Could not cancel. Please try again.');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    if (!window.confirm('Request a refund of your latest payment? Your premium access ends immediately and the amount is returned to your original payment method.')) return;
+    setRefunding(true);
+    setError('');
+    try {
+      const { data } = await refundMembership();
+      login(data.user, localStorage.getItem('token'));
+      navigate('/membership');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Could not process the refund. Please try again.');
+    } finally {
+      setRefunding(false);
     }
   };
 
@@ -240,13 +256,26 @@ export default function AccountSubscription() {
 
               {/* Manage */}
               <Section title="Manage">
-                <button onClick={handleCancel} disabled={cancelling}
-                  className="w-full bg-[#FEF2F2] hover:bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                  {cancelling && (
-                    <span className="w-4 h-4 border-2 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
-                  )}
-                  Cancel Membership
-                </button>
+                <div className="space-y-3">
+                  <button onClick={handleRefund} disabled={cancelling || refunding}
+                    className="w-full bg-white hover:bg-[#FFFBEB] border border-[#FDE68A] text-[#B45309] font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                    {refunding && (
+                      <span className="w-4 h-4 border-2 border-[#B45309] border-t-transparent rounded-full animate-spin" />
+                    )}
+                    Request Refund
+                  </button>
+                  <p className="text-[#90A4AE] text-xs px-1 -mt-1">
+                    Refunds your most recent payment and ends premium access immediately.
+                  </p>
+
+                  <button onClick={handleCancel} disabled={cancelling || refunding}
+                    className="w-full bg-[#FEF2F2] hover:bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                    {cancelling && (
+                      <span className="w-4 h-4 border-2 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
+                    )}
+                    Cancel Membership
+                  </button>
+                </div>
               </Section>
             </>
           )}

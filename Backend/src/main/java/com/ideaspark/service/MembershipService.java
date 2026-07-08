@@ -19,6 +19,7 @@ public class MembershipService {
     private final MembershipRepository membershipRepository;
     private final UserRepository userRepository;
     private final MembershipPaymentRepository membershipPaymentRepository;
+    private final RazorpayService razorpayService;
 
     // Subscribe to a plan. Returns { user: {...isPremium, membership} } so the
     // frontend can persist the premium user via login(user, token).
@@ -118,6 +119,46 @@ public class MembershipService {
         // only the top one would leave a stale active row behind while the user
         // is already non-premium — getStatus() would then resurrect it. Revoke
         // all of them so a cancel is always complete and consistent.
+        List<Membership> active =
+                membershipRepository.findByUserIdAndStatus(user.getId(), "active");
+        active.forEach(m -> m.setStatus("canceled"));
+        membershipRepository.saveAll(active);
+
+        user.setPremium(false);
+        userRepository.save(user);
+
+        return Map.of("user", toUserPayload(user, null));
+    }
+
+    // Self-service refund: reverse the user's most recent captured payment and
+    // revoke access immediately. Returns { user: {...isPremium:false, membership:null} }.
+    //
+    // Two distinct concerns, deliberately split (see RazorpayRefundWebhookHandler):
+    //   - ACCESS is revoked here, synchronously, so the UI reflects the change
+    //     the instant the user clicks "Refund" — same shape as cancel().
+    //   - The MONEY status on the payment row is NOT flipped here. Razorpay
+    //     processes the refund asynchronously; only the refund.processed webhook
+    //     marks the row "refunded", which is what the revenue-pool job excludes.
+    //     If the refund were to FAIL, the row correctly stays "captured".
+    @Transactional
+    public Map<String, Object> requestRefund(String userEmail) throws Exception {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        MembershipPayment payment = membershipPaymentRepository
+                .findFirstByUserIdAndStatusOrderByPaidAtDesc(user.getId(), "captured")
+                .filter(p -> p.getGatewayPaymentId() != null)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No refundable payment found for this account."));
+
+        // Kick off the refund with Razorpay FIRST — if this throws (already
+        // refunded, gateway error), we bail out before revoking access, so the
+        // user isn't left non-premium with no refund actually in flight.
+        razorpayService.refund(payment.getGatewayPaymentId(), payment.getAmount());
+
+        // Revoke access now. Cancel EVERY active membership (subscribe() never
+        // supersedes a prior active row) so a refund is always complete — same
+        // reasoning as cancel().
         List<Membership> active =
                 membershipRepository.findByUserIdAndStatus(user.getId(), "active");
         active.forEach(m -> m.setStatus("canceled"));

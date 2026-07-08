@@ -38,6 +38,7 @@ public class RazorpayWebhookService {
     private final MembershipPaymentRepository paymentRepository;
     private final AuditLogRepository auditLogRepository;
     private final RazorpayPaymentWebhookHandler paymentWebhookHandler;
+    private final RazorpayRefundWebhookHandler refundWebhookHandler;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${razorpay.webhook-secret:}")
@@ -45,10 +46,12 @@ public class RazorpayWebhookService {
 
     public RazorpayWebhookService(MembershipPaymentRepository paymentRepository,
                                    AuditLogRepository auditLogRepository,
-                                   RazorpayPaymentWebhookHandler paymentWebhookHandler) {
+                                   RazorpayPaymentWebhookHandler paymentWebhookHandler,
+                                   RazorpayRefundWebhookHandler refundWebhookHandler) {
         this.paymentRepository = paymentRepository;
         this.auditLogRepository = auditLogRepository;
         this.paymentWebhookHandler = paymentWebhookHandler;
+        this.refundWebhookHandler = refundWebhookHandler;
     }
 
     public ResponseEntity<String> process(String rawPayload, String signature) {
@@ -81,6 +84,29 @@ public class RazorpayWebhookService {
         }
 
         String eventType = root.path("event").asText(null);
+
+        // ── Refund events (refund.created / refund.processed / refund.failed) ──
+        // MUST be routed here BEFORE the payment-entity path below. A refund
+        // event still carries the original payment entity, whose id already
+        // exists in membership_payments — so it would otherwise be swallowed by
+        // the idempotency guard ("Already processed") and the refund never
+        // recorded. The refund entity's own payment_id ties it back to the row.
+        if (eventType != null && eventType.startsWith("refund.")) {
+            JsonNode refundEntity = root.path("payload").path("refund").path("entity");
+            String refundPaymentId = refundEntity.path("payment_id").asText(null);
+            if (refundPaymentId == null) {
+                // Fall back to the payment entity id if the refund entity omits it.
+                refundPaymentId = root.path("payload").path("payment").path("entity")
+                        .path("id").asText(null);
+            }
+            if (refundPaymentId == null) {
+                writeAudit(null, "WEBHOOK_REFUND_MISSING_PAYMENT_ID", "webhook", eventType,
+                        rawPayload.length() > 2000 ? null : rawPayload);
+                return ResponseEntity.ok("Refund event missing payment id, acknowledged");
+            }
+            return refundWebhookHandler.handleRefund(eventType, refundEntity, refundPaymentId, rawPayload);
+        }
+
         JsonNode paymentEntity = root.path("payload").path("payment").path("entity");
         JsonNode subscriptionEntity = root.path("payload").path("subscription").path("entity");
 

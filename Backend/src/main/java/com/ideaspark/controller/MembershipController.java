@@ -122,6 +122,28 @@ public class MembershipController {
         return ResponseEntity.ok(membershipService.cancel(user.getUsername()));
     }
 
+    // POST /api/payment/refund
+    // Self-service refund of the caller's most recent captured payment. Access
+    // is revoked immediately; the refund.processed webhook later marks the
+    // payment row "refunded" (the money source of truth). Authenticated — falls
+    // under anyRequest().authenticated() in SecurityConfig.
+    @PostMapping("/refund")
+    public ResponseEntity<?> refund(@AuthenticationPrincipal UserDetails user) {
+        if (!razorpayService.isConfigured()) {
+            return ResponseEntity.status(503).body(Map.of(
+                    "message",
+                    "Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET."));
+        }
+        try {
+            return ResponseEntity.ok(membershipService.requestRefund(user.getUsername()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Refund failed: " + e.getMessage()));
+        }
+    }
+
     // GET /api/payment/status
     @GetMapping("/status")
     public ResponseEntity<?> getStatus(@AuthenticationPrincipal UserDetails user) {

@@ -80,6 +80,16 @@ export const cancelMembership = () =>
     ? mockResponse({ user: { ...readUser(), isPremium: false, membership: null } })
     : api.post('/payment/cancel', {});
 
+/** Request a refund of the most recent captured payment. Reverses the charge
+ *  via Razorpay AND revokes premium access immediately — returns the same
+ *  { user: {...isPremium:false, membership:null} } shape as cancel, so callers
+ *  persist it with login(user, token) identically. The refund.processed webhook
+ *  finalizes the money side server-side; no extra frontend step is needed. */
+export const refundMembership = () =>
+  USE_MOCK.payment
+    ? mockResponse({ user: { ...readUser(), isPremium: false, membership: null } })
+    : api.post('/payment/refund', {});
+
 /** Fetch current subscription status fresh from the server.
  *  GET /api/payment/status → MembershipDTO { id, plan, status, startDate, endDate }
  *  when a membership is active, or { success:false, message } when there is none. */
