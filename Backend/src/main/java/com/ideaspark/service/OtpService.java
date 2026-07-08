@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.security.SecureRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -18,9 +19,11 @@ public class OtpService {
     private final EmailOtpRepository emailOtpRepository;
 
     // Short-lived tokens issued after a successful OTP verification, required to
-    // actually reset the password (so /forgot-password/reset can't be called blind).
+    // actually reset the password (so /forgot-password/reset can't be called
+    // blind).
     private final Map<String, String> resetTokens = new ConcurrentHashMap<>();
     private final Map<String, LocalDateTime> resetTokenExpiry = new ConcurrentHashMap<>();
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     private static final int OTP_EXPIRY_MINUTES = 10;
     private static final int RESET_TOKEN_EXPIRY_MINUTES = 15;
@@ -32,7 +35,7 @@ public class OtpService {
     public String generateOtp(String email, String purpose) {
         email = email.trim().toLowerCase();
 
-        String otp = String.format("%06d", new Random().nextInt(999999));
+        String otp = String.format("%06d", 100000 + secureRandom.nextInt(900000));
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
 
         EmailOtp emailOtp = EmailOtp.builder()
@@ -72,7 +75,14 @@ public class OtpService {
             return false;
         }
 
+        if (otpRecord.getAttempts() >= 5) {
+            emailOtpRepository.delete(otpRecord);
+            return false;
+        }
+
         if (!otpRecord.getOtpCode().equals(otp)) {
+            otpRecord.setAttempts(otpRecord.getAttempts() + 1);
+            emailOtpRepository.save(otpRecord);
             return false;
         }
 
@@ -86,8 +96,7 @@ public class OtpService {
         return emailOtpRepository
                 .findTopByEmailAndPurposeOrderByCreatedAtDesc(
                         email.trim().toLowerCase(),
-                        "REGISTER"
-                )
+                        "REGISTER")
                 .isPresent();
     }
 

@@ -30,7 +30,8 @@ public interface CreatorEarningRepository extends JpaRepository<CreatorEarning, 
     Optional<CreatorEarning> findByRazorpayPayoutId(String razorpayPayoutId);
 
     /**
-     * Atomic claim for {@link com.ideaspark.service.CreatorPayoutService#requestPayout}.
+     * Atomic claim for
+     * {@link com.ideaspark.service.CreatorPayoutService#requestPayout}.
      *
      * Fix #14 (payout race condition): the old code did a Java-side
      * "read row -> check status=='Pending' -> ... -> write 'Paid'". Two

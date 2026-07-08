@@ -30,8 +30,8 @@ public class AuthService {
     @Value("${google.client.id}")
     private String googleClientId;
 
-    private static final java.util.regex.Pattern USERNAME_PATTERN =
-            java.util.regex.Pattern.compile("^[a-z0-9._]{3,30}$");
+    private static final java.util.regex.Pattern USERNAME_PATTERN = java.util.regex.Pattern
+            .compile("^[a-z0-9._]{3,30}$");
 
     public AuthResponse register(RegisterRequest req) {
         if (req.getName() == null || req.getName().isBlank())
@@ -72,8 +72,7 @@ public class AuthService {
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(),
-                    GsonFactory.getDefaultInstance()
-            )
+                    GsonFactory.getDefaultInstance())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
 
@@ -103,7 +102,7 @@ public class AuthService {
                                 .name(name != null && !name.isBlank() ? name : normalizedEmail.split("@")[0])
                                 .username(username)
                                 .email(normalizedEmail)
-                                .password(passwordEncoder.encode("GOOGLE_AUTH_USER"))
+                                .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
                                 .profileImage(picture)
                                 .isPremium(false)
                                 .isVerified(false)
@@ -147,6 +146,9 @@ public class AuthService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Wrong email or password"));
+
+        if ("google".equals(user.getAuthProvider()))
+            throw new RuntimeException("This account uses Google Sign-In. Please log in with Google.");
 
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword()))
             throw new RuntimeException("Wrong email or password");
