@@ -18,6 +18,7 @@ public class MembershipService {
 
     private final MembershipRepository membershipRepository;
     private final UserRepository userRepository;
+    private final MembershipPaymentRepository membershipPaymentRepository;
 
     // Subscribe to a plan. Returns { user: {...isPremium, membership} } so the
     // frontend can persist the premium user via login(user, token).
@@ -26,25 +27,77 @@ public class MembershipService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // ── Idempotency guard ────────────────────────────────────────────
+        // If this payment_id has already been credited — either by an
+        // earlier call to this same endpoint (network retry, double-click)
+        // or by the async /api/webhooks/razorpay handler racing ahead of us
+        // — don't create a second Membership row. Just return current state.
+        if (req.getPaymentId() != null
+                && membershipPaymentRepository.existsByGatewayPaymentId(req.getPaymentId())) {
+            Membership existing = membershipRepository
+                    .findTopByUserIdAndStatusOrderByEndDateDesc(user.getId(), "active")
+                    .orElse(null);
+            return Map.of("user", toUserPayload(user, existing));
+        }
+
+        // ── Server-authoritative plan/billing ───────────────────────────
+        // The signature check in the controller only proves a real payment
+        // happened for this order_id — it says nothing about which plan that
+        // order was created for. Read plan/billing from the MembershipPayment
+        // row /create-order wrote (planType, e.g. "creator_yearly"), never
+        // from this request body. Without this, a valid signature for a ₹99
+        // Reader-Monthly order could be replayed here with a request body
+        // claiming plan="creator", billing="yearly" to get ₹999 Creator Pro
+        // Yearly for ₹99.
+        MembershipPayment payment = membershipPaymentRepository
+                .findByGatewayOrderId(req.getOrderId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No matching order found for this payment — please restart checkout."));
+
+        if (!payment.getUser().getId().equals(user.getId())) {
+            // Order belongs to someone else's checkout session — refuse
+            // rather than let account A redeem account B's paid order.
+            throw new IllegalStateException("This order does not belong to your account.");
+        }
+
+        String[] planParts = payment.getPlanType().split("_", 2);
+        String plan = planParts[0];
+        String billing = planParts.length > 1 ? planParts[1] : "monthly";
+
         // End date is driven by the BILLING period (monthly/yearly), not the
         // plan tier (reader/creator) — the previous code conflated the two.
-        LocalDateTime endDate = "yearly".equalsIgnoreCase(req.getBilling())
+        LocalDateTime endDate = "yearly".equalsIgnoreCase(billing)
                 ? LocalDateTime.now().plusYears(1)
                 : LocalDateTime.now().plusMonths(1);
 
         Membership membership = Membership.builder()
                 .user(user)
-                .plan(req.getPlan())
-                .billing(req.getBilling())
-                .gateway(req.getGateway())
-                .planLabel(req.getPlanLabel())
-                .price(req.getPrice())
+                .plan(plan)
+                .billing(billing)
+                .gateway("razorpay")
+                .planLabel(req.getPlanLabel())   // display-only text, not security sensitive
+                .price(req.getPrice())           // display-only text, not security sensitive
                 .status("active")
                 .paymentId(req.getPaymentId())
                 .endDate(endDate)
                 .build();
 
         membershipRepository.save(membership);
+
+        // Mark the order row as captured and stamp the real payment id — this
+        // is what makes the idempotency check above (and the webhook's own
+        // existsByGatewayPaymentId guard) correctly no-op if the async
+        // webhook for this same payment arrives before or after this call.
+        // Note: gatewayPaymentId is UNIQUE at the DB level, so a genuine
+        // concurrent double-submit fails loudly (integrity violation) rather
+        // than silently double-crediting — acceptable here since, unlike the
+        // payout race, the failure mode is "request errors", not "money
+        // moves twice".
+        payment.setGatewayPaymentId(req.getPaymentId());
+        payment.setStatus("captured");
+        payment.setSignatureVerified(true);
+        payment.setPaidAt(LocalDateTime.now());
+        membershipPaymentRepository.save(payment);
 
         // Mark user as premium
         user.setPremium(true);
