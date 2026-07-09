@@ -61,6 +61,6 @@ public class Notification {
     }
 
     public enum NotificationType {
-        LIKE, FOLLOW, COMMENT, BOOKMARK, MESSAGE, SYSTEM
+        LIKE, FOLLOW, COMMENT, BOOKMARK, MESSAGE, SYSTEM, NEW_IDEA
     }
 }
