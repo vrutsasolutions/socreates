@@ -306,8 +306,15 @@ public class MessageService {
         dto.setOtherUserId(other.getId());
         dto.setOtherUserName(other.getName());
         dto.setOtherUserAvatar(other.getProfileImage());
-        dto.setOtherUserOnline(Boolean.TRUE.equals(other.getOnline()));
-        dto.setOtherUserLastSeen(other.getLastSeen());
+        // Respect the other user's Activity Status toggle here too — this is
+        // a separate path from PresenceService's live WebSocket broadcast
+        // (/topic/presence). Without this check, the initial REST payload
+        // for opening/listing a conversation would still leak their real
+        // online/lastSeen state even when they've turned this off.
+        boolean otherVisible = other.isShowActivityStatus();
+        dto.setOtherUserOnline(otherVisible && Boolean.TRUE.equals(other.getOnline()));
+        dto.setOtherUserLastSeen(otherVisible ? other.getLastSeen() : null);
+        dto.setOtherUserActivityStatusVisible(otherVisible);
         dto.setOtherUserVerifiedCreator(other.isPremium() || other.isVerified());
         dto.setLastMessage(lastMsg);
         dto.setLastMessageType(lastType);
