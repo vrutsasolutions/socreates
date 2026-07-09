@@ -12,8 +12,14 @@ public class ConversationDTO {
     private UUID otherUserId;
     private String otherUserName;
     private String otherUserAvatar;
-    private boolean otherUserOnline; // placeholder, always false for now
+    private boolean otherUserOnline;
     private LocalDateTime otherUserLastSeen;
+    // False when the other user has turned Activity Status off in Settings.
+    // The frontend must show neither "Online" nor "Offline" in that case —
+    // otherUserOnline/otherUserLastSeen are always masked (false/null) when
+    // this is false, but the header text still needs to know to render
+    // nothing rather than falling back to "Offline". See MessageService.
+    private boolean otherUserActivityStatusVisible;
 
     // True when the other participant has Creator Pro (User.isPremium).
     // Drives the free-tier messaging limit (5 texts + 1 file) on the
