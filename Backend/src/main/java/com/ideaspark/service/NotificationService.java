@@ -27,9 +27,31 @@ public class NotificationService {
         this.messagingTemplate = messagingTemplate;
     }
 
+    // Gate for the three toggles on Settings → Notifications. LIKE/COMMENT/
+    // NEW_IDEA are opt-out per recipient; every other type (FOLLOW, BOOKMARK,
+    // MESSAGE, SYSTEM) has no toggle yet, so it always goes through.
+    private boolean isAllowedByPreferences(Notification notification) {
+        User recipient = notification.getUser();
+        if (recipient == null || notification.getType() == null) {
+            return true;
+        }
+        return switch (notification.getType()) {
+            case LIKE -> recipient.isNotifyLikes();
+            case COMMENT -> recipient.isNotifyComments();
+            case NEW_IDEA -> recipient.isNotifyNewIdeas();
+            default -> true;
+        };
+    }
+
     // Original — used internally by trusted code (IdeaService, FollowService, etc.)
     // where the Notification is built directly in Java, not from user input.
+    // Returns null (no-op) if the recipient has turned this notification type
+    // off in Settings — the notification is neither persisted nor pushed to
+    // the bell, so it silently never appears there.
     public Notification sendNotification(Notification notification) {
+        if (!isAllowedByPreferences(notification)) {
+            return null;
+        }
         if (notification.getCreatedAt() == null) {
             notification.setCreatedAt(java.time.LocalDateTime.now());
         }
