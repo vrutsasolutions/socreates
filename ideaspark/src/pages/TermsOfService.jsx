@@ -9,9 +9,7 @@ const SECTIONS = [
   {
     heading: 'Eligibility',
     bullets: [
-      `You must be at least 13 years old to create an account.`,
-      `You must be at least 18 years old (or have the consent of a parent or legal guardian) to purchase a subscription, monetize content, or receive payouts.`,
-      `You must be capable of entering into a legally binding contract under applicable law, including the Indian Contract Act, 1872.`,
+      `Anyone may browse the public feed and read ideas without an account, but you must create an account to post ideas, comment, like, save, share, or message other members.`,
     ],
   },
   {
@@ -41,9 +39,7 @@ const SECTIONS = [
     heading: 'Premium subscriptions',
     bullets: [
       `SoCreate offers paid plans, including Go Premium (reader) and Creators Pro, on monthly or yearly billing cycles.`,
-      `Payments are processed by third-party payment gateways, currently Razorpay and Stripe; prices displayed at checkout (in INR unless stated otherwise) are the final amounts, and the server-confirmed amount is authoritative.`,
-      `Subscriptions renew automatically at the end of each billing period until cancelled from the Membership or Account Subscription page.`,
-      `Cancellation stops future renewals; you retain premium access until the end of the current paid period.`,
+      `Payments are processed by third-party payment gateways, currently Razorpay; prices displayed at checkout (in INR unless stated otherwise) are the final amounts, and the server-confirmed amount is authoritative.`,
       `Except where required by applicable law (including the Consumer Protection Act, 2019), fees already paid are non-refundable, including for partially used billing periods.`,
       `We may change plan prices or features with reasonable prior notice; changes apply from your next renewal.`,
     ],
@@ -69,7 +65,7 @@ const SECTIONS = [
   {
     heading: 'AI features',
     bullets: [
-      `SoCreate offers AI-assisted tools (powered by third-party models such as Google Gemini) to generate, enhance, summarize, and categorize ideas and to power the AI assistant.`,
+      `SoCreate offers AI-assisted tools (powered by third-party models such as Groq) to generate, enhance, summarize, and categorize ideas and to power the AI assistant.`,
       `AI output may be inaccurate, incomplete, or similar to output generated for other users; you are responsible for reviewing AI-assisted content before publishing it as your own.`,
       `You must not use AI features to generate unlawful, infringing, or harmful content.`,
     ],
@@ -87,7 +83,7 @@ const SECTIONS = [
   {
     heading: 'Content moderation',
     paragraph:
-      `We may review, remove, restrict, or demote Content, and suspend or terminate accounts, that we reasonably believe violate these terms or applicable law, including the Information Technology Act, 2000 and rules made under it. Where feasible, we will notify you of significant enforcement actions and provide a way to appeal by writing to legal@socreate.com.`,
+      `We may review, remove, restrict, or demote Content, and suspend or terminate accounts, that we reasonably believe violate these terms or applicable law, including the Information Technology Act, 2000 and rules made under it. Where feasible, we will notify you of significant enforcement actions and provide a way to appeal by writing to vrutsasolutions@gmail.com.`,
   },
   {
     heading: 'Intellectual property of SoCreate',
@@ -97,7 +93,7 @@ const SECTIONS = [
   {
     heading: 'Third-party services',
     paragraph:
-      `The Platform relies on third-party services, including Razorpay and Stripe for payments, RazorpayX for payouts, Google for sign-in and AI, and cloud infrastructure providers for hosting and media storage. Your use of those services may also be subject to their own terms, and we are not responsible for their acts or omissions.`,
+      `The Platform relies on third-party services, including Razorpay for payments, RazorpayX for payouts, Google for sign-in and Groq for AI Assistance, and cloud infrastructure providers for hosting and Cloudflare for media storage. Your use of those services may also be subject to their own terms, and we are not responsible for their acts or omissions.`,
   },
   {
     heading: 'Termination',
@@ -116,7 +112,7 @@ const SECTIONS = [
   {
     heading: 'Limitation of liability',
     paragraph:
-      `To the maximum extent permitted by law, SoCreate and Vrutsa Solutions shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or for loss of profits, data, goodwill, or business opportunities, arising from your use of the Platform. Our aggregate liability for all claims in any 12-month period shall not exceed the greater of the amounts you paid to SoCreate in that period or INR 5,000. Nothing in these terms limits liability that cannot be limited under applicable law.`,
+      `To the maximum extent permitted by law, SoCreate and Vrutsa Solutions shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or for loss of profits, data, goodwill, or business opportunities, arising from your use of the Platform. Nothing in these terms limits liability that cannot be limited under applicable law.`,
   },
   {
     heading: 'Indemnity',
@@ -136,10 +132,10 @@ const SECTIONS = [
   {
     heading: 'Contact us',
     paragraph:
-      `Questions about these terms can be sent to legal@socreate.com or to Vrutsa Solutions, Chennai, Tamil Nadu, India.`,
+      `Contact Us at vrutsasolutions@gmail.com for any Queries.`,
   },
 ];
 
 export default function TermsOfService() {
-  return <LegalPage title="Terms of Service" lastUpdated="July 3, 2026" sections={SECTIONS} />;
+  return <LegalPage title="Terms of Service" lastUpdated="July 9, 2026" sections={SECTIONS} />;
 }
