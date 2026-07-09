@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { cancelMembership } from '../api/paymentApi';
 import Icon from '../components/common/Icon';
@@ -273,6 +273,20 @@ export default function Membership() {
               {error}
             </div>
           )}
+
+          {/* Refund policy warning */}
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl
+                          px-4 py-3 flex items-start gap-2.5">
+            <Icon name="alert-triangle" className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-amber-800 text-xs leading-relaxed">
+              <span className="font-bold">Warning:</span> Make sure you read the{' '}
+              <Link to="/refund"
+                    className="text-[#1565C0] font-semibold hover:underline cursor-pointer">
+                Refund Policy
+              </Link>{' '}
+              carefully.
+            </p>
+          </div>
 
           {/* Continue → Checkout */}
           <div className="pt-1 pb-2">
