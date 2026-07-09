@@ -91,6 +91,11 @@ public class OtpController {
 
         email = email.trim().toLowerCase();
 
+        if (!rateLimiterService.allowForgotPasswordSend(email)) {
+            return ResponseEntity.status(429)
+                    .body(Map.of("message", "Too many OTP requests. Please try again later."));
+        }
+
         if (!userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "No account found with this email"));
@@ -115,6 +120,11 @@ public class OtpController {
         }
 
         email = email.trim().toLowerCase();
+
+        if (!rateLimiterService.allowForgotPasswordVerify(email)) {
+            return ResponseEntity.status(429)
+                    .body(Map.of("message", "Too many attempts. Please try again later."));
+        }
 
         boolean valid = otpService.validateOtp(email, otp, "FORGOT_PASSWORD");
 
