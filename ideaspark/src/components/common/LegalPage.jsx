@@ -1,16 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 
 /**
- * Shared layout for static legal documents (Terms of Service, Privacy Policy).
- * Renders the standard blue app header + a list of titled sections, each with
- * an optional intro paragraph and/or bullet points, divided by thin rules —
- * matching the figma legal-page export.
+ * Shared layout for static legal documents (Terms of Service, Privacy Policy,
+ * Refund Policy). Renders the standard blue app header + a list of titled
+ * sections, each with an optional intro paragraph and/or bullet points,
+ * divided by thin rules — matching the figma legal-page export.
  *
  * @param {string}  title        Header title (e.g. "Terms of Service")
- * @param {string}  lastUpdated  Display date (e.g. "June 29, 2026")
  * @param {Array<{ heading: string, paragraph?: string, bullets?: string[] }>} sections
  */
-export default function LegalPage({ title, lastUpdated, sections = [] }) {
+export default function LegalPage({ title, sections = [] }) {
   const navigate = useNavigate();
 
   return (
@@ -31,11 +30,9 @@ export default function LegalPage({ title, lastUpdated, sections = [] }) {
       </header>
 
       <div className="max-w-2xl mx-auto px-5 pt-5">
-        <p className="text-[#90A4AE] text-sm">Last updated {lastUpdated}</p>
-
         <div className="mt-2">
           {sections.map((s, i) => (
-            <section key={i} className="border-t border-[#1565C0] py-5">
+            <section key={i} className={i === 0 ? 'pb-5' : 'border-t border-[#1565C0] py-5'}>
               <h2 className="text-[#0D2137] text-[17px] font-semibold mb-2.5">{s.heading}</h2>
 
               {s.paragraph && (
@@ -46,7 +43,7 @@ export default function LegalPage({ title, lastUpdated, sections = [] }) {
                 <ul className="space-y-1.5">
                   {s.bullets.map((b, j) => (
                     <li key={j} className="text-[#546E7A] text-sm leading-relaxed flex gap-2">
-                      <span className="text-[#90A4AE] shrink-0">-</span>
+                      <span className="text-[#1565C0] shrink-0">&#8226;</span>
                       <span>{b}</span>
                     </li>
                   ))}
