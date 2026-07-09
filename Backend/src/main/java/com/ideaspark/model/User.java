@@ -78,6 +78,24 @@ public class User {
     @Column(name = "razorpay_fund_account_id")
     private String razorpayFundAccountId;
 
+    // ── In-app (bell) notification preferences ──────────────────────────────
+    // Controls whether Settings → Notifications toggles let this user receive
+    // each activity type in the bell component. Column has a NOT NULL DEFAULT
+    // true in the DB (see migration), so both existing rows and new signups
+    // start opted-in. @Builder.Default keeps User.builder() consistent with
+    // that same default when no value is explicitly set.
+    @Column(name = "notify_new_ideas", nullable = false)
+    @Builder.Default
+    private boolean notifyNewIdeas = true;
+
+    @Column(name = "notify_likes", nullable = false)
+    @Builder.Default
+    private boolean notifyLikes = true;
+
+    @Column(name = "notify_comments", nullable = false)
+    @Builder.Default
+    private boolean notifyComments = true;
+
     @Column(name = "is_online")
     private Boolean online = false;
 
