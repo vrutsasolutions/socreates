@@ -96,6 +96,15 @@ public class User {
     @Builder.Default
     private boolean notifyComments = true;
 
+    // ── Privacy: Activity Status toggle ─────────────────────────────────────
+    // When false, this user's online/offline state is never broadcast to
+    // other users (they always appear offline/hidden). See PresenceService.
+    // Defaults to true (visible), same NOT NULL DEFAULT true pattern as the
+    // notify_* columns above.
+    @Column(name = "show_activity_status", nullable = false)
+    @Builder.Default
+    private boolean showActivityStatus = true;
+
     @Column(name = "is_online")
     private Boolean online = false;
 
