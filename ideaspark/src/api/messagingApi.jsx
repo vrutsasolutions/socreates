@@ -70,6 +70,10 @@ const normalizeConversation = (dto) => ({
   initial: dto.initial ?? initialFrom(dto.otherUserName ?? dto.name ?? ""),
   avatarColor: dto.avatarColor ?? dto.otherUserName ?? "#1565C0",
   online: dto.otherUserOnline ?? dto.online ?? false,
+  // False only when the other user has explicitly turned Activity Status
+  // off — defaults true so older/mocked payloads without this field still
+  // show Online/Offline as before.
+  activityVisible: dto.otherUserActivityStatusVisible ?? true,
   otherUserId: dto.otherUserId,
   lastMessage: dto.lastMessage ?? "",
   lastType: (dto.lastMessageType ?? dto.lastType ?? "TEXT").toLowerCase(),
