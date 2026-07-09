@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 import com.ideaspark.model.BlockedUser;
 import com.ideaspark.model.Report;
 import com.ideaspark.repository.ReportRepository;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -256,7 +256,7 @@ public class MessageService {
     public void declineRequest(UUID requestId, String email) {
         getUser(email);
     }
-
+    @Transactional
     public void deleteConversation(UUID conversationId, String email) {
         User me = getUser(email);
 

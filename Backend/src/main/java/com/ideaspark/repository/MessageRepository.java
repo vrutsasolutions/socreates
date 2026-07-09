@@ -5,6 +5,7 @@ import com.ideaspark.model.Message;
 import com.ideaspark.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Modifying;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +19,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     long countByConversationAndIsReadFalse(Conversation conversation);
 
     List<Message> findByConversationId(UUID conversationId);
-
+    @Modifying
     void deleteByConversationId(UUID conversationId);
 
     long countByConversationAndSenderAndType(Conversation conversation, User sender, Message.MessageType type);
