@@ -87,6 +87,31 @@ public class UserController {
         return ResponseEntity.ok(toDTO(savedUser));
     }
 
+    // GET /api/users/me/notification-preferences
+    // Powers the Settings → Notifications toggles on page load.
+    @GetMapping("/me/notification-preferences")
+    public ResponseEntity<NotificationPreferencesDTO> getNotificationPreferences(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        return ResponseEntity.ok(new NotificationPreferencesDTO(
+                user.isNotifyNewIdeas(), user.isNotifyLikes(), user.isNotifyComments()));
+    }
+
+    // PUT /api/users/me/notification-preferences
+    // Persists a toggle flip. Takes effect immediately for future in-app
+    // (bell) notifications — see NotificationService.sendNotification.
+    @PutMapping("/me/notification-preferences")
+    public ResponseEntity<NotificationPreferencesDTO> updateNotificationPreferences(
+            @RequestBody NotificationPreferencesDTO req,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        user.setNotifyNewIdeas(req.isNewIdeas());
+        user.setNotifyLikes(req.isLikes());
+        user.setNotifyComments(req.isComments());
+        userRepository.save(user);
+        return ResponseEntity.ok(req);
+    }
+
     @PostMapping("/interests")
     public ResponseEntity<ApiResponse> saveInterests(
             @RequestBody java.util.Map<String, List<String>> body,
