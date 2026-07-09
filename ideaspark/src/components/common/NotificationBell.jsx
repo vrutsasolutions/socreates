@@ -15,6 +15,7 @@ import Icon from './Icon';
 const TYPE_ICON = {
   like: 'heart', bookmark: 'bookmark',
   follow: 'user', comment: 'message-square', system: 'bell',
+  new_idea: 'lightbulb',
 };
 
 function timeAgo(iso) {
