@@ -777,6 +777,7 @@ export default function Chat() {
           online: presence.online,
           otherUserOnline: presence.online,
           lastSeen: presence.lastSeen,
+          activityVisible: presence.visible ?? true,
         };
       });
     };
@@ -1461,7 +1462,11 @@ export default function Chat() {
                     <p
                       className={`text-[12px] font-medium leading-tight ${convo?.online ? "text-[#A5D6A7]" : "text-blue-200"}`}
                     >
-                      {convo?.online ? "● Online" : "Offline"}
+                      {convo?.activityVisible === false
+                        ? ""
+                        : convo?.online
+                          ? "● Online"
+                          : "Offline"}
                     </p>
                   </>
                 )}
