@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Icon from "../components/common/Icon";
-import { deleteAccount, fetchNotificationPreferences, updateNotificationPreferences } from "../api/userApi";
+import { deleteAccount, fetchNotificationPreferences, updateNotificationPreferences, fetchPrivacyPreferences, updatePrivacyPreferences } from "../api/userApi";
 
 const Toggle = ({ value, onChange }) => (
   <button
@@ -35,6 +35,9 @@ export default function Settings() {
     showActivity: true,
   });
   const [deleting, setDeleting] = useState(false);
+  // Briefly shown under Public Profile when someone tries to turn it off —
+  // that toggle is hard-locked ON for now (see handlePublicProfileToggle).
+  const [publicProfileLocked, setPublicProfileLocked] = useState(false);
 
   // Load the user's saved notification preferences (defaults above are just
   // the ON-by-default fallback shown while this is in flight / if it fails).
@@ -67,6 +70,47 @@ export default function Settings() {
       console.error("[settings] failed to save notification preference", err);
       setNotifs(previous);
     });
+  };
+
+  // Load the user's saved Activity Status preference. Public Profile isn't
+  // fetched — it's always true (locked ON), never persisted.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await fetchPrivacyPreferences();
+        if (!cancelled && data) {
+          setPrivacy((p) => ({
+            ...p,
+            showActivity: data.showActivityStatus ?? true,
+          }));
+        }
+      } catch (err) {
+        console.error("[settings] failed to load privacy preferences", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Optimistically flip Activity Status, persist it, and roll back on failure.
+  const toggleActivityStatus = (value) => {
+    const previous = privacy;
+    setPrivacy({ ...privacy, showActivity: value });
+    updatePrivacyPreferences({ showActivityStatus: value }).catch((err) => {
+      console.error("[settings] failed to save activity status preference", err);
+      setPrivacy(previous);
+    });
+  };
+
+  // Public Profile is hard-locked ON for now — no backend support yet for
+  // private accounts / follow requests. Any attempt to turn it off just
+  // shows a brief explanation instead of changing state.
+  const handlePublicProfileToggle = (value) => {
+    if (value) return; // already ON, nothing to do
+    setPublicProfileLocked(true);
+    setTimeout(() => setPublicProfileLocked(false), 4000);
   };
 
   // Delete-account confirmation modal state.
@@ -302,10 +346,16 @@ export default function Settings() {
               right={
                 <Toggle
                   value={privacy.publicProfile}
-                  onChange={(v) => setPrivacy({ ...privacy, publicProfile: v })}
+                  onChange={handlePublicProfileToggle}
                 />
               }
             />
+            {publicProfileLocked && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border-b border-[#BBDEFB] text-amber-700 text-xs font-medium">
+                <Icon name="alert-triangle" className="w-4 h-4 shrink-0" />
+                It's a Default Setting. No one can change it.
+              </div>
+            )}
             <Row
               icon={<Icon name="activity" className="w-5 h-5 text-[#3347E8]" />}
               label="Activity Status"
@@ -313,7 +363,7 @@ export default function Settings() {
               right={
                 <Toggle
                   value={privacy.showActivity}
-                  onChange={(v) => setPrivacy({ ...privacy, showActivity: v })}
+                  onChange={toggleActivityStatus}
                 />
               }
             />
