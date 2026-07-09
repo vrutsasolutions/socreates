@@ -129,6 +129,27 @@ public class IdeaService {
                         savedIdea.getCategory(),
                         savedIdea.getId());
 
+                // In-app bell notification — gated by the follower's "New Idea
+                // Alerts" toggle inside NotificationService.sendNotification.
+                // Email above is unaffected by that toggle by design.
+                try {
+                    Notification notification = Notification.builder()
+                            .message(
+                                    (creator.getUsername() != null && !creator.getUsername().isBlank()
+                                            ? creator.getUsername()
+                                            : creator.getName()) + " posted a new idea: " + savedIdea.getTitle())
+                            .readStatus(false)
+                            .type(Notification.NotificationType.NEW_IDEA)
+                            .referenceId(savedIdea.getId())
+                            .createdAt(java.time.LocalDateTime.now())
+                            .user(follower)
+                            .build();
+
+                    notificationService.sendNotification(notification);
+                } catch (Exception e) {
+                    System.out.println("New idea in-app notification failed: " + e.getMessage());
+                }
+
             }
         } catch (Exception e) {
             System.out.println("New idea follower email failed: " + e.getMessage());
