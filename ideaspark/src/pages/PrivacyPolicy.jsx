@@ -112,5 +112,5 @@ const SECTIONS = [
 ];
 
 export default function PrivacyPolicy() {
-  return <LegalPage title="Privacy Policy" lastUpdated="July 9, 2026" sections={SECTIONS} />;
+  return <LegalPage title="Privacy Policy" sections={SECTIONS} />;
 }
