@@ -40,6 +40,7 @@ public class UserController {
     private final NotificationRepository notificationRepository;
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
+    private final com.ideaspark.service.PresenceService presenceService;
 
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(
@@ -85,6 +86,29 @@ public class UserController {
 
         User savedUser = userRepository.save(user);
         return ResponseEntity.ok(toDTO(savedUser));
+    }
+
+    // GET /api/users/me/privacy-preferences
+    // Powers the Settings → Privacy → Activity Status toggle on page load.
+    @GetMapping("/me/privacy-preferences")
+    public ResponseEntity<PrivacyPreferencesDTO> getPrivacyPreferences(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        return ResponseEntity.ok(new PrivacyPreferencesDTO(user.isShowActivityStatus()));
+    }
+
+    // PUT /api/users/me/privacy-preferences
+    // Persists the toggle and immediately re-broadcasts presence so any open
+    // chat reflects the change right away (see PresenceService.refreshPresence).
+    @PutMapping("/me/privacy-preferences")
+    public ResponseEntity<PrivacyPreferencesDTO> updatePrivacyPreferences(
+            @RequestBody PrivacyPreferencesDTO req,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        user.setShowActivityStatus(req.isShowActivityStatus());
+        User saved = userRepository.save(user);
+        presenceService.refreshPresence(saved);
+        return ResponseEntity.ok(req);
     }
 
     // GET /api/users/me/notification-preferences
