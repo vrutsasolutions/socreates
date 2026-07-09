@@ -22,7 +22,7 @@ const SECTIONS = [
     ],
   },
   {
-    heading: 'Your Content and  Usage Rights',
+    heading: 'Your Content and Usage Rights',
     bullets: [
       `You retain full ownership of the ideas, posts, images, comments, and messages you create on SoCreate ("Content").`,
       `By posting Content, you grant SoCreate a worldwide, non-exclusive, royalty-free license to host, store, reproduce, display, distribute, and adapt (for technical purposes such as resizing or formatting) that Content in order to operate, promote, and improve the Platform.`,
