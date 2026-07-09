@@ -6,7 +6,7 @@
 //  then verifies the signature server-side before granting premium.
 // ════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { USE_MOCK } from '../api/config';
 import { createOrder, subscribe } from '../api/paymentApi';
@@ -211,6 +211,20 @@ export default function Checkout() {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-red-600 text-sm">{error}</div>
         )}
+
+        {/* Refund policy warning */}
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl
+                        px-4 py-3 flex items-start gap-2.5">
+          <Icon name="alert-triangle" className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-amber-800 text-xs leading-relaxed">
+            <span className="font-bold">Warning:</span> Make sure you read the{' '}
+            <Link to="/refund"
+                  className="text-[#1565C0] font-semibold hover:underline cursor-pointer">
+              Refund Policy
+            </Link>{' '}
+            carefully.
+          </p>
+        </div>
 
         {/* Payment methods */}
         <div className="space-y-3 pt-1">
