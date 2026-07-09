@@ -37,9 +37,22 @@ export default function BlockedUsers() {
       <header className="bg-[#1565C0] text-white px-4 py-4 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center"
+          aria-label="Go back"
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
         >
-          ←
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
         </button>
         <h1 className="text-lg font-bold">Blocked Users</h1>
       </header>
@@ -48,9 +61,7 @@ export default function BlockedUsers() {
         {loading ? (
           <p className="text-[#90A4AE]">Loading...</p>
         ) : users.length === 0 ? (
-          <p className="text-center text-[#90A4AE] mt-10">
-            No blocked users
-          </p>
+          <p className="text-center text-[#90A4AE] mt-10">No blocked users</p>
         ) : (
           <div className="bg-white rounded-2xl overflow-hidden border border-[#DBEAFE]">
             {users.map((user) => (

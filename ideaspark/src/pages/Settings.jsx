@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Icon from "../components/common/Icon";
-import { deleteAccount, fetchNotificationPreferences, updateNotificationPreferences, fetchPrivacyPreferences, updatePrivacyPreferences } from "../api/userApi";
+import {
+  deleteAccount,
+  fetchNotificationPreferences,
+  updateNotificationPreferences,
+  fetchPrivacyPreferences,
+  updatePrivacyPreferences,
+} from "../api/userApi";
 
 const Toggle = ({ value, onChange }) => (
   <button
@@ -54,7 +60,10 @@ export default function Settings() {
           });
         }
       } catch (err) {
-        console.error("[settings] failed to load notification preferences", err);
+        console.error(
+          "[settings] failed to load notification preferences",
+          err,
+        );
       }
     })();
     return () => {
@@ -99,7 +108,10 @@ export default function Settings() {
     const previous = privacy;
     setPrivacy({ ...privacy, showActivity: value });
     updatePrivacyPreferences({ showActivityStatus: value }).catch((err) => {
-      console.error("[settings] failed to save activity status preference", err);
+      console.error(
+        "[settings] failed to save activity status preference",
+        err,
+      );
       setPrivacy(previous);
     });
   };
@@ -230,8 +242,16 @@ export default function Settings() {
 
       <div className="bg-[#1565C0]">
         <div className="flex items-center gap-4 px-4 py-5 bg-[#1565C0]">
-          <div className="w-14 h-14 rounded-2xl bg-[#BBDEFB] flex items-center justify-center text-[#1565C0] text-2xl font-bold shrink-0">
-            {user?.name?.[0]?.toUpperCase()}
+          <div className="w-14 h-14 rounded-2xl bg-[#BBDEFB] flex items-center justify-center text-[#1565C0] text-2xl font-bold shrink-0 overflow-hidden">
+            {user?.profileImage ? (
+              <img
+                src={user.profileImage}
+                alt={user?.name || "Profile"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              user?.name?.[0]?.toUpperCase()
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-white font-semibold truncate">
