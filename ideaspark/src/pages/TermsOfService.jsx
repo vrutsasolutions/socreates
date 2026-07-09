@@ -125,6 +125,15 @@ const SECTIONS = [
       `These terms are governed by the laws of India. Subject to any mandatory consumer protections available to you, the courts at Chennai, Tamil Nadu shall have exclusive jurisdiction over disputes arising out of or relating to these terms or the Platform.`,
   },
   {
+    heading: 'Refund Policy',
+    bullets: [
+      `Subscription payments are non-refundable after activation.`,
+      `Refunds are provided only for failed service delivery.`,
+      `Cancellation requests must be submitted to support within a specified time.`,
+      `Approved refunds will be credited to the original payment method within 5–7 business days.`,
+    ],
+  },
+  {
     heading: 'Changes to these terms',
     paragraph:
       `We may update these terms from time to time. Material changes will be notified in-app or by email before they take effect. Continued use of the Platform after the effective date constitutes acceptance of the updated terms.`,
@@ -137,5 +146,5 @@ const SECTIONS = [
 ];
 
 export default function TermsOfService() {
-  return <LegalPage title="Terms of Service" lastUpdated="July 9, 2026" sections={SECTIONS} />;
+  return <LegalPage title="Terms of Service" sections={SECTIONS} />;
 }
