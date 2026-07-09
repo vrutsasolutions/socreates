@@ -29,7 +29,7 @@ const SECTIONS = [
     heading: 'Information from third parties',
     bullets: [
       `If you sign in with Google, we receive your name, email address, and profile photo from your Google account.`,
-      `Our payment gateways (Razorpay and Stripe) send us confirmation of successful payments, including order, payment, and subscription identifiers; we never receive or store your full card number, CVV, or UPI PIN.`,
+      `Our payment gateways (Razorpay) send us confirmation of successful payments, including order, payment, and subscription identifiers; we never receive or store your full card number, CVV, or UPI PIN.`,
     ],
   },
   {
@@ -39,7 +39,7 @@ const SECTIONS = [
       `To publish your ideas to other members, and to power comments, likes, follows, search, and direct messaging.`,
       `To process subscription payments, manage renewals and cancellations, and unlock premium content and creator tools.`,
       `To calculate Revenue Pool Sharing distributions, display creator earnings, and process payouts to your saved UPI or bank destination.`,
-      `To provide AI features: when you use idea generation, enhancement, summarization, categorization, or the AI assistant, the text you submit is processed by our AI provider (Google Gemini) to return a result; we do not use your private messages to train AI models.`,
+      `To provide AI features: when you use idea generation, enhancement, summarization, categorization, or the AI assistant, the text you submit is processed by our AI provider to return a result; we do not use your private messages to train AI models.`,
       `To recommend ideas and creators based on your interests and activity.`,
       `To send service notifications (in-app and email) about your account, payments, and security, and, with your consent, product updates.`,
       `To detect and prevent fraud, artificial engagement, abuse, and violations of our Terms of Service, and to comply with legal obligations.`,
@@ -50,9 +50,9 @@ const SECTIONS = [
     bullets: [
       `We do not sell your personal data or your ideas.`,
       `Ideas you post publicly, along with your username, profile photo, and follower counts, are visible to other members by design; direct messages are visible to their participants.`,
-      `Payment processing: Razorpay and Stripe process subscription payments; RazorpayX processes creator payouts; each acts under its own privacy policy.`,
-      `Service providers: we use trusted infrastructure providers to host the Platform and database (including Supabase) and to store and deliver uploaded images and media (Cloudflare); they process data only on our instructions.`,
-      `AI processing: prompts and content you submit to AI features are shared with Google (Gemini API) to generate the response.`,
+      `Payment processing: Razorpay process subscription payments; RazorpayX processes creator payouts; each acts under its own privacy policy.`,
+      `Service providers: we use trusted infrastructure providers to host the Platform and database and to store and deliver uploaded images and media ; they process data only on our instructions.`,
+      `AI processing: prompts and content you submit to AI features are shared with Groq to generate the response.`,
       `Legal reasons: we may disclose information where required by law, court order, or a lawful request from government authorities, or to protect the rights, safety, and security of SoCreate and its members.`,
       `Business transfers: if SoCreate or Vrutsa Solutions is involved in a merger, acquisition, or asset sale, your data may be transferred subject to this policy.`,
     ],
@@ -80,7 +80,7 @@ const SECTIONS = [
       `Data is encrypted in transit (HTTPS/TLS) and at rest.`,
       `Passwords are stored as salted hashes, and payment card details never touch our servers.`,
       `Access to personal data is restricted to authorized personnel on a need-to-know basis.`,
-      `Payment signatures are verified server-side before any premium access or payout is granted.`,
+      `Profiles are verified server-side before any premium access or payout is granted.`,
       `No system is completely secure; if we become aware of a personal data breach affecting you, we will notify you and the relevant authorities as required by law.`,
     ],
   },
@@ -91,15 +91,9 @@ const SECTIONS = [
       `Correction and completion: update your profile at any time from Settings, or ask us to correct inaccurate data.`,
       `Erasure: delete individual ideas, comments, or messages, or delete your entire account from Settings; you may also write to us to request erasure.`,
       `Withdraw consent: where processing is based on consent (such as optional marketing emails), you can withdraw it at any time without affecting prior processing.`,
-      `Grievance redressal: you may raise a complaint with our Grievance Officer (contact below); if unresolved, you may approach the Data Protection Board of India under the DPDP Act.`,
-      `Nomination: under the DPDP Act, you may nominate a person to exercise these rights on your behalf in the event of death or incapacity.`,
     ],
   },
-  {
-    heading: 'Children',
-    paragraph:
-      `SoCreate is not intended for children under 13, and users under 18 may not purchase subscriptions or receive payouts without the consent of a parent or legal guardian. We do not knowingly collect personal data from children in violation of applicable law; if you believe a child has provided us data, contact us and we will delete it.`,
-  },
+  
   {
     heading: 'International transfers',
     paragraph:
@@ -111,12 +105,12 @@ const SECTIONS = [
       `We may update this Privacy Policy from time to time. Material changes will be notified in-app or by email before they take effect, and the "Last updated" date above will be revised. Continued use of the Platform after the effective date constitutes acceptance of the updated policy.`,
   },
   {
-    heading: 'Contact and Grievance Officer',
+    heading: 'Contact Us',
     paragraph:
-      `For privacy questions, requests, or complaints, contact our Grievance Officer at privacy@socreate.com, or write to Vrutsa Solutions, Chennai, Tamil Nadu, India. We aim to acknowledge grievances within 72 hours and resolve them within the timelines prescribed under applicable law.`,
+      `For privacy questions, requests, or complaints, Contact Us at vrutsasolutions@gmail.com. `,
   },
 ];
 
 export default function PrivacyPolicy() {
-  return <LegalPage title="Privacy Policy" lastUpdated="July 3, 2026" sections={SECTIONS} />;
+  return <LegalPage title="Privacy Policy" lastUpdated="July 9, 2026" sections={SECTIONS} />;
 }
