@@ -109,3 +109,21 @@ export const updateNotificationPreferences = (prefs) =>
   USE_MOCK.users
     ? mockResponse(prefs)
     : api.put('/users/me/notification-preferences', prefs);
+
+// ──────────────────────────────────────────────────────────────────────────
+//  Privacy preferences (Settings → Privacy).
+//  Only Activity Status is backend-controlled for now — Public Profile is
+//  intentionally locked ON in the UI and has no API call.
+// ──────────────────────────────────────────────────────────────────────────
+
+// GET /api/users/me/privacy-preferences → { showActivityStatus }
+export const fetchPrivacyPreferences = () =>
+  USE_MOCK.users
+    ? mockResponse({ showActivityStatus: true })
+    : api.get('/users/me/privacy-preferences');
+
+// PUT /api/users/me/privacy-preferences  { showActivityStatus }
+export const updatePrivacyPreferences = (prefs) =>
+  USE_MOCK.users
+    ? mockResponse(prefs)
+    : api.put('/users/me/privacy-preferences', prefs);
