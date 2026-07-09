@@ -90,3 +90,22 @@ export const deleteAccount = (password) =>
     : api.delete('/users/me', {
         data: password ? { password } : {},
       });
+
+// ──────────────────────────────────────────────────────────────────────────
+//  Notification preferences (Settings → Notifications toggles).
+//  Controls whether the recipient gets in-app (bell) notifications for
+//  New Idea Alerts / Likes / Comments — gated server-side in
+//  NotificationService.sendNotification.
+// ──────────────────────────────────────────────────────────────────────────
+
+// GET /api/users/me/notification-preferences → { newIdeas, likes, comments }
+export const fetchNotificationPreferences = () =>
+  USE_MOCK.users
+    ? mockResponse({ newIdeas: true, likes: true, comments: true })
+    : api.get('/users/me/notification-preferences');
+
+// PUT /api/users/me/notification-preferences  { newIdeas, likes, comments }
+export const updateNotificationPreferences = (prefs) =>
+  USE_MOCK.users
+    ? mockResponse(prefs)
+    : api.put('/users/me/notification-preferences', prefs);
