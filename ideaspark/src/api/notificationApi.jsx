@@ -62,6 +62,7 @@ export const normalizeNotification = (n = {}) => {
     "bookmark",
     "message",
     "system",
+    "new_idea",
   ]);
 
   let type = KNOWN_TYPES.has(backendType) ? backendType : null;
@@ -69,6 +70,7 @@ export const normalizeNotification = (n = {}) => {
   if (!type) {
     if (lower.includes("message") || lower.includes("sent you") || lower.includes("shared an idea"))
       type = "message";
+    else if (lower.includes("posted a new idea")) type = "new_idea";
     else if (lower.includes("like")) type = "like";
     else if (lower.includes("bookmark") || lower.includes("saved"))
       type = "bookmark";
@@ -83,10 +85,11 @@ export const normalizeNotification = (n = {}) => {
     bookmark: "New bookmark",
     follow: "New follower",
     comment: "New comment",
+    new_idea: "New idea posted",
     system: "Notification",
   };
 
-  const IDEA_LINK_TYPES = new Set(["like", "bookmark", "comment"]);
+  const IDEA_LINK_TYPES = new Set(["like", "bookmark", "comment", "new_idea"]);
 
   const defaultLink =
     type === "message"
