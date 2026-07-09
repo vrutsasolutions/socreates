@@ -410,7 +410,7 @@ export function ChatActionsLayer({ convo, view, setView, navigate, onAfterDelete
           convo={convo}
           onClose={() => setView(null)}
           onSubmit={async (reason) => {
-            try { await reportUser(convo.id, reason); } finally {
+            try { await reportUser(convo.otherUserId, reason);} finally {
               setView(null);
               onToast?.('Report submitted. Thanks for keeping SoCreate safe.');
             }
@@ -422,7 +422,7 @@ export function ChatActionsLayer({ convo, view, setView, navigate, onAfterDelete
           convo={convo}
           onCancel={() => setView(null)}
           onConfirm={async () => {
-            try { await blockUser(convo.id); } finally {
+            try { await blockUser(convo.otherUserId); } finally {
               setView(null);
               onToast?.(`${convo.name} has been blocked.`);
               afterBlock();

@@ -102,19 +102,20 @@ const fileNameFromUrl = (url = "") => {
 // chat can render as a card; fall back gracefully if it isn't valid JSON.
 const parseSharedIdea = (content) => {
   try {
-    const o = JSON.parse(content ?? '{}');
+    const o = JSON.parse(content ?? "{}");
     // Cover = explicit imageUrl, else first of an imageUrls[] snapshot.
-    const cover = o.imageUrl
-      || (Array.isArray(o.imageUrls) ? o.imageUrls.find(Boolean) : '')
-      || '';
+    const cover =
+      o.imageUrl ||
+      (Array.isArray(o.imageUrls) ? o.imageUrls.find(Boolean) : "") ||
+      "";
     return {
-      id:        String(o.ideaId ?? o.id ?? ''),
-      title:     o.title ?? 'Shared idea',
-      imageUrl:  cover,
+      id: String(o.ideaId ?? o.id ?? ""),
+      title: o.title ?? "Shared idea",
+      imageUrl: cover,
       isPremium: !!o.isPremium,
     };
   } catch {
-    return { id: '', title: 'Shared idea', imageUrl: '', isPremium: false };
+    return { id: "", title: "Shared idea", imageUrl: "", isPremium: false };
   }
 };
 
@@ -406,18 +407,41 @@ export const deleteConversation = (id, alsoDeleteForRecipient = false) => {
   });
 };
 
-export const blockUser = (id) => {
+// Block a user
+export const blockUser = (userId) => {
   if (USE_MOCK.messaging) {
-    conversations = conversations.filter((c) => c.id !== id);
-    delete threads[id];
-    return mockResponse({ blocked: id }, 200);
+    return mockResponse({ blocked: userId }, 200);
   }
-  return api.post(`/messages/users/${id}/block`);
+
+  return api.post(`/messages/block/${userId}`);
 };
 
-export const reportUser = (id, reason) => {
-  if (USE_MOCK.messaging) return mockResponse({ reported: id, reason }, 200);
-  return api.post(`/messages/users/${id}/report`, { reason });
+// Unblock a user
+export const unblockUser = (userId) => {
+  if (USE_MOCK.messaging) {
+    return mockResponse({ unblocked: userId }, 200);
+  }
+
+  return api.delete(`/messages/block/${userId}`);
+};
+
+// Get blocked users
+export const fetchBlockedUsers = async () => {
+  if (USE_MOCK.messaging) {
+    return mockResponse([]);
+  }
+
+  const res = await api.get("/messages/blocked");
+  return { data: res.data };
+};
+
+// Report a user
+export const reportUser = (userId, reason) => {
+  if (USE_MOCK.messaging) {
+    return mockResponse({ reported: userId, reason }, 200);
+  }
+
+  return api.post(`/messages/report/${userId}`, { reason });
 };
 
 // ── Share a post ─────────────────────────────────────────────────────────────
@@ -438,7 +462,10 @@ export const fetchShareTargets = async () => {
   };
 };
 
-export const sharePost = ({ postId, title, imageUrl = '', isPremium = false }, userIds = []) => {
+export const sharePost = (
+  { postId, title, imageUrl = "", isPremium = false },
+  userIds = [],
+) => {
   if (USE_MOCK.messaging) {
     const results = [];
     userIds.forEach((uid) => {
@@ -467,9 +494,18 @@ export const sharePost = ({ postId, title, imageUrl = '', isPremium = false }, u
       }
       results.push({ userId: uid, conversationId: uid });
     });
-    return mockResponse({ shared: postId, count: userIds.length, results }, 250);
+    return mockResponse(
+      { shared: postId, count: userIds.length, results },
+      250,
+    );
   }
   // Send the cover image + premium flag so the backend snapshot
   // ({ ideaId, title, imageUrl, isPremium }) renders with the cover thumbnail.
-  return api.post("/messages/share-post", { postId, title, imageUrl, isPremium, userIds });
+  return api.post("/messages/share-post", {
+    postId,
+    title,
+    imageUrl,
+    isPremium,
+    userIds,
+  });
 };

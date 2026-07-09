@@ -367,6 +367,12 @@ export default function Settings() {
                 />
               }
             />
+            <Row
+              icon={<Icon name="shield" className="w-5 h-5 text-[#EF4444]" />}
+              label="Blocked Users"
+              sublabel="Manage people you've blocked"
+              onClick={() => navigate("/settings/blocked-users")}
+            />
           </Section>
 
           <Section title="Support">

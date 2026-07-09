@@ -33,6 +33,9 @@ import {
   uploadImage,
   reactToMessage,
   deleteMessage,
+  blockUser,
+  unblockUser,
+  reportUser,
   isLimitReachedError,
 } from "../api/messagingApi";
 import { isVerifiedCreatorPartner } from "../config/messagingLimits";
@@ -598,7 +601,6 @@ export default function Chat() {
   const [forwardPicked, setForwardPicked] = useState([]); // selected contact ids
   const [forwardSearch, setForwardSearch] = useState("");
 
-
   // Free-tier messaging limit upsell modal
   const [showLimitModal, setShowLimitModal] = useState(false);
 
@@ -626,6 +628,36 @@ export default function Chat() {
     navigate("/membership");
   };
 
+  const handleBlockUser = async () => {
+    try {
+      await blockUser(convo.otherUserId);
+      showToast("User blocked successfully");
+      navigate("/messages");
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Failed to block user");
+    }
+  };
+
+  const handleUnblockUser = async () => {
+    try {
+      await unblockUser(convo.otherUserId);
+      showToast("User unblocked successfully");
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Failed to unblock user");
+    }
+  };
+
+  const handleReportUser = async () => {
+    try {
+      await reportUser(convo.otherUserId, "Spam");
+      showToast("User reported successfully");
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Failed to report user");
+    }
+  };
   // ── Load conversation + messages ────────────────────────────────────────
   useEffect(() => {
     let alive = true;
@@ -963,7 +995,6 @@ export default function Chat() {
       showToast("Media file size must be less than 5MB.");
       return;
     }
-
 
     if (file.type.startsWith("image")) {
       setEditorInput([file], `/messages/${id}`);
@@ -2593,7 +2624,6 @@ export default function Chat() {
             onClick={() => setShowLimitModal(false)}
           />
           <div className="relative w-full max-w-[360px] bg-white rounded-3xl shadow-2xl p-6 text-center">
-      
             <div className="w-20 h-20 rounded-full bg-[#FEF3C7] border-4 border-[#FDE68A] flex items-center justify-center mx-auto mb-4">
               <svg
                 className="w-9 h-9 text-[#D97706]"
@@ -2627,7 +2657,7 @@ export default function Chat() {
             >
               Upgrade to Premium
             </button>
-           
+
             <button
               onClick={() => setShowLimitModal(false)}
               className="mt-3 text-[13px] font-semibold text-[#90A4AE] hover:text-[#546E7A]"
