@@ -7,7 +7,7 @@ const SECTIONS = [
       `SoCreate is operated by Vrutsa Solutions, Chennai, Tamil Nadu, India ("SoCreate", "we", "us", "our"). This Privacy Policy explains what personal data we collect when you use the SoCreate website or mobile app, how we use and share it, and the rights you have, including under the Digital Personal Data Protection Act, 2023 (DPDP Act) and the Information Technology Act, 2000.`,
   },
   {
-    heading: 'Information you give us',
+    heading: 'Information You Give Us',
     bullets: [
       `Account details: name, username, email address, password (stored as a secure hash), and one-time passwords used to verify your email or reset your password.`,
       `Profile information: bio, profile photo, and the interests you select during onboarding.`,
@@ -18,7 +18,7 @@ const SECTIONS = [
     ],
   },
   {
-    heading: 'Information collected automatically',
+    heading: 'Information Collected Automatically',
     bullets: [
       `Usage data: pages and ideas you view, features you use, likes, follows, and interactions used to compute creator engagement metrics.`,
       `Device and log data: device type, operating system, app version, IP address, approximate location derived from IP, timestamps, and error logs.`,
@@ -26,14 +26,14 @@ const SECTIONS = [
     ],
   },
   {
-    heading: 'Information from third parties',
+    heading: 'Information from Third Parties',
     bullets: [
       `If you sign in with Google, we receive your name, email address, and profile photo from your Google account.`,
       `Our payment gateways (Razorpay) send us confirmation of successful payments, including order, payment, and subscription identifiers; we never receive or store your full card number, CVV, or UPI PIN.`,
     ],
   },
   {
-    heading: 'How we use your information',
+    heading: 'How We Use Your Information',
     bullets: [
       `To create and secure your account, verify your email via OTP, and let you sign in.`,
       `To publish your ideas to other members, and to power comments, likes, follows, search, and direct messaging.`,
@@ -46,7 +46,7 @@ const SECTIONS = [
     ],
   },
   {
-    heading: 'How we share information',
+    heading: 'How We Share Information',
     bullets: [
       `We do not sell your personal data or your ideas.`,
       `Ideas you post publicly, along with your username, profile photo, and follower counts, are visible to other members by design; direct messages are visible to their participants.`,
@@ -58,7 +58,7 @@ const SECTIONS = [
     ],
   },
   {
-    heading: 'Cookies and similar technologies',
+    heading: 'Cookies and Similar Technologies',
     bullets: [
       `Essential cookies and local storage keep you signed in (session tokens) and keep chat, notifications, and payments working.`,
       `Analytics data helps us understand which ideas and features are used so we can improve the Platform.`,
@@ -66,7 +66,7 @@ const SECTIONS = [
     ],
   },
   {
-    heading: 'Data retention',
+    heading: 'Data Retention',
     bullets: [
       `Account, profile, and content data is retained while your account is active.`,
       `If you delete a post, a message (for everyone), or your account, we delete or de-identify the associated data within a reasonable period, except where a copy must be retained for legal, tax, accounting, fraud-prevention, or dispute purposes.`,
@@ -85,7 +85,7 @@ const SECTIONS = [
     ],
   },
   {
-    heading: 'Your rights',
+    heading: 'Your Rights',
     bullets: [
       `Access: request a summary of the personal data we hold about you and how it is processed.`,
       `Correction and completion: update your profile at any time from Settings, or ask us to correct inaccurate data.`,
@@ -95,12 +95,12 @@ const SECTIONS = [
   },
   
   {
-    heading: 'International transfers',
+    heading: 'International Transfers',
     paragraph:
       `Our service providers (such as cloud hosting, media storage, payment, and AI providers) may process data on servers located outside India. Where data is transferred internationally, we take reasonable steps, consistent with the DPDP Act, to ensure it receives an adequate standard of protection.`,
   },
   {
-    heading: 'Changes to this policy',
+    heading: 'Changes to this Policy',
     paragraph:
       `We may update this Privacy Policy from time to time. Material changes will be notified in-app or by email before they take effect, and the "Last updated" date above will be revised. Continued use of the Platform after the effective date constitutes acceptance of the updated policy.`,
   },
