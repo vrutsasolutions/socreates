@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Icon from "../components/common/Icon";
-import { deleteAccount } from "../api/userApi";
+import { deleteAccount, fetchNotificationPreferences, updateNotificationPreferences } from "../api/userApi";
 
 const Toggle = ({ value, onChange }) => (
   <button
@@ -28,13 +28,46 @@ export default function Settings() {
   const [notifs, setNotifs] = useState({
     newIdeas: true,
     likes: true,
-    comments: false,
+    comments: true,
   });
   const [privacy, setPrivacy] = useState({
     publicProfile: true,
     showActivity: true,
   });
   const [deleting, setDeleting] = useState(false);
+
+  // Load the user's saved notification preferences (defaults above are just
+  // the ON-by-default fallback shown while this is in flight / if it fails).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await fetchNotificationPreferences();
+        if (!cancelled && data) {
+          setNotifs({
+            newIdeas: data.newIdeas ?? true,
+            likes: data.likes ?? true,
+            comments: data.comments ?? true,
+          });
+        }
+      } catch (err) {
+        console.error("[settings] failed to load notification preferences", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Optimistically flip a toggle, persist it, and roll back on failure.
+  const toggleNotifPref = (key, value) => {
+    const previous = notifs;
+    setNotifs({ ...notifs, [key]: value });
+    updateNotificationPreferences({ ...notifs, [key]: value }).catch((err) => {
+      console.error("[settings] failed to save notification preference", err);
+      setNotifs(previous);
+    });
+  };
 
   // Delete-account confirmation modal state.
   const [showDelete, setShowDelete] = useState(false);
@@ -228,7 +261,7 @@ export default function Settings() {
               right={
                 <Toggle
                   value={notifs.newIdeas}
-                  onChange={(v) => setNotifs({ ...notifs, newIdeas: v })}
+                  onChange={(v) => toggleNotifPref("newIdeas", v)}
                 />
               }
             />
@@ -239,7 +272,7 @@ export default function Settings() {
               right={
                 <Toggle
                   value={notifs.likes}
-                  onChange={(v) => setNotifs({ ...notifs, likes: v })}
+                  onChange={(v) => toggleNotifPref("likes", v)}
                 />
               }
             />
@@ -255,7 +288,7 @@ export default function Settings() {
               right={
                 <Toggle
                   value={notifs.comments}
-                  onChange={(v) => setNotifs({ ...notifs, comments: v })}
+                  onChange={(v) => toggleNotifPref("comments", v)}
                 />
               }
             />
