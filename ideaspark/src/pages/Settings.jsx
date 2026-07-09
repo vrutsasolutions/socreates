@@ -301,6 +301,13 @@ export default function Settings() {
             />
             <Row
               icon={
+                <Icon name="dollar-sign" className="w-5 h-5 text-[#546E7A]" />
+              }
+              label="Refund Policy"
+              onClick={() => navigate("/refund")}
+            />
+            <Row
+              icon={
                 <Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />
               }
               label="Contact Support"
