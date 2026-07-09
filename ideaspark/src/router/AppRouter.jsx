@@ -44,6 +44,7 @@ import SavedIdeas      from '../pages/SavedIdeas';
 import Settings        from '../pages/Settings';
 import TermsOfService  from '../pages/TermsOfService';
 import PrivacyPolicy   from '../pages/PrivacyPolicy';
+import RefundPolicy    from '../pages/RefundPolicy';
 import AIAssistant     from '../pages/AIAssistant';
 import ImageEditor     from '../pages/ImageEditor';
 
@@ -111,6 +112,7 @@ export default function AppRouter() {
         <Route path="/settings"         element={<PrivateRoute><Settings /></PrivateRoute>} />
         <Route path="/terms"            element={<TermsOfService />} />
         <Route path="/privacy"          element={<PrivacyPolicy />} />
+        <Route path="/refund"           element={<RefundPolicy />} />
         <Route path="/create-premium"   element={<PrivateRoute><CreatePremiumIdea /></PrivateRoute>} />
 
         {/* Catch-all */}
