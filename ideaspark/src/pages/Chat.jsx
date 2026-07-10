@@ -1499,6 +1499,7 @@ export default function Chat() {
                 <Avatar
                   initial={convo?.initial ?? "?"}
                   color={convo?.avatarColor ?? "#1565C0"}
+                  src={convo?.profileImage}
                   size={36}
                   online={convo?.online ?? false}
                 />
@@ -2528,6 +2529,7 @@ export default function Chat() {
                         <Avatar
                           initial={c.initial}
                           color={c.avatarColor}
+                          src={c.profileImage}
                           size={20}
                         />
                         {c.name}
@@ -2582,6 +2584,7 @@ export default function Chat() {
                           <Avatar
                             initial={c.initial}
                             color={c.avatarColor}
+                            src={c.profileImage}
                             size={42}
                             online={c.online}
                           />
