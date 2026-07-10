@@ -22,6 +22,7 @@ import Chat from "../pages/Chat";
 import ChatProfile from "../pages/ChatProfile";
 import Requests from "../pages/Requests";
 import NewChat from "../pages/NewChat";
+import ChatMedia from "../pages/ChatMedia";
 import AddIdea from "../pages/AddIdea";
 import Premium from "../pages/Premium";
 import Membership from "../pages/Membership";
@@ -96,6 +97,7 @@ export default function AppRouter() {
 
         <Route path="/creator-dashboard" element={<PrivateRoute><CreatorDashboard /></PrivateRoute>} />
         <Route path="/creator-pro" element={<PrivateRoute><CreatorPro /></PrivateRoute>} />
+        <Route path="/messages/:id/media" element={<PrivateRoute><ChatMedia /></PrivateRoute>}/>
 
         <Route path="/search" element={<PrivateRoute><Search /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />

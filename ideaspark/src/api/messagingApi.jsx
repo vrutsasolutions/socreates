@@ -200,6 +200,21 @@ export const fetchConversation = async (id) => {
   return { data: normalizeConversation(res.data) };
 };
 
+// Media, links & docs for a conversation (images, files, voice notes, links)
+export const fetchConversationMedia = async (conversationId) => {
+  if (USE_MOCK.messaging) {
+    return mockResponse({
+      images: [],
+      files: [],
+      voiceNotes: [],
+      links: [],
+      totalCount: 0,
+    });
+  }
+  const res = await api.get(`/messages/conversations/${conversationId}/media`);
+  return { data: res.data };
+};
+
 // ── Messages within a thread ─────────────────────────────────────────────────
 export const fetchMessages = async (conversationId) => {
   if (USE_MOCK.messaging) {

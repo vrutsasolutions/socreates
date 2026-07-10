@@ -16,9 +16,13 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
 
     List<Message> findByConversationOrderByCreatedAtAsc(Conversation conversation);
 
+    List<Message> findByConversationAndTypeInOrderByCreatedAtDesc(
+            Conversation conversation, List<Message.MessageType> types);
+
     long countByConversationAndIsReadFalse(Conversation conversation);
 
     List<Message> findByConversationId(UUID conversationId);
+
     @Modifying
     void deleteByConversationId(UUID conversationId);
 

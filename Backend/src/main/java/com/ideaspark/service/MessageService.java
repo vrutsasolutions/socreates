@@ -1,6 +1,8 @@
 package com.ideaspark.service;
 
 import com.ideaspark.dto.ConversationDTO;
+import com.ideaspark.dto.ConversationMediaDTO;
+import com.ideaspark.dto.LinkDTO;
 import com.ideaspark.dto.MessageDTO;
 import com.ideaspark.dto.UserDTO;
 import com.ideaspark.model.Conversation;
@@ -21,8 +23,11 @@ import com.ideaspark.model.Report;
 import com.ideaspark.repository.ReportRepository;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +43,10 @@ public class MessageService {
 
     private static final int FREE_TEXT_LIMIT = 5;
     private static final int FREE_FILE_LIMIT = 1;
+
+    // Matches http(s):// links inside plain text message content.
+    private static final Pattern URL_PATTERN = Pattern.compile(
+            "(https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)");
 
     private User getUser(String email) {
         return userRepository.findByEmail(email)
@@ -256,6 +265,7 @@ public class MessageService {
     public void declineRequest(UUID requestId, String email) {
         getUser(email);
     }
+
     @Transactional
     public void deleteConversation(UUID conversationId, String email) {
         User me = getUser(email);
@@ -323,6 +333,50 @@ public class MessageService {
                 .build();
 
         reportRepository.save(report);
+    }
+
+    /**
+     * Aggregates everything shown on the "Media, Links & Docs" screen:
+     * images, files, and voice notes shared as their own message types,
+     * plus links extracted from the raw text of TEXT messages.
+     */
+    public ConversationMediaDTO getConversationMedia(UUID conversationId, String email) {
+        User me = getUser(email);
+        Conversation conv = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+        assertParticipant(conv, me);
+
+        List<Message> images = messageRepository.findByConversationAndTypeInOrderByCreatedAtDesc(
+                conv, List.of(MessageType.IMAGE));
+        List<Message> files = messageRepository.findByConversationAndTypeInOrderByCreatedAtDesc(
+                conv, List.of(MessageType.FILE));
+        List<Message> voiceNotes = messageRepository.findByConversationAndTypeInOrderByCreatedAtDesc(
+                conv, List.of(MessageType.VOICE));
+        List<Message> textMessages = messageRepository.findByConversationAndTypeInOrderByCreatedAtDesc(
+                conv, List.of(MessageType.TEXT));
+
+        List<LinkDTO> links = new ArrayList<>();
+        for (Message m : textMessages) {
+            if (m.getContent() == null) continue;
+            Matcher matcher = URL_PATTERN.matcher(m.getContent());
+            while (matcher.find()) {
+                LinkDTO link = new LinkDTO();
+                link.setMessageId(m.getId());
+                link.setUrl(matcher.group());
+                link.setSenderName(m.getSender().getName());
+                link.setCreatedAt(m.getCreatedAt());
+                links.add(link);
+            }
+        }
+
+        ConversationMediaDTO dto = new ConversationMediaDTO();
+        dto.setImages(images.stream().map(m -> toMessageDTO(m, me)).toList());
+        dto.setFiles(files.stream().map(m -> toMessageDTO(m, me)).toList());
+        dto.setVoiceNotes(voiceNotes.stream().map(m -> toMessageDTO(m, me)).toList());
+        dto.setLinks(links);
+        dto.setTotalCount(images.size() + files.size() + voiceNotes.size() + links.size());
+
+        return dto;
     }
 
     private void assertParticipant(Conversation c, User me) {

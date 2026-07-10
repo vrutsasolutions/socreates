@@ -2,6 +2,7 @@ package com.ideaspark.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ideaspark.dto.ConversationDTO;
+import com.ideaspark.dto.ConversationMediaDTO;
 import com.ideaspark.dto.MessageDTO;
 import com.ideaspark.dto.UserDTO;
 import com.ideaspark.service.MessageService;
@@ -29,6 +30,11 @@ public class MessageController {
     @GetMapping("/conversations/{id}")
     public ConversationDTO getConversation(@PathVariable UUID id, Authentication auth) {
         return messageService.getConversation(id, auth.getName());
+    }
+
+    @GetMapping("/conversations/{id}/media")
+    public ConversationMediaDTO getConversationMedia(@PathVariable UUID id, Authentication auth) {
+        return messageService.getConversationMedia(id, auth.getName());
     }
 
     @PostMapping("/conversations")

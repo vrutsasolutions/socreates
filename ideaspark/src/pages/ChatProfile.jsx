@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
 import { ChatActionsLayer, ShareProfileSheet, handleFor } from '../components/messaging/ChatActions';
-import { fetchConversation } from '../api/messagingApi';
+import { fetchConversation, fetchConversationMedia } from '../api/messagingApi';
 
 const SafetyRow = ({ title, subtitle, danger, onClick, children }) => (
   <button
@@ -39,6 +39,7 @@ export default function ChatProfile() {
   const [view, setView]                     = useState(null);
   const [toast, setToast]                   = useState(null);
   const [shareOpen, setShareOpen]           = useState(false);
+  const [mediaCount, setMediaCount]         = useState(null);
 
   const flash = (m) => { setToast(m); setTimeout(() => setToast(null), 2600); };
 
@@ -47,6 +48,22 @@ export default function ChatProfile() {
     (async () => {
       const { data } = await fetchConversation(id);
       if (alive) setConvo(data);
+    })();
+    return () => { alive = false; };
+  }, [id]);
+
+  // Real item count for the "Media, Links & Docs" row (replaces the old
+  // hardcoded "24 items"). Fails quietly to "0 items" if the request errors.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await fetchConversationMedia(id);
+        if (alive) setMediaCount(data?.totalCount ?? 0);
+      } catch (err) {
+        console.error('[chat-profile] failed to load media count', err);
+        if (alive) setMediaCount(0);
+      }
     })();
     return () => { alive = false; };
   }, [id]);
@@ -110,10 +127,13 @@ export default function ChatProfile() {
           </button>
 
           {/* Media row */}
-          <button className="w-full flex items-center justify-between px-5 py-4 border-b border-[#F0F6FF] hover:bg-[#F0F6FF] active:bg-[#E3F2FD] transition-colors">
+          <button
+            onClick={() => navigate(`/messages/${id}/media`)}
+            className="w-full flex items-center justify-between px-5 py-4 border-b border-[#F0F6FF] hover:bg-[#F0F6FF] active:bg-[#E3F2FD] transition-colors"
+          >
             <span className="text-[15px] font-semibold text-[#0D2137]">Media, Links &amp; Docs</span>
             <span className="flex items-center gap-1 text-[#90A4AE] text-sm">
-              24 items
+              {mediaCount === null ? '…' : `${mediaCount} item${mediaCount === 1 ? '' : 's'}`}
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
               </svg>
