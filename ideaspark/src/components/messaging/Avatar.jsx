@@ -1,5 +1,9 @@
-// Avatar — gradient fills, story ring, online dot.
+// Avatar — gradient-filled initials, story ring, online dot.
+// Renders the user's actual profile photo (`src`) when they've set one;
+// falls back to the initials/gradient circle otherwise — including if the
+// image URL fails to load (broken link, deleted R2 object, etc).
 // Mirrors the SoCreate design system; replaces the flat-colored version.
+import { useState, useEffect } from 'react';
 
 const GRADIENTS = [
   'linear-gradient(135deg,#1976D2,#42A5F5)',   // blue
@@ -23,6 +27,7 @@ export default function Avatar({
   size    = 48,
   online  = false,
   ring    = false,       // story-style gradient ring (ACTIVE NOW rail)
+  src     = null,        // profile photo URL — shown in place of initials when set and loadable
   className = '',
 }) {
   const gradient = gradientFor(color + initial);
@@ -30,7 +35,22 @@ export default function Avatar({
   const dotSize  = Math.max(10, Math.round(size * 0.26));
   const dotOff   = ring ? Math.round(size * 0.04) + 4 : Math.round(size * 0.02);
 
-  const circle = (
+  // Reset "broken image" state whenever the src itself changes (e.g. user
+  // switches chats), so a previous load failure doesn't stick to a new URL.
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => { setImgFailed(false); }, [src]);
+
+  const showImage = !!src && !imgFailed;
+
+  const circle = showImage ? (
+    <img
+      src={src}
+      alt={initial}
+      onError={() => setImgFailed(true)}
+      className={`rounded-full object-cover select-none ${className}`}
+      style={{ width: size, height: size }}
+    />
+  ) : (
     <div
       className={`flex items-center justify-center rounded-full text-white font-bold select-none tracking-wide ${className}`}
       style={{ width: size, height: size, background: gradient, fontSize }}
