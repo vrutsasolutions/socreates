@@ -6,7 +6,7 @@
 //    • live pushes                              → STOMP/SockJS (live)
 //  On each live push we prepend to the list, bump unread, and surface a toast.
 // ════════════════════════════════════════════════════════════════════════
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import {
   fetchNotifications,
@@ -18,6 +18,100 @@ import {
 const NotificationContext = createContext(null);
 
 const TOAST_TTL = 5000; // auto-dismiss toast after 5s
+
+// ── Message-notification clubbing (MessageBell dropdown) ───────────────────
+// The backend saves one Notification row per DM event (every text/photo/
+// voice/file/idea sent), so a chatty sender produces a run of near-identical
+// rows ("Dora Bujji sent you a voice note", "...a message", "...a file").
+// Rather than list each one separately, we club everything from the same
+// conversation into a single dropdown entry that names the sender once and
+// summarizes what came in. This is a pure view-layer grouping — the
+// underlying `items` list (and each notification's own id/read state) is
+// untouched, so per-item read receipts still work.
+
+// Preview strings are always built server-side (MessageService.sendMessage)
+// as "{name} sent you a photo|voice note|file|message: ..." or
+// "{name} shared an idea" — split on those separators to recover the name.
+const SENDER_SPLIT_RE = / sent you | shared an idea/i;
+const extractSenderName = (text = '') => {
+  const parts = text.split(SENDER_SPLIT_RE);
+  return parts.length > 1 && parts[0].trim() ? parts[0].trim() : null;
+};
+
+const KIND_PATTERNS = [
+  [/sent you a photo/i, 'photo'],
+  [/sent you a voice note/i, 'voice'],
+  [/sent you a file/i, 'file'],
+  [/shared an idea/i, 'idea'],
+];
+const classifyKind = (text = '') => {
+  const hit = KIND_PATTERNS.find(([re]) => re.test(text));
+  return hit ? hit[1] : 'text';
+};
+
+const KIND_SINGULAR = { photo: 'a photo', voice: 'a voice note', file: 'a file', idea: 'an idea', text: 'a message' };
+const KIND_PLURAL   = { photo: 'photos',  voice: 'voice notes',  file: 'files',  idea: 'ideas',    text: 'messages' };
+
+// Turns a club of raw notifications into one human summary that "defines"
+// everything in it, e.g. "Sent you 2 messages, a voice note and a file".
+const summarizeGroup = (groupItems) => {
+  if (groupItems.length === 1) return groupItems[0].message;
+
+  const counts = {};
+  groupItems.forEach((n) => {
+    const kind = classifyKind(n.message);
+    counts[kind] = (counts[kind] || 0) + 1;
+  });
+
+  const parts = Object.entries(counts).map(([kind, count]) =>
+    count === 1 ? KIND_SINGULAR[kind] : `${count} ${KIND_PLURAL[kind]}`,
+  );
+
+  const joined = parts.length > 1
+    ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+    : parts[0];
+
+  return `Sent you ${joined}`;
+};
+
+// Groups newest-first `messageItems` by conversation (falling back to the
+// extracted sender name, then to a singleton key, for older rows without a
+// conversationId). Because the input is already newest-first, the first
+// item seen for a given key is always that group's most recent activity —
+// so the returned groups come out sorted by recency for free.
+const groupMessageNotifications = (messageItems) => {
+  const groups = [];
+  const byKey = new Map();
+
+  messageItems.forEach((n) => {
+    const senderName = extractSenderName(n.message);
+    const key = n.conversationId ?? senderName ?? `single-${n.id}`;
+
+    let group = byKey.get(key);
+    if (!group) {
+      group = { key, conversationId: n.conversationId ?? null, senderName, items: [] };
+      byKey.set(key, group);
+      groups.push(group);
+    }
+    group.items.push(n);
+  });
+
+  return groups.map((group) => {
+    const latest = group.items[0];
+    return {
+      id: group.key,
+      ids: group.items.map((n) => n.id),
+      conversationId: group.conversationId,
+      link: latest.link,
+      title: group.senderName ?? latest.title,
+      message: summarizeGroup(group.items),
+      count: group.items.length,
+      unreadCount: group.items.filter((n) => !n.read).length,
+      read: group.items.every((n) => n.read),
+      createdAt: latest.createdAt,
+    };
+  });
+};
 
 export const NotificationProvider = ({ children }) => {
   const { user } = useAuth();
@@ -33,6 +127,12 @@ export const NotificationProvider = ({ children }) => {
   // ── Split lists: bell shows idea-related activity, message icon shows DMs ──
   const bellItems    = items.filter((n) => n.type !== 'message');
   const messageItems = items.filter((n) => n.type === 'message');
+
+  // Message dropdown, clubbed one-row-per-conversation (see helpers above).
+  const groupedMessageItems = useMemo(
+    () => groupMessageNotifications(messageItems),
+    [messageItems],
+  );
 
   // ── Toasts ────────────────────────────────────────────────────────────
   const dismissToast = useCallback((id) => {
@@ -67,6 +167,21 @@ export const NotificationProvider = ({ children }) => {
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try { await apiMarkAsRead(id); } catch (err) { console.error('[notifications] markAsRead failed', err); }
   }, []);
+
+  // Mark every notification in a clubbed MessageBell group as read (called
+  // when the person taps a grouped row — opens the chat and clears all the
+  // individual unread dots that were rolled up into it).
+  const markGroupAsRead = useCallback(async (ids) => {
+    const idSet = new Set(ids);
+    const unreadIds = items.filter((n) => idSet.has(n.id) && !n.read).map((n) => n.id);
+    if (unreadIds.length === 0) return;
+    setItems((prev) => prev.map((n) => (idSet.has(n.id) ? { ...n, read: true } : n)));
+    try {
+      await Promise.all(unreadIds.map((id) => apiMarkAsRead(id)));
+    } catch (err) {
+      console.error('[notifications] markGroupAsRead failed', err);
+    }
+  }, [items]);
 
   // Mark all non-message ("bell") notifications as read
   const markAllAsRead = useCallback(async () => {
@@ -120,9 +235,9 @@ export const NotificationProvider = ({ children }) => {
   return (
     <NotificationContext.Provider
       value={{
-        items, bellItems, messageItems,
+        items, bellItems, messageItems, groupedMessageItems,
         unreadCount, unreadMessages, loading,
-        toasts, markAsRead, markAllAsRead, dismissToast,
+        toasts, markAsRead, markGroupAsRead, markAllAsRead, dismissToast,
         clearMessageNotifications, reload: load,
       }}
     >
