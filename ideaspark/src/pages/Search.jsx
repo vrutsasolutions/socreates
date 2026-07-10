@@ -54,7 +54,7 @@ export default function Search() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search ideas, categories, creators..."
-            className="flex-1 bg-transparent text-[#0D2137] text-sm placeholder-[#90A4AE] outline-none"
+            className="flex-1 bg-transparent text-[#0D2137] text-sm placeholder-[#90A4AE] outline-none focus:outline-none focus:ring-0 focus:shadow-none border-none appearance-none"
             autoFocus
           />
           {query && (
