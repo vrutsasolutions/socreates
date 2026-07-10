@@ -1514,6 +1514,7 @@ export default function Chat() {
                   <>
                     <p className="text-[15px] font-bold text-white truncate leading-tight">
                       {convo?.name ?? "Chat"}
+                      {convo?.isSelf && <span className="font-medium"> (You)</span>}
                     </p>
                     <p
                       className={`text-[12px] font-medium leading-tight ${convo?.online ? "text-[#A5D6A7]" : "text-blue-200"}`}
