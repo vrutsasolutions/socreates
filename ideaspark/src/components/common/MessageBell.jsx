@@ -27,7 +27,7 @@ function timeAgo(iso) {
 
 export default function MessageBell() {
   const navigate = useNavigate();
-  const { messageItems, unreadMessages, loading, markAsRead, clearMessageNotifications } = useNotifications();
+  const { groupedMessageItems, unreadMessages, loading, markGroupAsRead, clearMessageNotifications } = useNotifications();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 16 });
   const wrapRef = useRef(null);
@@ -47,12 +47,13 @@ export default function MessageBell() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  // Clicking a specific message notification opens that exact chat —
-  // same pattern as the bell deep-linking to an idea/profile.
-  const handleItemClick = (n) => {
-    if (!n.read) markAsRead(n.id);
+  // Clicking a clubbed entry opens that exact chat and clears every
+  // notification rolled up into it — same pattern as the bell deep-linking
+  // to an idea/profile, just applied to the whole group at once.
+  const handleItemClick = (g) => {
+    if (g.unreadCount > 0) markGroupAsRead(g.ids);
     setOpen(false);
-    navigate(n.link || (n.conversationId ? `/messages/${n.conversationId}` : '/messages'));
+    navigate(g.link || (g.conversationId ? `/messages/${g.conversationId}` : '/messages'));
   };
 
   // "See all" / icon with no items open the inbox and clear the badge,
@@ -105,7 +106,7 @@ export default function MessageBell() {
             <div className="max-h-96 overflow-y-auto">
               {loading ? (
                 <div className="px-4 py-8 text-center text-[13px] text-[#90A4AE]">Loading…</div>
-              ) : messageItems.length === 0 ? (
+              ) : groupedMessageItems.length === 0 ? (
                 <div className="px-4 py-10 text-center">
                   <div className="mb-3 flex justify-center text-[#BBDEFB]">
                     <Icon name="message-square" className="w-9 h-9" />
@@ -114,27 +115,32 @@ export default function MessageBell() {
                   <p className="text-[12px] text-[#90A4AE] mt-1">You're all caught up.</p>
                 </div>
               ) : (
-                messageItems.map((n) => (
+                groupedMessageItems.map((g) => (
                   <button
-                    key={n.id}
-                    onClick={() => handleItemClick(n)}
+                    key={g.id}
+                    onClick={() => handleItemClick(g)}
                     className={`w-full flex gap-3 px-4 py-3 text-left transition-colors border-b border-[#F0F6FF]
-                                hover:bg-[#F4F7FF] active:bg-[#EEF4FF] ${n.read ? 'bg-white' : 'bg-[#F4F7FF]'}`}
+                                hover:bg-[#F4F7FF] active:bg-[#EEF4FF] ${g.read ? 'bg-white' : 'bg-[#F4F7FF]'}`}
                   >
-                    {/* Icon chip */}
-                    <span className="mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[#EEF4FF] text-[#1565C0]">
+                    {/* Icon chip — small count badge when several events are clubbed together */}
+                    <span className="relative mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[#EEF4FF] text-[#1565C0]">
                       <Icon name="message-square" className="w-4 h-4" />
+                      {g.count > 1 && (
+                        <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-[3px] flex items-center justify-center rounded-full bg-[#1565C0] text-white text-[9px] font-bold leading-none ring-1 ring-white">
+                          {g.count > 9 ? '9+' : g.count}
+                        </span>
+                      )}
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-[13px] font-semibold text-[#0D2137] truncate leading-snug">
-                        {n.title}
+                        {g.title}
                       </span>
                       <span className="block text-[12px] text-[#546E7A] line-clamp-2 leading-relaxed mt-0.5">
-                        {n.message}
+                        {g.message}
                       </span>
-                      <span className="block text-[11px] text-[#90A4AE] mt-1">{timeAgo(n.createdAt)}</span>
+                      <span className="block text-[11px] text-[#90A4AE] mt-1">{timeAgo(g.createdAt)}</span>
                     </span>
-                    {!n.read && (
+                    {!g.read && (
                       <span className="w-2 h-2 rounded-full bg-[#1565C0] mt-2 shrink-0" />
                     )}
                   </button>
