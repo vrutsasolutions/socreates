@@ -183,6 +183,10 @@ const normalizeContact = (dto) => ({
       : "",
   online: false, // backend doesn't track online status for contacts
   profileImage: dto.profileImage ?? null,
+  // The backend now includes the caller in /messages/contacts (pinned
+  // first) so "message yourself" is discoverable — flag it the same way
+  // normalizeConversation does, so Suggested/search can label it "(You)".
+  isSelf: getMyId() != null && dto.id != null && String(dto.id) === String(getMyId()),
 });
 
 // ── Active-now rail ──────────────────────────────────────────────────────────
