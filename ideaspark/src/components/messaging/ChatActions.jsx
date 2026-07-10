@@ -169,6 +169,7 @@ export function UserActionMenu({
           <div className="min-w-0">
             <p className="text-[17px] font-bold text-[#0D2137] truncate">
               {convo.name}
+              {convo.isSelf && <span className="font-normal"> (You)</span>}
             </p>
             <p className="text-[13px] text-[#90A4AE] truncate">
               {handleFor(convo.name)} · {convo.online ? "Online" : "Offline"}
