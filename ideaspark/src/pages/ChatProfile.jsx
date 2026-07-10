@@ -96,7 +96,10 @@ export default function ChatProfile() {
         <div className="relative z-10 mt-6">
           <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-5 shadow-md flex flex-col items-center text-center">
             {convo && <Avatar initial={convo.initial} color={convo.avatarColor} src={convo.profileImage} size={72} online={convo.online} />}
-            <h2 className="mt-3 text-white text-xl font-bold">{convo?.name ?? 'Chat'}</h2>
+            <h2 className="mt-3 text-white text-xl font-bold">
+              {convo?.name ?? 'Chat'}
+              {convo?.isSelf && <span className="font-medium"> (You)</span>}
+            </h2>
             <p className="text-blue-200 text-sm mt-0.5">{convo ? handleFor(convo.name) : ''}</p>
           </div>
         </div>

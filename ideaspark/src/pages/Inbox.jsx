@@ -25,7 +25,10 @@ function ConversationRow({ c, onClick }) {
     >
       <Avatar initial={c.initial} color={c.avatarColor} src={c.profileImage} size={48} online={c.online} />
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-semibold text-[#0D2137] truncate">{c.name}</p>
+        <p className="text-[15px] font-semibold text-[#0D2137] truncate">
+          {c.name}
+          {c.isSelf && <span className="font-normal"> (You)</span>}
+        </p>
         <p className={`text-[13px] truncate ${muted ? 'text-[#90A4AE]' : 'text-[#0D2137]'}`}>
           {PREVIEW_ICON[c.lastType] && <Icon name={PREVIEW_ICON[c.lastType]} className="inline w-3.5 h-3.5 mr-1 align-text-bottom" />}{c.lastMessage}
         </p>

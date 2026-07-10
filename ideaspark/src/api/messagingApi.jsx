@@ -64,32 +64,44 @@ const initialFrom = (name = "") => {
  *                   otherUserOnline, lastMessage, lastMessageType,
  *                   lastMessageAt, unreadCount
  */
-const normalizeConversation = (dto) => ({
-  id: String(dto.id),
-  name: dto.otherUserName ?? dto.name ?? "Unknown",
-  initial: dto.initial ?? initialFrom(dto.otherUserName ?? dto.name ?? ""),
-  avatarColor: dto.avatarColor ?? dto.otherUserName ?? "#1565C0",
-  // The other participant's set profile photo, if any — Avatar falls back
-  // to the initials/gradient circle when this is null/empty.
-  profileImage: dto.otherUserAvatar ?? dto.profileImage ?? null,
-  online: dto.otherUserOnline ?? dto.online ?? false,
-  // False only when the other user has explicitly turned Activity Status
-  // off — defaults true so older/mocked payloads without this field still
-  // show Online/Offline as before.
-  activityVisible: dto.otherUserActivityStatusVisible ?? true,
-  otherUserId: dto.otherUserId,
-  lastMessage: dto.lastMessage ?? "",
-  lastType: (dto.lastMessageType ?? dto.lastType ?? "TEXT").toLowerCase(),
-  time: dto.createdAt ? formatTime(dto.createdAt) : (dto.time ?? ""),
-  unread: dto.unreadCount ?? dto.unread ?? 0,
-  // Whether the other party is a verified creator. Drives the free-tier
-  // messaging limit on the Chat page. Backend may send a single flag or the
-  // verified + creator-pro pair; support both, default false.
-  verifiedCreator:
-    dto.otherUserVerifiedCreator ??
-    dto.verifiedCreator ??
-    !!((dto.otherUserVerified ?? false) && (dto.otherUserCreatorPro ?? false)),
-});
+const normalizeConversation = (dto) => {
+  const myId = getMyId();
+  return {
+    id: String(dto.id),
+    name: dto.otherUserName ?? dto.name ?? "Unknown",
+    initial: dto.initial ?? initialFrom(dto.otherUserName ?? dto.name ?? ""),
+    avatarColor: dto.avatarColor ?? dto.otherUserName ?? "#1565C0",
+    // The other participant's set profile photo, if any — Avatar falls back
+    // to the initials/gradient circle when this is null/empty.
+    profileImage: dto.otherUserAvatar ?? dto.profileImage ?? null,
+    online: dto.otherUserOnline ?? dto.online ?? false,
+    // False only when the other user has explicitly turned Activity Status
+    // off — defaults true so older/mocked payloads without this field still
+    // show Online/Offline as before.
+    activityVisible: dto.otherUserActivityStatusVisible ?? true,
+    otherUserId: dto.otherUserId,
+    // True when the "other" participant is actually me — e.g. a self-chat
+    // that slipped through (share-to-self, a seeded test row, etc). Flagged
+    // here, once, so every page that renders the conversation name can
+    // label it "(You)" instead of silently looking like a DM from someone
+    // else with the same/similar name.
+    isSelf:
+      myId != null &&
+      dto.otherUserId != null &&
+      String(dto.otherUserId) === String(myId),
+    lastMessage: dto.lastMessage ?? "",
+    lastType: (dto.lastMessageType ?? dto.lastType ?? "TEXT").toLowerCase(),
+    time: dto.createdAt ? formatTime(dto.createdAt) : (dto.time ?? ""),
+    unread: dto.unreadCount ?? dto.unread ?? 0,
+    // Whether the other party is a verified creator. Drives the free-tier
+    // messaging limit on the Chat page. Backend may send a single flag or the
+    // verified + creator-pro pair; support both, default false.
+    verifiedCreator:
+      dto.otherUserVerifiedCreator ??
+      dto.verifiedCreator ??
+      !!((dto.otherUserVerified ?? false) && (dto.otherUserCreatorPro ?? false)),
+  };
+};
 
 /**
  * Normalize a backend MessageDTO → frontend message shape.
