@@ -244,11 +244,20 @@ public class MessageService {
         return dto;
     }
 
+    // Previously excluded the caller entirely, so "message yourself" (a
+    // legitimate note-to-self use case, same as WhatsApp's) was invisible
+    // in Suggested and unreachable via search — you could only ever land on
+    // it by directly hitting the API. Now included and pinned first; the
+    // frontend labels it "(You)" via UserDTO.id === the logged-in user's id.
     public List<UserDTO> getContacts(String email) {
         User me = getUser(email);
 
         return userRepository.findAll().stream()
-                .filter(u -> !u.getId().equals(me.getId()))
+                .sorted((a, b) -> {
+                    boolean aSelf = a.getId().equals(me.getId());
+                    boolean bSelf = b.getId().equals(me.getId());
+                    return aSelf == bSelf ? 0 : (aSelf ? -1 : 1);
+                })
                 .map(this::toUserDTO)
                 .toList();
     }
