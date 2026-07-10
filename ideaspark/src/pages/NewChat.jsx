@@ -115,7 +115,10 @@ export default function NewChat() {
                 >
                   <Avatar initial={c.initial} color={c.avatarColor} src={c.profileImage} size={48} online={c.online} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-semibold text-[#0D2137] truncate">{c.name}</p>
+                    <p className="text-[15px] font-semibold text-[#0D2137] truncate">
+                      {c.name}
+                      {c.isSelf && <span className="font-normal"> (You)</span>}
+                    </p>
                     <p className="text-sm text-[#90A4AE] truncate">{c.handle}</p>
                   </div>
                   {/* Replace the <span> button at the end of each contact row with: */}
