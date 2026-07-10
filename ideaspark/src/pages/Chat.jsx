@@ -49,6 +49,30 @@ const quotedLabel = (m) => {
   return m.text || "";
 };
 
+const URL_SPLIT_REGEX = /(https?:\/\/[^\s]+)/g;
+const URL_TEST_REGEX = /^https?:\/\/[^\s]+$/;
+
+const linkifyText = (text) => {
+  if (!text) return text;
+  const parts = text.split(URL_SPLIT_REGEX);
+  return parts.map((part, i) =>
+    URL_TEST_REGEX.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="underline break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+};
+
 const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 const formatMessageTime = (value) => {
@@ -401,7 +425,7 @@ function Bubble({
         {m.replyTo && <QuotedInBubble replyTo={m.replyTo} light={mine} />}
 
         <div className="flex items-end gap-2">
-          <span className="break-words">{displayText}</span>
+          <span className="break-words">{linkifyText(displayText)}</span>
 
           {mine && (
             <span className="flex items-center gap-1 text-[10px] text-white/80 font-normal whitespace-nowrap">

@@ -19,25 +19,24 @@ public class FileSecurityValidator {
     private final Tika tika = new Tika();
 
     private static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/webp", "image/gif"
-    );
+            "image/jpeg", "image/png", "image/webp", "image/gif");
     private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of(
-            ".jpg", ".jpeg", ".png", ".webp", ".gif"
-    );
+            ".jpg", ".jpeg", ".png", ".webp", ".gif");
 
     // NOTE: browsers record audio into a WebM/Ogg container. Tika's magic-byte
     // sniffing sometimes classifies audio-only WebM as "video/webm" because the
     // container format itself doesn't distinguish without deeper parsing — so
     // both are accepted here. Test this specifically after wiring it in.
+
     private static final Set<String> ALLOWED_VOICE_MIME_TYPES = Set.of(
             "audio/mpeg", "audio/mp4", "audio/wav", "audio/x-wav",
-            "audio/ogg", "audio/webm", "audio/x-m4a", "video/webm"
-    );
+            "audio/ogg", "audio/webm", "audio/x-m4a", "video/webm",
+            "application/x-matroska");
     private static final Set<String> ALLOWED_VOICE_EXTENSIONS = Set.of(
-            ".mp3", ".mp4", ".wav", ".m4a", ".ogg", ".webm"
-    );
+            ".mp3", ".mp4", ".wav", ".m4a", ".ogg", ".webm");
 
-    // Documents — a real whitelist, not "anything goes" like uploadFile() had before.
+    // Documents — a real whitelist, not "anything goes" like uploadFile() had
+    // before.
     private static final Set<String> ALLOWED_DOCUMENT_MIME_TYPES = Set.of(
             "application/pdf",
             "application/msword",
@@ -47,12 +46,10 @@ public class FileSecurityValidator {
             "application/vnd.ms-powerpoint",
             "application/vnd.openxmlformats-officedocument.presentationml.presentation",
             "text/plain", "text/csv",
-            "image/jpeg", "image/png", "image/webp", "image/gif"
-    );
+            "image/jpeg", "image/png", "image/webp", "image/gif");
     private static final Set<String> ALLOWED_DOCUMENT_EXTENSIONS = Set.of(
             ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-            ".txt", ".csv", ".jpg", ".jpeg", ".png", ".webp", ".gif"
-    );
+            ".txt", ".csv", ".jpg", ".jpeg", ".png", ".webp", ".gif");
 
     public void validateImage(MultipartFile file) {
         validate(file, ALLOWED_IMAGE_MIME_TYPES, ALLOWED_IMAGE_EXTENSIONS, "Image");
@@ -67,7 +64,7 @@ public class FileSecurityValidator {
     }
 
     private void validate(MultipartFile file, Set<String> allowedMimeTypes,
-                           Set<String> allowedExtensions, String label) {
+            Set<String> allowedExtensions, String label) {
 
         if (file == null || file.isEmpty()) {
             throw new RuntimeException(label + " file is empty");
@@ -82,7 +79,7 @@ public class FileSecurityValidator {
         }
 
         // 2. Magic-byte check — the REAL type from file content, ignoring
-        //    whatever the client claims in Content-Type or the filename.
+        // whatever the client claims in Content-Type or the filename.
         String detectedMimeType;
         try {
             detectedMimeType = tika.detect(file.getInputStream());
@@ -98,9 +95,11 @@ public class FileSecurityValidator {
     }
 
     private String extractExtension(String filename) {
-        if (filename == null) return "";
+        if (filename == null)
+            return "";
         int dotIndex = filename.lastIndexOf('.');
-        if (dotIndex < 0 || dotIndex == filename.length() - 1) return "";
+        if (dotIndex < 0 || dotIndex == filename.length() - 1)
+            return "";
         return filename.substring(dotIndex).toLowerCase();
     }
 }

@@ -541,20 +541,7 @@ const ATTACH_ITEMS = [
     title: "Files",
     subtitle: "Send any file",
   },
-  {
-    key: "idea",
-    tint: "#FEF7E0",
-    color: "#F59E0B",
-    title: "Share Idea",
-    subtitle: "Share your startup idea",
-  },
-  {
-    key: "profile",
-    tint: "#EAF2FF",
-    color: "#3F51B5",
-    title: "Share Profile",
-    subtitle: "Send your profile card",
-  },
+  
 ];
 
 export function ShareAttachSheet({ onClose, onPick }) {
