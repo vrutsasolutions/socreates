@@ -19,6 +19,12 @@ const NotificationContext = createContext(null);
 
 const TOAST_TTL = 5000; // auto-dismiss toast after 5s
 
+// Notifications older than this fall out of both dropdowns (bell + message
+// icon) automatically — they still exist server-side and are counted in
+// history if you ever build a "view all" page, but the dropdown itself
+// should feel current rather than accumulating stale weeks-old rows.
+const DROPDOWN_RETENTION_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
+
 // ── Message-notification clubbing (MessageBell dropdown) ───────────────────
 // The backend saves one Notification row per DM event (every text/photo/
 // voice/file/idea sent), so a chatty sender produces a run of near-identical
@@ -120,13 +126,31 @@ export const NotificationProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const toastTimers = useRef({});
 
+  // Ticks every few minutes purely to force a re-check of the retention
+  // window below — without this, an item wouldn't drop out of the dropdown
+  // until *some other* state change (a new notification, a mark-as-read)
+  // happened to trigger a re-render, even after it had aged past 2 days.
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 5 * 60 * 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  // Everything the dropdowns (and their unread badges) read from is scoped
+  // to this window — items past it are simply excluded, not deleted, so
+  // markAsRead etc. still work fine if a stale id somehow gets referenced.
+  const visibleItems = items.filter((n) => {
+    const age = now - new Date(n.createdAt).getTime();
+    return Number.isNaN(age) || age <= DROPDOWN_RETENTION_MS;
+  });
+
   // ── Split counts: bell = everything except messages, message icon = messages only ──
-  const unreadMessages = items.filter((n) => !n.read && n.type === 'message').length;
-  const unreadCount    = items.filter((n) => !n.read && n.type !== 'message').length;
+  const unreadMessages = visibleItems.filter((n) => !n.read && n.type === 'message').length;
+  const unreadCount    = visibleItems.filter((n) => !n.read && n.type !== 'message').length;
 
   // ── Split lists: bell shows idea-related activity, message icon shows DMs ──
-  const bellItems    = items.filter((n) => n.type !== 'message');
-  const messageItems = items.filter((n) => n.type === 'message');
+  const bellItems    = visibleItems.filter((n) => n.type !== 'message');
+  const messageItems = visibleItems.filter((n) => n.type === 'message');
 
   // Message dropdown, clubbed one-row-per-conversation (see helpers above).
   const groupedMessageItems = useMemo(

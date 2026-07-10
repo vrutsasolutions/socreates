@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
-import { ChatActionsLayer, ShareProfileSheet, handleFor } from '../components/messaging/ChatActions';
+import { ChatActionsLayer, handleFor } from '../components/messaging/ChatActions';
 import { fetchConversation, fetchConversationMedia } from '../api/messagingApi';
 
 const SafetyRow = ({ title, subtitle, danger, onClick, children }) => (
@@ -38,7 +38,6 @@ export default function ChatProfile() {
   const [notifications, setNotifications]   = useState(true);
   const [view, setView]                     = useState(null);
   const [toast, setToast]                   = useState(null);
-  const [shareOpen, setShareOpen]           = useState(false);
   const [mediaCount, setMediaCount]         = useState(null);
 
   const flash = (m) => { setToast(m); setTimeout(() => setToast(null), 2600); };
@@ -90,15 +89,7 @@ export default function ChatProfile() {
             </svg>
           </button>
           <span className="text-white font-bold text-lg flex-1 text-center">Chat Info</span>
-          <button
-            onClick={() => setShareOpen(true)}
-            className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
-            aria-label="Share profile"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M16 6l-4-4-4 4M12 2v13" />
-            </svg>
-          </button>
+          <span className="w-9" />
         </div>
 
         {/* floating identity card */}
@@ -154,7 +145,13 @@ export default function ChatProfile() {
 
           {/* E2E note */}
           <div className="px-5 py-3 bg-[#F8FAFF] border-b border-[#F0F6FF]">
-            <p className="text-center text-xs text-[#90A4AE]">🔒 Messages are end-to-end encrypted</p>
+            <p className="flex items-center justify-center gap-1.5 text-xs text-[#90A4AE]">
+              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <rect x="4" y="11" width="16" height="10" rx="2" />
+                <path strokeLinecap="round" d="M8 11V7a4 4 0 018 0v4" />
+              </svg>
+              Messages are end-to-end encrypted
+            </p>
           </div>
 
           {/* Privacy & Safety */}
@@ -190,20 +187,6 @@ export default function ChatProfile() {
         onAfterBlock={() => navigate('/messages')}
         onToast={flash}
       />
-
-      {shareOpen && convo && (
-        <ShareProfileSheet
-          convo={convo}
-          onClose={() => setShareOpen(false)}
-          onCopyLink={() => {
-            const link = `https://socreates.app/u/${handleFor(convo.name).replace('@', '')}`;
-            navigator.clipboard?.writeText(link).catch(() => {});
-            flash('Profile link copied');
-          }}
-          onSendDM={() => { setShareOpen(false); navigate(`/messages/${id}`); }}
-          onToast={flash}
-        />
-      )}
 
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-10 z-[60] bg-[#0D2137] text-white text-sm px-4 py-2.5 rounded-full shadow-lg max-w-[90%] text-center">
