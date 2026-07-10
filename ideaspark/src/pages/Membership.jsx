@@ -14,36 +14,72 @@ const PLANS = [
     id: 'reader',
     eyebrow: 'READERS',
     label: 'Go Premium',
-    subtitle: 'For idea enthusiasts',
+    subtitle: 'Perfect for readers who want unlimited access to premium content.',
     accent: 'blue',
     cta: 'Get Premium',
-    monthly: { price: '₹99',  note: '₹99/mo billed monthly' },
-    yearly:  { price: '₹799', note: '₹66/mo billed yearly' },
-    features: [
-      'Unlimited Premium Ideas',
-      'Premium Reader Badge',
-      'Exclusive Creator Content',
-      'Early Feature Access',
-      'Support Verified Creators',
-    ],
+    monthly: {
+      price: '₹99',
+      note: '₹99/mo billed monthly',
+      features: [
+        'Unlimited Premium Ideas',
+        'Exclusive Creator Content',
+        'Premium Reader Badge',
+        'Save Unlimited Ideas',
+        'Priority Access to New Features',
+        'Support Verified Creators',
+      ],
+    },
+    yearly: {
+      price: '₹799',
+      note: '₹66/mo billed yearly',
+      savingsNote: 'Save ₹389 compared to monthly billing',
+      features: [
+        'Unlimited Premium Ideas',
+        'Premium Reader Badge',
+        'Save Unlimited Ideas',
+        'Exclusive Creator Content',
+        'Early Feature Access',
+        'Support Verified Creators',
+      ],
+    },
   },
   {
     id: 'creator',
     eyebrow: 'CREATORS',
     label: 'Creators Pro',
-    subtitle: 'For idea builders',
+    subtitle: 'For creators ready to grow their audience and monetize premium content.',
     accent: 'purple',
     badge: 'Popular',
     cta: 'Get Creators Pro',
-    monthly: { price: '₹199',  note: '₹199/mo billed monthly' },
-    yearly:  { price: '₹999', note: '₹83/mo billed yearly' },
-    features: [
-      'Unlimited Premium Ideas',
-      'Premium Reader Badge',
-      'Exclusive Creator Content',
-      'Early Feature Access',
-      'Support Verified Creators',
-    ],
+    monthly: {
+      price: '₹199',
+      note: '₹199/mo billed monthly',
+      features: [
+        'Everything in Premium',
+        'Publish Premium Ideas',
+        'Creator Analytics Dashboard',
+        'Apply for Verification',
+        'Revenue Sharing Eligibility',
+        'Creator Pro Badge',
+        'Featured Creator Opportunities',
+        'Priority Creator Support',
+      ],
+    },
+    yearly: {
+      price: '₹999',
+      note: '₹83/mo billed yearly',
+      savingsNote: 'Save ₹1,389 compared to monthly billing',
+      features: [
+        'Everything in Premium',
+        'Publish Premium Ideas',
+        'Creator Analytics Dashboard',
+        'Creator Verification Eligibility',
+        'Revenue Sharing Eligibility',
+        'Creator Pro Badge',
+        'Priority Support',
+        'Early Access to New Creator Tools',
+      ],
+    },
   },
 ];
 
@@ -77,14 +113,20 @@ export default function Membership() {
 
   // Plan selection hands off to the Checkout page, which confirms the order and
   // runs the chosen gateway. We pass the selected plan + billing via route state.
-  const goCheckout = () => {
+  // Accepts an explicit planId so the card's own "Get Premium"/"Get Creators
+  // Pro" button can jump straight to checkout for *that* card without
+  // waiting on setSelected() to re-render first (state updates are async,
+  // so reading `selected` right after calling setSelected would still see
+  // the old value).
+  const goCheckout = (planId = selected) => {
+    const target = PLANS.find((p) => p.id === planId) ?? selectedPlan;
     navigate('/membership/checkout', {
       state: {
-        plan:      selected,
+        plan:      planId,
         billing:   period,
-        planLabel: selectedPlan.label,
-        price:     selectedPlan[period].price,
-        features:  selectedPlan.features,
+        planLabel: target.label,
+        price:     target[period].price,
+        features:  target[period].features,
       },
     });
   };
@@ -235,11 +277,18 @@ export default function Membership() {
                       /{period === 'yearly' ? 'year' : 'mo'}
                     </span>
                   </div>
-                  <div className="text-[#90A4AE] text-[11px] mt-1 mb-3">{price.note}</div>
+                  <div className="mb-3">
+                    <div className="text-[#90A4AE] text-[11px] mt-1">{price.note}</div>
+                    {price.savingsNote && (
+                      <div className="text-[#16A34A] text-[11px] font-semibold mt-0.5">
+                        {price.savingsNote}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Features */}
                   <div className="border-t border-[#F0F4FF] pt-3 space-y-2 flex-1">
-                    {plan.features.map((f) => (
+                    {price.features.map((f) => (
                       <div key={f} className="flex items-start gap-1.5
                                               text-[11px] text-[#546E7A] leading-snug">
                         <Icon name="check"
@@ -252,7 +301,7 @@ export default function Membership() {
 
                   {/* CTA button */}
                   <button
-                    onClick={(e) => { e.stopPropagation(); setSelected(plan.id); }}
+                    onClick={(e) => { e.stopPropagation(); setSelected(plan.id); goCheckout(plan.id); }}
                     className={`mt-4 w-full py-2.5 rounded-xl text-xs font-bold
                                 transition-all active:scale-95
                                 ${isSel
@@ -290,7 +339,7 @@ export default function Membership() {
 
           {/* Continue → Checkout */}
           <div className="pt-1 pb-2">
-            <button onClick={goCheckout}
+            <button onClick={() => goCheckout()}
                     className="w-full text-white font-bold py-4 rounded-2xl
                                active:scale-95 transition-all flex items-center
                                justify-center gap-2 text-base btn-hover"
