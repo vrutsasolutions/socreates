@@ -23,7 +23,7 @@ function ConversationRow({ c, onClick }) {
       onClick={onClick}
       className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#EAF2FF] active:bg-[#DBEAFE] transition-colors"
     >
-      <Avatar initial={c.initial} color={c.avatarColor} size={48} online={c.online} />
+      <Avatar initial={c.initial} color={c.avatarColor} src={c.profileImage} size={48} online={c.online} />
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold text-[#0D2137] truncate">{c.name}</p>
         <p className={`text-[13px] truncate ${muted ? 'text-[#90A4AE]' : 'text-[#0D2137]'}`}>
@@ -225,7 +225,7 @@ export default function Inbox() {
                       onClick={() => navigate(`/messages/${u.id}`)}
                       className="flex flex-col items-center gap-1.5 shrink-0 active:scale-90 transition-transform"
                     >
-                      <Avatar initial={u.initial} color={u.avatarColor} size={56} online={u.online} ring />
+                      <Avatar initial={u.initial} color={u.avatarColor} src={u.profileImage} size={56} online={u.online} ring />
                       <span className="text-[11px] text-[#546E7A]">{u.name}</span>
                     </button>
                   ))}
