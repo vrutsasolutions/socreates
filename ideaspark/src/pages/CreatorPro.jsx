@@ -14,14 +14,12 @@ const CREATOR_PRO = {
 const PRO_FEATURES = [
   'Publish Premium Ideas',
   'Creator Analytics Dashboard',
-  'Apply For Verification',
-  'Verified Creator Eligibility',
+  'Apply for Creator Verification',
+  'Eligible for Revenue Sharing',
   'Creator Pro Badge',
-  'Featured Creator Opportunities',
-  'Revenue Sharing Opportunities',
-  'Earn From Premium Content Based On Engagement',
-  'Future Creator Monetization Programs',
-  'Priority Access To New Creator Features',
+  'Creator Insights',
+  'Early Access to New Features',
+  'Priority Creator Support',
 ];
 
 const fmtDate = (iso) => {
