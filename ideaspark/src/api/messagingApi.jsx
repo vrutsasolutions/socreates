@@ -69,6 +69,9 @@ const normalizeConversation = (dto) => ({
   name: dto.otherUserName ?? dto.name ?? "Unknown",
   initial: dto.initial ?? initialFrom(dto.otherUserName ?? dto.name ?? ""),
   avatarColor: dto.avatarColor ?? dto.otherUserName ?? "#1565C0",
+  // The other participant's set profile photo, if any — Avatar falls back
+  // to the initials/gradient circle when this is null/empty.
+  profileImage: dto.otherUserAvatar ?? dto.profileImage ?? null,
   online: dto.otherUserOnline ?? dto.online ?? false,
   // False only when the other user has explicitly turned Activity Status
   // off — defaults true so older/mocked payloads without this field still
