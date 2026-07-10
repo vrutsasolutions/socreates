@@ -113,7 +113,7 @@ export default function NewChat() {
                   onClick={() => open(c.id)}
                   className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#EAF2FF] active:bg-[#DBEAFE] transition-colors"
                 >
-                  <Avatar initial={c.initial} color={c.avatarColor} size={48} online={c.online} />
+                  <Avatar initial={c.initial} color={c.avatarColor} src={c.profileImage} size={48} online={c.online} />
                   <div className="flex-1 min-w-0">
                     <p className="text-[15px] font-semibold text-[#0D2137] truncate">{c.name}</p>
                     <p className="text-sm text-[#90A4AE] truncate">{c.handle}</p>
