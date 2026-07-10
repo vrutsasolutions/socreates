@@ -2592,6 +2592,7 @@ export default function Chat() {
                           <span className="flex-1 min-w-0">
                             <span className="block text-[15px] font-semibold text-[#0D2137] truncate">
                               {c.name}
+                              {c.isSelf && <span className="font-normal"> (You)</span>}
                             </span>
                             <span className="block text-[12px] text-[#90A4AE] truncate">
                               {c.handle || ""}
