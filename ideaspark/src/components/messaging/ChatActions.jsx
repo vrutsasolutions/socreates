@@ -165,7 +165,7 @@ export function UserActionMenu({
         <Handle />
         {/* Header */}
         <div className="flex items-center gap-3 px-5 pb-3">
-          <Avatar initial={convo.initial} color={convo.avatarColor} size={48} />
+          <Avatar initial={convo.initial} color={convo.avatarColor} src={convo.profileImage} size={48} />
           <div className="min-w-0">
             <p className="text-[17px] font-bold text-[#0D2137] truncate">
               {convo.name}
@@ -642,6 +642,7 @@ export function ShareProfileSheet({
           <Avatar
             initial={convo.initial}
             color={convo.avatarColor}
+            src={convo.profileImage}
             size={80}
             online={convo.online}
           />
