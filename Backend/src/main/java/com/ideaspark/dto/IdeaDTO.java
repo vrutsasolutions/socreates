@@ -33,4 +33,18 @@ public class IdeaDTO {
     private boolean likedByCurrentUser;
     private LocalDateTime createdAt;
     private long commentCount;
+
+    // ── Free-plan read cap (see IdeaService.FREE_READ_LIMIT) ────────────────
+    // Set only by getById(), the idea-detail endpoint. When true, `description`
+    // is deliberately blanked out server-side (not just hidden by CSS) so a
+    // free reader who's used up their 10 free ideas can't read the full text
+    // via the network response — image/title/creator/category still come
+    // through as normal, matching the "blurred description" product spec.
+    // lockReason: "read_limit" (this cap) | "premium" (idea.isPremium and the
+    // viewer isn't a subscriber — the existing, separate premium-content gate,
+    // surfaced here too so any future caller doesn't have to re-derive it).
+    private boolean locked;
+    private String lockReason;
+    private Integer freeReadsUsed;
+    private Integer freeReadsLimit;
 }
