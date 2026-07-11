@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav.premium';
 import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
 import { searchIdeas } from '../api/searchApi';
+import { fetchIdeasOfTheDay } from '../api/ideaApi';
 import { SearchSkeleton, SearchResultsSkeleton } from '../components/common/LoadingStates.premium';
 import { EmptySearch } from '../components/common/EmptyStates.premium';
 import Icon from '../components/common/Icon';
@@ -9,9 +11,9 @@ import { CATEGORIES as ALL_CATEGORIES } from '../constants/categories';
 import { CATEGORY_COLORS, defaultColor, IdeaIcon } from '../components/common/categoryIcons';
 
 const CATEGORIES = ['All', ...ALL_CATEGORIES];
-const TRENDING   = ['AI Tools','Startup Ideas','Passive Income','Design System','No-Code Apps','Mental Health'];
 
 export default function Search() {
+  const navigate         = useNavigate();
   const inputRef        = useRef();
   const [query, setQuery]       = useState('');
   const [category, setCategory] = useState('All');
@@ -19,6 +21,21 @@ export default function Search() {
   const [loading, setLoading]   = useState(false);
   const [searched, setSearched] = useState(false);
   const debounceRef = useRef();
+
+  // "Ideas of the Day" — today's top idea(s) by views + likes, replaces the
+  // old static Trending Searches buttons. Ranking is server-computed and
+  // naturally shifts day to day as views/likes change.
+  const [ideasOfDay, setIdeasOfDay]     = useState([]);
+  const [loadingOfDay, setLoadingOfDay] = useState(true);
+
+  useEffect(() => {
+    fetchIdeasOfTheDay(2)
+      .then(({ data }) => setIdeasOfDay(data || []))
+      .catch(() => setIdeasOfDay([]))
+      .finally(() => setLoadingOfDay(false));
+  }, []);
+
+  const openIdea = (idea) => navigate(idea.isPremium ? `/premium/${idea.id}` : `/ideas/${idea.id}`);
 
   const doSearch = async (q, cat) => {
     if (!q.trim() && cat === 'All') { setResults([]); setSearched(false); return; }
@@ -35,8 +52,6 @@ export default function Search() {
     debounceRef.current = setTimeout(() => doSearch(query, category), 400);
     return () => clearTimeout(debounceRef.current);
   }, [query, category]);
-
-  const handleTrending = (term) => { setQuery(term); inputRef.current?.focus(); };
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-24">
@@ -80,20 +95,50 @@ export default function Search() {
 
       <div className="px-4 pt-5">
 
-        {/* Trending — shown when no search active */}
+        {/* Ideas of the Day — shown when no search active */}
         {!searched && (
           <>
             <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
-              <Icon name="flame" className="w-4 h-4 text-[#EF4444]" /> Trending Searches
+              <Icon name="flame" className="w-4 h-4 text-[#EF4444]" /> Ideas of the Day
             </h2>
-            <div className="flex flex-wrap gap-1.5 mb-5">
-              {TRENDING.map(term => (
-                <button key={term} onClick={() => handleTrending(term)}
-                  className="bg-white border border-[#BBDEFB] text-[#0D2137] text-xs px-3 py-1.5 rounded-2xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all btn-hover">
-                  {term}
-                </button>
-              ))}
-            </div>
+
+            {loadingOfDay ? (
+              <div className="flex flex-col gap-2 mb-5">
+                {Array(2).fill(0).map((_, i) => (
+                  <div key={i} className="h-[60px] bg-white border border-[#BBDEFB] rounded-2xl animate-pulse" />
+                ))}
+              </div>
+            ) : ideasOfDay.length > 0 ? (
+              <div className="flex flex-col gap-2 mb-5">
+                {ideasOfDay.map((idea, idx) => (
+                  <button key={idea.id} onClick={() => openIdea(idea)}
+                    className="flex items-center justify-between gap-3 bg-white border border-[#BBDEFB] rounded-2xl px-4 py-3 text-left hover:border-[#1565C0] transition-all btn-hover">
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span className="shrink-0 w-7 h-7 rounded-full bg-[#FFF3E0] flex items-center justify-center text-[#F59E0B] text-xs font-bold">
+                        {idx + 1}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[#0D2137] text-sm font-semibold truncate">{idea.title}</span>
+                        <span className="block text-[#90A4AE] text-xs mt-0.5 truncate">Posted by {idea.creatorName || 'Unknown'}</span>
+                      </span>
+                    </span>
+
+                    <span className="flex items-center gap-3 shrink-0 pl-2 text-[#90A4AE] text-xs font-medium">
+                      <span className="flex items-center gap-1">
+                        <Icon name="eye" className="w-3.5 h-3.5" />
+                        {(idea.readCount ?? 0).toLocaleString('en-IN')}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Icon name="heart" className="w-3.5 h-3.5" />
+                        {(idea.likeCount ?? 0).toLocaleString('en-IN')}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[#90A4AE] text-xs mb-5">No trending ideas yet — be the first to post one!</p>
+            )}
 
             <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <Icon name="lightbulb" className="w-4 h-4 text-[#F59E0B]" /> Browse by Category
