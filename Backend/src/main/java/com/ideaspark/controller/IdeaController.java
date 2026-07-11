@@ -40,6 +40,16 @@ public class IdeaController {
         return ResponseEntity.ok(ideaService.getAllIdeas(sort, email));
     }
 
+    // GET /api/ideas/of-the-day?limit=2 → today's top idea(s) by views + likes
+    @GetMapping("/of-the-day")
+    public ResponseEntity<List<IdeaDTO>> getIdeasOfTheDay(
+            @RequestParam(required = false, defaultValue = "2") int limit,
+            @AuthenticationPrincipal UserDetails user) {
+
+        String email = user != null ? user.getUsername() : null;
+        return ResponseEntity.ok(ideaService.getIdeasOfTheDay(limit, email));
+    }
+
     @GetMapping("/premium")
     public ResponseEntity<?> getPremium(@AuthenticationPrincipal UserDetails user) {
         if (user == null) {
