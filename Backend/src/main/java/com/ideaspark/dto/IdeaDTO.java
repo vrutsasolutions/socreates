@@ -29,6 +29,7 @@ public class IdeaDTO {
     @JsonProperty("isPremium")
     private boolean isPremium;
     private int likeCount;
+    private int readCount;
     private boolean savedByCurrentUser;
     private boolean likedByCurrentUser;
     private LocalDateTime createdAt;
