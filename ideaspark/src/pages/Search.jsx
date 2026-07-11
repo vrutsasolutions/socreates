@@ -5,8 +5,10 @@ import { searchIdeas } from '../api/searchApi';
 import { SearchSkeleton, SearchResultsSkeleton } from '../components/common/LoadingStates.premium';
 import { EmptySearch } from '../components/common/EmptyStates.premium';
 import Icon from '../components/common/Icon';
+import { CATEGORIES as ALL_CATEGORIES } from '../constants/categories';
+import { CATEGORY_COLORS, defaultColor, IdeaIcon } from '../components/common/categoryIcons';
 
-const CATEGORIES = ['All','Technology','Design','Business','Science','Art','Health','Education','Finance'];
+const CATEGORIES = ['All', ...ALL_CATEGORIES];
 const TRENDING   = ['AI Tools','Startup Ideas','Passive Income','Design System','No-Code Apps','Mental Health'];
 
 export default function Search() {
@@ -84,10 +86,10 @@ export default function Search() {
             <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <Icon name="flame" className="w-4 h-4 text-[#EF4444]" /> Trending Searches
             </h2>
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="flex flex-wrap gap-1.5 mb-5">
               {TRENDING.map(term => (
                 <button key={term} onClick={() => handleTrending(term)}
-                  className="bg-white border border-[#BBDEFB] text-[#0D2137] text-sm px-4 py-2 rounded-2xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all btn-hover">
+                  className="bg-white border border-[#BBDEFB] text-[#0D2137] text-xs px-3 py-1.5 rounded-2xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all btn-hover">
                   {term}
                 </button>
               ))}
@@ -96,13 +98,22 @@ export default function Search() {
             <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <Icon name="lightbulb" className="w-4 h-4 text-[#F59E0B]" /> Browse by Category
             </h2>
-            <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES.slice(1).map(cat => (
-                <button key={cat} onClick={() => setCategory(cat)}
-                  className="bg-white border border-[#BBDEFB] text-[#0D2137] text-sm py-3 rounded-2xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all text-left px-4 btn-hover">
-                  {cat}
-                </button>
-              ))}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {CATEGORIES.slice(1).map(cat => {
+                const catColor = CATEGORY_COLORS[cat] || defaultColor;
+                return (
+                  <button key={cat} onClick={() => setCategory(cat)}
+                    className="flex items-center gap-2 bg-white border border-[#BBDEFB] text-[#0D2137] text-xs py-2.5 rounded-2xl hover:border-[#1565C0] hover:text-[#1565C0] transition-all text-left px-2.5 btn-hover min-w-0">
+                    <span
+                      className="flex items-center justify-center rounded-lg shrink-0"
+                      style={{ width: 26, height: 26, background: catColor.bg }}
+                    >
+                      <IdeaIcon category={cat} color={catColor.dot} size={14} />
+                    </span>
+                    <span className="leading-tight break-words">{cat}</span>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}

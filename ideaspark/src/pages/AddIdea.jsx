@@ -8,11 +8,8 @@ import { AIAssistantBar, AIThinkingBubble } from '../components/common/AIInterac
 import { saveIdeaDraft, takeIdeaDraft, clearIdeaDraft } from '../state/ideaDraft';
 import { setEditorInput, takeEditorOutput } from '../state/imageEditorStore';
 import { filesToCompressedDataURLs, dataURLsToFiles } from '../state/imageCodec';
-
-const CATEGORIES = [
-  'Technology','Design','Business','Science','Art','Health',
-  'Education','Finance','Music','Travel','Food','Sports'
-];
+import { CATEGORIES } from '../constants/categories';
+import { CATEGORY_COLORS, defaultColor, IdeaIcon } from '../components/common/categoryIcons';
 
 const STEPS = ['Details', 'Media', 'Publish'];
 
@@ -686,20 +683,33 @@ export default function AddIdea() {
 
             <div>
               <label className="text-xs font-bold text-[#0D2137]">Category</label>
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setForm({ ...form, category: cat })}
-                    className={`text-xs py-2 rounded-xl border transition ${
-                      form.category === cat
-                        ? 'bg-[#1565C0] text-white border-[#1565C0]'
-                        : 'bg-[#F4F7FF] border-[#BBDEFB] text-[#0D2137]'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-72 overflow-y-auto pr-1">
+                {CATEGORIES.map((cat) => {
+                  const catColor = CATEGORY_COLORS[cat] || defaultColor;
+                  const selected = form.category === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setForm({ ...form, category: cat })}
+                      className={`flex flex-col items-center gap-1.5 py-2.5 px-1.5 rounded-xl border transition text-center leading-tight ${
+                        selected
+                          ? 'bg-[#1565C0] text-white border-[#1565C0]'
+                          : 'bg-[#F4F7FF] border-[#BBDEFB] text-[#0D2137]'
+                      }`}
+                    >
+                      <span
+                        className="flex items-center justify-center rounded-lg shrink-0"
+                        style={{
+                          width: 28, height: 28,
+                          background: selected ? 'rgba(255,255,255,0.22)' : catColor.bg,
+                        }}
+                      >
+                        <IdeaIcon category={cat} color={selected ? '#fff' : catColor.dot} size={16} />
+                      </span>
+                      <span className="text-[11px] break-words">{cat}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
