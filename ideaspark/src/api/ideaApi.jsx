@@ -14,6 +14,11 @@ export const fetchIdeas = (params = {}) => {
   return api.get(`/ideas${qs ? `?${qs}` : ''}`);
 };
 
+// GET /api/ideas/of-the-day?limit=2 → IdeaDTO[] (today's top idea(s) by views + likes,
+// for the Explore page "Ideas of the Day" section)
+export const fetchIdeasOfTheDay = (limit = 2) =>
+  USE_MOCK.ideas ? mockResponse(MOCK_IDEAS.slice(0, limit)) : api.get(`/ideas/of-the-day?limit=${limit}`);
+
 export const fetchPremiumIdeas = () =>
   USE_MOCK.ideas ? mockResponse(MOCK_IDEAS.filter((i) => i.isPremium)) : api.get('/ideas/premium');
 
