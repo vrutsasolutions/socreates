@@ -344,6 +344,17 @@ public class IdeaService {
         return ideas.stream().map(i -> toDTO(i, userEmail)).toList();
     }
 
+    // "Ideas of the Day" for the Explore page — top idea(s) ranked by combined
+    // views (readCount) + likes. No date-based randomization needed: as
+    // engagement changes throughout the day, the ranking naturally shifts, so
+    // a fresh page load can surface a different idea day to day.
+    public List<IdeaDTO> getIdeasOfTheDay(int limit, String userEmail) {
+        int safeLimit = Math.max(1, Math.min(limit, 10));
+        List<Idea> ideas = ideaRepository.findTopByEngagement(
+                org.springframework.data.domain.PageRequest.of(0, safeLimit));
+        return ideas.stream().map(i -> toDTO(i, userEmail)).toList();
+    }
+
     public List<IdeaDTO> getMyIdeas(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -542,6 +553,7 @@ public class IdeaService {
         dto.setCategory(idea.getCategory());
         dto.setPremium(idea.isPremium());
         dto.setLikeCount(idea.getLikeCount());
+        dto.setReadCount(idea.getReadCount());
         dto.setCommentCount(commentRepository.countByIdeaId(idea.getId()));
         dto.setCreatedAt(idea.getCreatedAt());
         if (idea.getCreator() != null) {
@@ -567,6 +579,7 @@ public class IdeaService {
         dto.setCategory(idea.getCategory());
         dto.setPremium(idea.isPremium());
         dto.setLikeCount(idea.getLikeCount());
+        dto.setReadCount(idea.getReadCount());
         dto.setCommentCount(commentRepository.countByIdeaId(idea.getId()));
         dto.setCreatedAt(idea.getCreatedAt());
 
