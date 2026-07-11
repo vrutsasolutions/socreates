@@ -1,6 +1,7 @@
 package com.ideaspark.repository;
 
 import com.ideaspark.model.Idea;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -28,17 +29,27 @@ public interface IdeaRepository extends JpaRepository<Idea, UUID> {
     // Trending = most liked
     List<Idea> findAllByOrderByLikeCountDesc();
 
-    // Search by title or description
+    // "Ideas of the Day" — ranked by combined engagement (views/reads + likes),
+    // most recent as tiebreaker. Naturally reshuffles day to day as engagement
+    // changes; caller limits results via Pageable (e.g. top 2).
+    @Query("SELECT i FROM Idea i ORDER BY (i.readCount + i.likeCount) DESC, i.createdAt DESC")
+    List<Idea> findTopByEngagement(Pageable pageable);
+
+    // Search by title, description, category, or creator name
+    // (matches the search bar's "ideas, categories, creators..." placeholder)
     @Query("SELECT i FROM Idea i WHERE " +
            "LOWER(i.title) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-           "LOWER(i.description) LIKE LOWER(CONCAT('%', :q, '%')) " +
+           "LOWER(i.description) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(i.category) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(i.creator.name) LIKE LOWER(CONCAT('%', :q, '%')) " +
            "ORDER BY i.createdAt DESC")
     List<Idea> searchIdeas(@Param("q") String q);
 
     // Search with category filter
     @Query("SELECT i FROM Idea i WHERE " +
            "(LOWER(i.title) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-           "LOWER(i.description) LIKE LOWER(CONCAT('%', :q, '%'))) " +
+           "LOWER(i.description) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(i.creator.name) LIKE LOWER(CONCAT('%', :q, '%'))) " +
            "AND i.category = :category ORDER BY i.createdAt DESC")
     List<Idea> searchIdeasWithCategory(@Param("q") String q, @Param("category") String category);
 
