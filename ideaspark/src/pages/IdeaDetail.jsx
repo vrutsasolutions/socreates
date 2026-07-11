@@ -63,6 +63,12 @@ export default function IdeaDetail() {
   const creatorId = idea?.creatorId;
   const canFollow = !!creatorId && !!user?.id && creatorId !== user.id;
 
+  // Free-plan read cap — server sets this once a signed-in free user has
+  // already opened 10 distinct ideas; the description arrives blanked out.
+  // Reader-premium and creator-pro users never see this, and re-opening an
+  // idea already read earlier is never locked. See IdeaService.getById.
+  const isLocked = !!idea?.locked;
+
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -291,124 +297,162 @@ export default function IdeaDetail() {
               </div>
 
               <h2 className="text-[#0D2137] font-bold text-xl mb-2">{idea.title}</h2>
-              <p className="text-[#37474F] text-[15px] leading-relaxed whitespace-pre-wrap mb-5">
-                {idea.description}
-              </p>
 
-              {/* Engagement actions — like / comment / share / save */}
-              <div className="flex items-center justify-between border-y border-[#ECEFF6] py-2.5 mb-5">
-                <div className="flex items-center gap-1">
-                  {/* Like */}
-                  <button
-                    onClick={handleLike}
-                    aria-label={liked ? 'Unlike idea' : 'Like idea'}
-                    className={`flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-xl transition-all active:scale-95
-                      ${liked ? 'text-[#DC2626] bg-[#FEF2F2]' : 'text-[#546E7A] hover:bg-[#F4F7FF]'}`}
-                  >
-                    <svg className={`w-[18px] h-[18px] transition-transform ${likeAnim ? 'scale-125' : 'scale-100'}`}
-                      viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'}
-                      stroke="currentColor" strokeWidth={liked ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19.5 12.6l-7.5 7.4-7.5-7.4a5 5 0 117.5-6.6 5 5 0 117.5 6.6z" />
-                    </svg>
-                    {likes}
-                  </button>
+              {isLocked ? (
+                <>
+                  {/* Free-plan read cap reached — image/title/creator stay
+                      visible above; only the description is obscured. */}
+                  <p className="text-[#37474F] text-[15px] leading-relaxed whitespace-pre-wrap blur-[4px] select-none pointer-events-none line-clamp-4 mb-6" aria-hidden="true">
+                    {idea.description || 'Subscribe to unlock the full description of this idea and keep reading without limits.'}
+                  </p>
 
-                  {/* Comment — focuses the composer */}
-                  <button
-                    onClick={() => inputRef.current?.focus()}
-                    aria-label="Comment on idea"
-                    className="flex items-center gap-1.5 text-sm font-semibold text-[#546E7A] px-2.5 py-1.5 rounded-xl hover:bg-[#F4F7FF] transition-all active:scale-95"
-                  >
-                    <Icon name="message-square" className="w-[18px] h-[18px]" />
-                    {comments.length}
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  {/* Share */}
-                  <button
-                    onClick={() => setShareOpen(true)}
-                    aria-label="Share idea"
-                    className="flex items-center justify-center w-9 h-9 rounded-xl text-[#546E7A] hover:bg-[#F4F7FF] transition-all active:scale-95"
-                  >
-                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="18" cy="5" r="3" />
-                      <circle cx="6" cy="12" r="3" />
-                      <circle cx="18" cy="19" r="3" />
-                      <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
-                    </svg>
-                  </button>
-
-                  {/* Save */}
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    aria-label={saved ? 'Unsave idea' : 'Save idea'}
-                    className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all active:scale-95
-                      ${saved ? 'text-[#1565C0] bg-[#E3F2FD]' : 'text-[#546E7A] hover:bg-[#F4F7FF]'} ${saving ? 'opacity-60' : ''}`}
-                  >
-                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'}
-                      stroke="currentColor" strokeWidth={saved ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* ── Comments ─────────────────────────────────── */}
-              <h3 className="text-[#0D2137] font-bold text-base mb-3">
-                Comments {comments.length > 0 && <span className="text-[#90A4AE] font-medium">({comments.length})</span>}
-              </h3>
-
-              {comments.length === 0 ? (
-                <p className="text-[#90A4AE] text-sm py-6 text-center">No comments yet — be the first to share your thoughts.</p>
+                  <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl p-6 text-center shadow-sm">
+                    <div className="w-14 h-14 bg-[#E3F2FD] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Icon name="lock" className="w-7 h-7 text-[#1565C0]" />
+                    </div>
+                    <h3 className="text-[#0D2137] font-bold text-lg mb-2">You've hit your free reading limit</h3>
+                    <p className="text-[#546E7A] text-[15px] leading-relaxed mb-1 max-w-xs mx-auto">
+                      Free accounts can read {idea.freeReadsLimit ?? 10} ideas. Subscribe for unlimited reading.
+                    </p>
+                    {idea.freeReadsUsed != null && (
+                      <p className="text-[#90A4AE] text-xs mb-5">
+                        {idea.freeReadsUsed}/{idea.freeReadsLimit ?? 10} free ideas read
+                      </p>
+                    )}
+                    <button
+                      onClick={() => navigate('/membership')}
+                      className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-[0.97] transition-all shadow-md shadow-blue-300/30 text-[15px] mt-4"
+                    >
+                      Upgrade to keep reading →
+                    </button>
+                    <div className="flex items-center justify-center gap-4 mt-4 text-xs text-[#90A4AE]">
+                      <span>✓ Cancel anytime</span>
+                      <span>✓ From ₹99/month</span>
+                    </div>
+                  </div>
+                </>
               ) : (
-                <ul className="space-y-3 mb-4">
-                  {comments.map((c) => {
-                    // Backend comments may omit userImage; for the current user's
-                    // own comments fall back to their live profile photo.
-                    const avatarSrc = c.userImage || (isMine(c) ? user?.profileImage : null);
-                    // Tapping the commenter's avatar or name opens their profile.
-                    const goToProfile = () => { if (c.userId) navigate(`/users/${c.userId}`); };
-                    return (
-                    <li key={c.id} className="flex gap-3">
-                      {avatarSrc ? (
-                        <img src={avatarSrc} alt={c.userName || 'User'}
-                          onClick={goToProfile}
-                          className={`w-8 h-8 rounded-lg object-cover bg-[#EEF0FF] shrink-0${c.userId ? ' cursor-pointer active:scale-95' : ''}`} />
-                      ) : (
-                        <div onClick={goToProfile}
-                          className={`w-8 h-8 rounded-lg bg-[#EEF0FF] text-[#1A28A0] font-bold flex items-center justify-center text-xs shrink-0${c.userId ? ' cursor-pointer active:scale-95' : ''}`}>
-                          {initials(c.userName)}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0 bg-[#F7F9FF] border border-[#ECEFF6] rounded-2xl px-3.5 py-2.5">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span onClick={goToProfile}
-                            className={`text-[#0D2137] font-semibold text-[13px] truncate${c.userId ? ' cursor-pointer hover:underline' : ''}`}>{c.userName || 'User'}</span>
-                          <span className="text-[#B0BEC5] text-[11px]">{formatDate(c.createdAt)}</span>
-                          {isMine(c) && (
-                            <button onClick={() => handleDelete(c.id)}
-                              className="ml-auto text-[#E53935] text-[11px] font-medium hover:underline active:scale-95">
-                              Delete
-                            </button>
+                <>
+                  <p className="text-[#37474F] text-[15px] leading-relaxed whitespace-pre-wrap mb-5">
+                    {idea.description}
+                  </p>
+
+                  {/* Engagement actions — like / comment / share / save */}
+                  <div className="flex items-center justify-between border-y border-[#ECEFF6] py-2.5 mb-5">
+                    <div className="flex items-center gap-1">
+                      {/* Like */}
+                      <button
+                        onClick={handleLike}
+                        aria-label={liked ? 'Unlike idea' : 'Like idea'}
+                        className={`flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-xl transition-all active:scale-95
+                          ${liked ? 'text-[#DC2626] bg-[#FEF2F2]' : 'text-[#546E7A] hover:bg-[#F4F7FF]'}`}
+                      >
+                        <svg className={`w-[18px] h-[18px] transition-transform ${likeAnim ? 'scale-125' : 'scale-100'}`}
+                          viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'}
+                          stroke="currentColor" strokeWidth={liked ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19.5 12.6l-7.5 7.4-7.5-7.4a5 5 0 117.5-6.6 5 5 0 117.5 6.6z" />
+                        </svg>
+                        {likes}
+                      </button>
+
+                      {/* Comment — focuses the composer */}
+                      <button
+                        onClick={() => inputRef.current?.focus()}
+                        aria-label="Comment on idea"
+                        className="flex items-center gap-1.5 text-sm font-semibold text-[#546E7A] px-2.5 py-1.5 rounded-xl hover:bg-[#F4F7FF] transition-all active:scale-95"
+                      >
+                        <Icon name="message-square" className="w-[18px] h-[18px]" />
+                        {comments.length}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      {/* Share */}
+                      <button
+                        onClick={() => setShareOpen(true)}
+                        aria-label="Share idea"
+                        className="flex items-center justify-center w-9 h-9 rounded-xl text-[#546E7A] hover:bg-[#F4F7FF] transition-all active:scale-95"
+                      >
+                        <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3" />
+                          <circle cx="6" cy="12" r="3" />
+                          <circle cx="18" cy="19" r="3" />
+                          <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+                        </svg>
+                      </button>
+
+                      {/* Save */}
+                      <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        aria-label={saved ? 'Unsave idea' : 'Save idea'}
+                        className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all active:scale-95
+                          ${saved ? 'text-[#1565C0] bg-[#E3F2FD]' : 'text-[#546E7A] hover:bg-[#F4F7FF]'} ${saving ? 'opacity-60' : ''}`}
+                      >
+                        <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'}
+                          stroke="currentColor" strokeWidth={saved ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ── Comments ─────────────────────────────────── */}
+                  <h3 className="text-[#0D2137] font-bold text-base mb-3">
+                    Comments {comments.length > 0 && <span className="text-[#90A4AE] font-medium">({comments.length})</span>}
+                  </h3>
+
+                  {comments.length === 0 ? (
+                    <p className="text-[#90A4AE] text-sm py-6 text-center">No comments yet — be the first to share your thoughts.</p>
+                  ) : (
+                    <ul className="space-y-3 mb-4">
+                      {comments.map((c) => {
+                        // Backend comments may omit userImage; for the current user's
+                        // own comments fall back to their live profile photo.
+                        const avatarSrc = c.userImage || (isMine(c) ? user?.profileImage : null);
+                        // Tapping the commenter's avatar or name opens their profile.
+                        const goToProfile = () => { if (c.userId) navigate(`/users/${c.userId}`); };
+                        return (
+                        <li key={c.id} className="flex gap-3">
+                          {avatarSrc ? (
+                            <img src={avatarSrc} alt={c.userName || 'User'}
+                              onClick={goToProfile}
+                              className={`w-8 h-8 rounded-lg object-cover bg-[#EEF0FF] shrink-0${c.userId ? ' cursor-pointer active:scale-95' : ''}`} />
+                          ) : (
+                            <div onClick={goToProfile}
+                              className={`w-8 h-8 rounded-lg bg-[#EEF0FF] text-[#1A28A0] font-bold flex items-center justify-center text-xs shrink-0${c.userId ? ' cursor-pointer active:scale-95' : ''}`}>
+                              {initials(c.userName)}
+                            </div>
                           )}
-                        </div>
-                        <p className="text-[#37474F] text-sm break-words">{c.content}</p>
-                      </div>
-                    </li>
-                    );
-                  })}
-                </ul>
+                          <div className="flex-1 min-w-0 bg-[#F7F9FF] border border-[#ECEFF6] rounded-2xl px-3.5 py-2.5">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span onClick={goToProfile}
+                                className={`text-[#0D2137] font-semibold text-[13px] truncate${c.userId ? ' cursor-pointer hover:underline' : ''}`}>{c.userName || 'User'}</span>
+                              <span className="text-[#B0BEC5] text-[11px]">{formatDate(c.createdAt)}</span>
+                              {isMine(c) && (
+                                <button onClick={() => handleDelete(c.id)}
+                                  className="ml-auto text-[#E53935] text-[11px] font-medium hover:underline active:scale-95">
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-[#37474F] text-sm break-words">{c.content}</p>
+                          </div>
+                        </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </>
               )}
             </>
           )}
         </div>
       </div>
 
-      {/* ── Comment composer (fixed above bottom nav) ─────────── */}
-      {!loading && !error && idea && (
+      {/* ── Comment composer (fixed above bottom nav) — unlocked only ─── */}
+      {!loading && !error && idea && !isLocked && (
         <div className="fixed bottom-[68px] left-0 right-0 z-30 bg-white border-t border-[#ECEFF6]">
         {postErr && (
           <p className="text-[#E53935] text-xs px-4 pt-2">{postErr}</p>
