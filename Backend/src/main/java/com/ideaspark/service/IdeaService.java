@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -23,6 +24,16 @@ public class IdeaService {
     private final CloudflareImageService cloudflareImageService;
     private final FollowRepository followRepository;
     private final EmailService emailService;
+    private final IdeaReadRepository ideaReadRepository;
+    private final MembershipRepository membershipRepository;
+
+    // ── Free-plan read cap ────────────────────────────────────────────────
+    // A signed-in user who is neither reader-premium nor creator-pro can read
+    // this many DISTINCT ideas in total (lifetime, not monthly) before every
+    // further idea's detail page shows only image/title with the description
+    // blurred out, prompting a membership upgrade. Reading an idea already in
+    // their "read" set again never re-locks it or consumes another slot.
+    private static final int FREE_READ_LIMIT = 10;
 
     // ── Like milestones: fire at each of these counts ────────────────────────
     private static final Set<Integer> LIKE_MILESTONES = Set.of(25, 100, 500, 1000, 5000, 10000);
@@ -70,11 +81,75 @@ public class IdeaService {
                 .toList();
     }
 
+    @Transactional
     public IdeaDTO getById(UUID id, String currentUserEmail) {
         Idea idea = ideaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Idea not found"));
 
-        return toDTO(idea, currentUserEmail);
+        IdeaDTO dto = toDTO(idea, currentUserEmail);
+
+        User currentUser = currentUserEmail != null
+                ? userRepository.findByEmail(currentUserEmail).orElse(null)
+                : null;
+
+        boolean isOwner = currentUser != null && idea.getCreator() != null
+                && idea.getCreator().getId().equals(currentUser.getId());
+
+        // ── Existing premium-content gate ───────────────────────────────
+        // idea.isPremium() ideas are a separate, harder lock (the whole idea,
+        // handled by /premium/:id → PremiumDetail.jsx) that a non-subscriber
+        // never gets past regardless of their free-read count. Surfacing it
+        // here too keeps the DTO self-describing for any caller, and — unlike
+        // today's client-only check — actually strips the description server
+        // side instead of just hiding it with CSS.
+        if (idea.isPremium() && !isOwner) {
+            boolean readerPremium = currentUser != null && currentUser.isPremium();
+            if (!readerPremium) {
+                dto.setDescription(null);
+                dto.setLocked(true);
+                dto.setLockReason("premium");
+                return dto;
+            }
+        }
+
+        // ── Free-plan read cap ──────────────────────────────────────────
+        // Guests (currentUser == null) and the idea's own creator are never
+        // gated. Reader-premium and creator-pro users are exempt — unlimited
+        // reads either way.
+        if (currentUser != null && !isOwner) {
+            boolean exempt = currentUser.isPremium()
+                    || membershipRepository.hasActiveCreatorPro(currentUser.getId(), LocalDateTime.now());
+
+            if (!exempt) {
+                boolean alreadyRead = ideaReadRepository.existsByUserIdAndIdeaId(currentUser.getId(), id);
+                long readCount = ideaReadRepository.countByUserId(currentUser.getId());
+
+                if (alreadyRead) {
+                    // Already spent a slot on this idea earlier — always
+                    // re-readable in full, doesn't consume anything further.
+                    dto.setFreeReadsUsed((int) readCount);
+                    dto.setFreeReadsLimit(FREE_READ_LIMIT);
+                } else if (readCount >= FREE_READ_LIMIT) {
+                    // Cap reached and this is a NEW idea — lock it.
+                    dto.setDescription(null);
+                    dto.setLocked(true);
+                    dto.setLockReason("read_limit");
+                    dto.setFreeReadsUsed((int) readCount);
+                    dto.setFreeReadsLimit(FREE_READ_LIMIT);
+                    return dto;
+                } else {
+                    // Grant this idea and spend one of the free slots.
+                    ideaReadRepository.save(IdeaRead.builder()
+                            .user(currentUser)
+                            .idea(idea)
+                            .build());
+                    dto.setFreeReadsUsed((int) readCount + 1);
+                    dto.setFreeReadsLimit(FREE_READ_LIMIT);
+                }
+            }
+        }
+
+        return dto;
     }
 
     @Transactional
@@ -86,6 +161,19 @@ public class IdeaService {
 
         User creator = userRepository.findByEmail(creatorEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // ── Premium ideas are Creator Pro only ──────────────────────────
+        // The frontend already disables/forces this toggle off for non-
+        // Creator-Pro users (see AddIdea.jsx), but that's UI-only — nothing
+        // stopped a direct API call from setting isPremium:true regardless.
+        // hasActiveCreatorPro() is the real source of truth (User.creatorPro
+        // is never populated by any code path — see the note on that
+        // repository method), so check it here, server-side, before trusting
+        // req.isPremium() at all.
+        if (req.isPremium()
+                && !membershipRepository.hasActiveCreatorPro(creator.getId(), LocalDateTime.now())) {
+            throw new RuntimeException("Only Creator Pro subscribers can publish premium ideas.");
+        }
 
         // Plagiarism check only for Premium users
         if (creator.isPremium()) {
