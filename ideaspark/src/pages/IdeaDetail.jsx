@@ -76,6 +76,16 @@ export default function IdeaDetail() {
     Promise.all([fetchIdeaById(id), fetchComments(id)])
       .then(([ideaRes, commentRes]) => {
         if (!alive) return;
+        // This page only ever renders the "free-plan read cap" lock UI.
+        // If the idea turns out to be Creator-Pro-only content instead
+        // (lockReason "premium" — reachable via notification links, shared
+        // URLs, or browser back/forward, none of which know isPremium up
+        // front), hand off to PremiumDetail so the right plan gets pitched
+        // instead of showing the wrong "free reading limit" message.
+        if (ideaRes.data?.lockReason === 'premium') {
+          navigate(`/premium/${id}`, { replace: true });
+          return;
+        }
         setIdea(ideaRes.data);
         setComments(commentRes.data || []);
         setLiked(ideaRes.data?.likedByCurrentUser ?? false);
