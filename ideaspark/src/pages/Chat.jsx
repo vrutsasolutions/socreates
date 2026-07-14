@@ -952,8 +952,7 @@ export default function Chat() {
       return { type: "voice", content: m.content, duration: m.duration };
     if (m.type === "file")
       return { type: "file", content: m.content, fileName: m.fileName };
-    if (m.type === "profile")
-      return { type: "profile", profile: m.profile };
+    if (m.type === "profile") return { type: "profile", profile: m.profile };
     return { type: "text", text: m.text ?? m.content ?? "" };
   };
 
@@ -1586,7 +1585,9 @@ export default function Chat() {
                   <>
                     <p className="text-[15px] font-bold text-white truncate leading-tight">
                       {convo?.name ?? "Chat"}
-                      {convo?.isSelf && <span className="font-medium"> (You)</span>}
+                      {convo?.isSelf && (
+                        <span className="font-medium"> (You)</span>
+                      )}
                     </p>
                     <p
                       className={`text-[12px] font-medium leading-tight ${convo?.online ? "text-[#A5D6A7]" : "text-blue-200"}`}
@@ -1760,7 +1761,7 @@ export default function Chat() {
                 }}
                 onOpenProfile={(profile) => {
                   if (!profile?.id) return;
-                  navigate(`/profile/${profile.id}`);
+                  navigate(`/users/${profile.id}`);
                 }}
               />
             ))
@@ -2668,7 +2669,9 @@ export default function Chat() {
                           <span className="flex-1 min-w-0">
                             <span className="block text-[15px] font-semibold text-[#0D2137] truncate">
                               {c.name}
-                              {c.isSelf && <span className="font-normal"> (You)</span>}
+                              {c.isSelf && (
+                                <span className="font-normal"> (You)</span>
+                              )}
                             </span>
                             <span className="block text-[12px] text-[#90A4AE] truncate">
                               {c.handle || ""}
