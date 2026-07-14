@@ -2,15 +2,25 @@ package com.ideaspark.repository;
 
 import com.ideaspark.model.IdeaRead;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
 @Repository
 public interface IdeaReadRepository extends JpaRepository<IdeaRead, UUID> {
+    // Whether this user has already spent their one-time slot on this exact
+    // premium idea. A hit means the idea is locked (blurred) on this and any
+    // future visit — see the note on IdeaRead about reopening never granting
+    // access again, even with slots left.
     boolean existsByUserIdAndIdeaId(UUID userId, UUID ideaId);
 
-    // Distinct ideas this user has ever been granted full access to — the
-    // count that's compared against IdeaService.FREE_READ_LIMIT.
-    long countByUserId(UUID userId);
+    // Distinct PREMIUM ideas this user has ever been granted a full read on —
+    // the count that's compared against IdeaService.PREMIUM_FREE_READ_LIMIT.
+    // Written with an explicit JPQL join-property check (rather than a
+    // derived countByUserIdAndIdea_IsPremiumTrue) to sidestep Spring Data's
+    // ambiguous property resolution for a boolean field named "isPremium".
+    @Query("SELECT COUNT(r) FROM IdeaRead r WHERE r.user.id = :userId AND r.idea.isPremium = true")
+    long countPremiumReadsByUserId(@Param("userId") UUID userId);
 }
