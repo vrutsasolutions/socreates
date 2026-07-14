@@ -27,13 +27,20 @@ public class IdeaService {
     private final IdeaReadRepository ideaReadRepository;
     private final MembershipRepository membershipRepository;
 
-    // ── Free-plan read cap ────────────────────────────────────────────────
-    // A signed-in user who is neither reader-premium nor creator-pro can read
-    // this many DISTINCT ideas in total (lifetime, not monthly) before every
-    // further idea's detail page shows only image/title with the description
-    // blurred out, prompting a membership upgrade. Reading an idea already in
-    // their "read" set again never re-locks it or consumes another slot.
-    private static final int FREE_READ_LIMIT = 10;
+    // ── Free-plan PREMIUM read cap ──────────────────────────────────────────
+    // Normal (non-premium) ideas have NO read limit at all for a signed-in
+    // free user — unlimited, always full access, nothing tracked.
+    //
+    // Only PREMIUM ideas are capped: a signed-in user who is neither
+    // reader-premium nor creator-pro can fully open this many DISTINCT
+    // premium ideas (lifetime, not monthly) — one full read each — before
+    // every further NEW premium idea's detail page shows only image/title
+    // with the description blurred out, prompting a membership upgrade.
+    //
+    // Unlike a typical usage cap, reopening a premium idea already spent
+    // from this quota does NOT stay unlocked — it locks again (blurred),
+    // same as hitting the limit. See IdeaRead's class doc for details.
+    private static final int PREMIUM_FREE_READ_LIMIT = 5;
 
     // ── Like milestones: fire at each of these counts ────────────────────────
     private static final Set<Integer> LIKE_MILESTONES = Set.of(25, 100, 500, 1000, 5000, 10000);
@@ -142,53 +149,87 @@ public class IdeaService {
         boolean isOwner = currentUser != null && idea.getCreator() != null
                 && idea.getCreator().getId().equals(currentUser.getId());
 
-        // ── Premium-content gate ────────────────────────────────────────
-        // toDTO() above already applied this gate centrally (so Home/Search/
-        // Premium-grid feeds get the same server-side stripping) — nothing
-        // further to do here for that case, just stop before the free-read
-        // logic below runs on top of an already-locked idea.
-        if (dto.isLocked()) {
+        // Owners always get their own full idea back — nothing further to
+        // gate. (Guests browsing a NORMAL idea also fall out below unlocked;
+        // guests on a PREMIUM idea stay locked with lockReason "premium",
+        // exactly as toDTO()'s uniform applyPremiumLockIfNeeded() left it.)
+        if (isOwner) {
             return dto;
         }
 
-        // ── Free-plan read cap ──────────────────────────────────────────
-        // Guests (currentUser == null) and the idea's own creator are never
-        // gated. Reader-premium and creator-pro users are exempt — unlimited
-        // reads either way.
-        if (currentUser != null && !isOwner) {
-            boolean exempt = currentUser.isPremium()
-                    || membershipRepository.hasActiveCreatorPro(currentUser.getId(), LocalDateTime.now());
-
-            if (!exempt) {
-                boolean alreadyRead = ideaReadRepository.existsByUserIdAndIdeaId(currentUser.getId(), id);
-                long readCount = ideaReadRepository.countByUserId(currentUser.getId());
-
-                if (alreadyRead) {
-                    // Already spent a slot on this idea earlier — always
-                    // re-readable in full, doesn't consume anything further.
-                    dto.setFreeReadsUsed((int) readCount);
-                    dto.setFreeReadsLimit(FREE_READ_LIMIT);
-                } else if (readCount >= FREE_READ_LIMIT) {
-                    // Cap reached and this is a NEW idea — lock it.
-                    dto.setPreviewText(buildPreviewText(idea.getDescription()));
-                    dto.setDescription(null);
-                    dto.setLocked(true);
-                    dto.setLockReason("read_limit");
-                    dto.setFreeReadsUsed((int) readCount);
-                    dto.setFreeReadsLimit(FREE_READ_LIMIT);
-                    return dto;
-                } else {
-                    // Grant this idea and spend one of the free slots.
-                    ideaReadRepository.save(IdeaRead.builder()
-                            .user(currentUser)
-                            .idea(idea)
-                            .build());
-                    dto.setFreeReadsUsed((int) readCount + 1);
-                    dto.setFreeReadsLimit(FREE_READ_LIMIT);
-                }
-            }
+        // Non-premium ideas: unlimited for everyone, signed in or not.
+        // toDTO() never locks these (applyPremiumLockIfNeeded no-ops for
+        // !idea.isPremium()), so dto.description is already the real text —
+        // nothing to do.
+        if (!idea.isPremium()) {
+            return dto;
         }
 
+        // From here on: idea IS premium. Guests stay locked (lockReason
+        // "premium", set above by toDTO()) — subscribing/logging in is
+        // required before any premium quota even applies.
+        if (currentUser == null) {
+            return dto;
+        }
+
+        // Reader-premium and creator-pro users read every premium idea in
+        // full, unlimited — but toDTO()'s categorical gate above only checks
+        // viewer.isPremium(), so a creator-pro viewer may have been locked
+        // there incorrectly. Explicitly unlock for both exemptions here.
+        boolean exempt = currentUser.isPremium()
+                || membershipRepository.hasActiveCreatorPro(currentUser.getId(), LocalDateTime.now());
+        if (exempt) {
+            dto.setLocked(false);
+            dto.setLockReason(null);
+            dto.setDescription(idea.getDescription());
+            dto.setPreviewText(null);
+            return dto;
+        }
+
+        // ── Free-plan PREMIUM read cap ───────────────────────────────────
+        // A free reader gets PREMIUM_FREE_READ_LIMIT full reads total, one
+        // per distinct premium idea — and each is a ONE-TIME look: reopening
+        // the very same premium idea again never grants full access a
+        // second time, even though a slot was already spent on it and even
+        // if slots remain unused. It shows the blurred/locked version again,
+        // just like hitting the overall limit.
+        boolean alreadyRead = ideaReadRepository.existsByUserIdAndIdeaId(currentUser.getId(), id);
+        long premiumReadCount = ideaReadRepository.countPremiumReadsByUserId(currentUser.getId());
+
+        if (alreadyRead) {
+            // This exact premium idea's one-time slot is already spent —
+            // lock it again on this and every future visit.
+            dto.setPreviewText(buildPreviewText(idea.getDescription()));
+            dto.setDescription(null);
+            dto.setLocked(true);
+            dto.setLockReason("already_read");
+            dto.setFreeReadsUsed((int) premiumReadCount);
+            dto.setFreeReadsLimit(PREMIUM_FREE_READ_LIMIT);
+            return dto;
+        }
+
+        if (premiumReadCount >= PREMIUM_FREE_READ_LIMIT) {
+            // All slots spent on OTHER premium ideas, and this one's new — lock it.
+            dto.setPreviewText(buildPreviewText(idea.getDescription()));
+            dto.setDescription(null);
+            dto.setLocked(true);
+            dto.setLockReason("read_limit");
+            dto.setFreeReadsUsed((int) premiumReadCount);
+            dto.setFreeReadsLimit(PREMIUM_FREE_READ_LIMIT);
+            return dto;
+        }
+
+        // Grant this premium idea's one-time full read and spend one slot.
+        ideaReadRepository.save(IdeaRead.builder()
+                .user(currentUser)
+                .idea(idea)
+                .build());
+        dto.setLocked(false);
+        dto.setLockReason(null);
+        dto.setDescription(idea.getDescription());
+        dto.setPreviewText(null);
+        dto.setFreeReadsUsed((int) premiumReadCount + 1);
+        dto.setFreeReadsLimit(PREMIUM_FREE_READ_LIMIT);
         return dto;
     }
 
