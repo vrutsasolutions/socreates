@@ -42,6 +42,15 @@ public class IdeaService {
     // same as hitting the limit. See IdeaRead's class doc for details.
     private static final int PREMIUM_FREE_READ_LIMIT = 5;
 
+    // ── Idea description length bounds ──────────────────────────────────────
+    // Applied server-side in createIdea() so a direct API call can't bypass
+    // AddIdea.jsx's own limits. A floor stops throwaway one-line "descriptions"
+    // (the kind that make a premium card's blur look thin no matter how it's
+    // rendered) without banning genuinely short pitches outright; the ceiling
+    // just mirrors the frontend's textarea cap so the two never disagree.
+    private static final int DESC_MIN_LENGTH = 100;
+    private static final int DESC_MAX_LENGTH = 5000;
+
     // ── Like milestones: fire at each of these counts ────────────────────────
     private static final Set<Integer> LIKE_MILESTONES = Set.of(25, 100, 500, 1000, 5000, 10000);
 
@@ -307,6 +316,21 @@ public class IdeaService {
         if (req.isPremium()
                 && !membershipRepository.hasActiveCreatorPro(creator.getId(), LocalDateTime.now())) {
             throw new RuntimeException("Only Creator Pro subscribers can publish premium ideas.");
+        }
+
+        // ── Description length bounds ────────────────────────────────────
+        // Server-side enforcement of AddIdea.jsx's own limits — the frontend
+        // already blocks this in the UI, but that's client-side only, so a
+        // direct API call could otherwise still save a one-line "desc3"-style
+        // idea or an unbounded wall of text.
+        int descLen = req.getDescription() == null ? 0 : req.getDescription().trim().length();
+        if (descLen < DESC_MIN_LENGTH) {
+            throw new RuntimeException(
+                    "Description must be at least " + DESC_MIN_LENGTH + " characters (currently " + descLen + ").");
+        }
+        if (descLen > DESC_MAX_LENGTH) {
+            throw new RuntimeException(
+                    "Description must be under " + DESC_MAX_LENGTH + " characters (currently " + descLen + ").");
         }
 
         // Plagiarism check only for Premium users
