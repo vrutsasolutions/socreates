@@ -63,17 +63,43 @@ export default function IdeaDetail() {
   const creatorId = idea?.creatorId;
   const canFollow = !!creatorId && !!user?.id && creatorId !== user.id;
 
-  // Free-plan read cap — server sets this once a signed-in free user has
-  // already opened 10 distinct ideas; the description arrives blanked out.
-  // Reader-premium and creator-pro users never see this, and re-opening an
-  // idea already read earlier is never locked. See IdeaService.getById.
+  // Normal (non-premium) ideas are never locked or limited — unlimited
+  // reading for every signed-in user. This page can still receive a PREMIUM
+  // idea (e.g. a direct link), in which case the server applies the same
+  // free-plan premium-read cap as PremiumDetail: a free reader can fully
+  // open a limited number of distinct premium ideas, and reopening the same
+  // premium idea a second time locks it again even if slots remain.
+  // Reader-premium and creator-pro users never see this. See IdeaService.getById.
   const isLocked = !!idea?.locked;
+  const lockReason = idea?.lockReason;
 
+  // Fetching an idea isn't a side-effect-free GET: getById() spends a
+  // premium-read slot the first time a free user opens a premium idea. In
+  // dev, React.StrictMode (see main.jsx) deliberately double-invokes this
+  // effect, which would otherwise fire the request twice for the exact same
+  // "visit" and silently spend a slot on the throwaway first response.
+  //
+  // Fix: cache the in-flight promise per id in a ref instead of starting a
+  // second network call. Both invocations still attach their own `alive`
+  // handler to that ONE shared promise — the first invocation's handler is
+  // a no-op once its cleanup fires (StrictMode's synthetic unmount), and
+  // the second (surviving) invocation's handler is the one that actually
+  // updates state when the single real request resolves. This is NOT the
+  // same as just skipping the second invocation outright (an earlier,
+  // broken version of this fix did that) — skipping it entirely leaves
+  // nothing subscribed with `alive === true`, and the page hangs on its
+  // loading skeleton forever because setLoading(false) never runs.
+  const fetchRef = useRef({ id: null, promise: null });
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setError(false);
-    Promise.all([fetchIdeaById(id), fetchComments(id)])
+
+    if (fetchRef.current.id !== id) {
+      fetchRef.current = { id, promise: Promise.all([fetchIdeaById(id), fetchComments(id)]) };
+    }
+
+    fetchRef.current.promise
       .then(([ideaRes, commentRes]) => {
         if (!alive) return;
         setIdea(ideaRes.data);
@@ -317,13 +343,24 @@ export default function IdeaDetail() {
                     <div className="w-14 h-14 bg-[#E3F2FD] rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <Icon name="lock" className="w-7 h-7 text-[#1565C0]" />
                     </div>
-                    <h3 className="text-[#0D2137] font-bold text-lg mb-2">You've hit your free reading limit</h3>
-                    <p className="text-[#546E7A] text-[15px] leading-relaxed mb-1 max-w-xs mx-auto">
-                      Free accounts can read {idea.freeReadsLimit ?? 10} ideas. Subscribe for unlimited reading.
-                    </p>
+                    {lockReason === 'already_read' ? (
+                      <>
+                        <h3 className="text-[#0D2137] font-bold text-lg mb-2">You've already read this one</h3>
+                        <p className="text-[#546E7A] text-[15px] leading-relaxed mb-1 max-w-xs mx-auto">
+                          Free accounts can open each premium idea fully just once. Upgrade to premium to reread it anytime.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-[#0D2137] font-bold text-lg mb-2">You've hit your free premium limit</h3>
+                        <p className="text-[#546E7A] text-[15px] leading-relaxed mb-1 max-w-xs mx-auto">
+                          Free accounts can read {idea.freeReadsLimit ?? 5} premium ideas fully. Subscribe for unlimited access.
+                        </p>
+                      </>
+                    )}
                     {idea.freeReadsUsed != null && (
                       <p className="text-[#90A4AE] text-xs mb-5">
-                        {idea.freeReadsUsed}/{idea.freeReadsLimit ?? 10} free ideas read
+                        {idea.freeReadsUsed}/{idea.freeReadsLimit ?? 5} free premium ideas read
                       </p>
                     )}
                     <button
