@@ -134,7 +134,15 @@ export default function VerifyOtp() {
         )}
 
         <form onSubmit={handleVerify} className="space-y-8" noValidate>
-          <div className="flex justify-center gap-3">
+          {/*
+            OTP boxes: sized with clamp(min, vw, max) tied directly to the
+            real viewport width (not the flex container), so they scale down
+            on genuinely small/narrow phones instead of only shrinking when
+            the flex row runs out of room. A `max-w` cap alone still let
+            boxes render at their full fixed size whenever the container had
+            space to give — this ties the box size to the device itself.
+          */}
+          <div className="flex justify-center gap-[2vw] sm:gap-3">
             {digits.map((d, i) => (
               <input
                 key={i}
@@ -146,7 +154,12 @@ export default function VerifyOtp() {
                 value={d}
                 onChange={(e) => handleChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
-                className={`w-[52px] h-[64px] text-center text-2xl font-bold bg-[#F0F6FF] border rounded-2xl text-[#0D2137]
+                style={{
+                  width: 'clamp(30px, 9vw, 44px)',
+                  height: 'clamp(40px, 12vw, 56px)',
+                  fontSize: 'clamp(15px, 4.5vw, 22px)',
+                }}
+                className={`shrink-0 text-center font-bold bg-[#F0F6FF] border rounded-xl sm:rounded-2xl text-[#0D2137]
                   focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition-all
                   ${d ? 'border-[#1565C0] bg-[#E3F2FD]' : 'border-[#BBDEFB]'}`}
               />

@@ -134,6 +134,33 @@ const parseSharedIdea = (content) => {
   }
 };
 
+// For a PROFILE message the backend stores the same JSON snapshot Chat.jsx
+// built when sending: { id, name, initial, avatarColor, profileImage }.
+// Parse it back into an object the profile card can render; fall back to a
+// clearly-labeled placeholder (never silently "Unknown") if it's missing or
+// isn't valid JSON, so a genuine bad payload is still easy to spot.
+const parseSharedProfile = (content) => {
+  try {
+    const o = JSON.parse(content ?? "{}");
+    if (!o || !o.id) throw new Error("empty profile snapshot");
+    return {
+      id: String(o.id),
+      name: o.name || "Unknown",
+      initial: o.initial || initialFrom(o.name ?? ""),
+      avatarColor: o.avatarColor || "#1565C0",
+      profileImage: o.profileImage ?? null,
+    };
+  } catch {
+    return {
+      id: "",
+      name: "Unknown",
+      initial: "?",
+      avatarColor: "#1565C0",
+      profileImage: null,
+    };
+  }
+};
+
 const normalizeMessage = (dto, myId) => {
   const type = (dto.type ?? "TEXT").toLowerCase();
   return {
@@ -146,6 +173,7 @@ const normalizeMessage = (dto, myId) => {
     text: type === "text" ? (dto.content ?? "") : undefined,
     imageUrl: type === "image" ? (dto.content ?? "") : undefined,
     idea: type === "idea" ? parseSharedIdea(dto.content) : undefined,
+    profile: type === "profile" ? parseSharedProfile(dto.content) : undefined,
     content:
       type === "voice" || type === "file" ? (dto.content ?? "") : undefined,
     fileName: type === "file" ? fileNameFromUrl(dto.content) : undefined,
@@ -246,7 +274,7 @@ export const fetchMessages = async (conversationId) => {
   return { data: (res.data ?? []).map((m) => normalizeMessage(m, myId)) };
 };
 
-// payload: { type:'text'|'image'|'voice', text?, imageUrl?, content?, duration? }
+// payload: { type:'text'|'image'|'voice'|'file'|'profile', text?, imageUrl?, content?, duration?, profile? }
 export const sendMessage = async (conversationId, payload) => {
   if (USE_MOCK.messaging) {
     const msg = {
@@ -271,7 +299,9 @@ export const sendMessage = async (conversationId, payload) => {
                   ? `Voice note  ${payload.duration || ""}`.trim()
                   : payload.type === "file"
                     ? `📄 ${payload.fileName || "File"}`
-                    : payload.text,
+                    : payload.type === "profile"
+                      ? `👤 Shared ${payload.profile?.name || "a profile"}`
+                      : payload.text,
             time: "now",
             unread: 0,
           }
@@ -280,9 +310,20 @@ export const sendMessage = async (conversationId, payload) => {
     return mockResponse({ ...msg }, 150);
   }
 
+  // FIX: `content` is what actually gets persisted server-side, so every
+  // message type that carries structured data (not plain text) must be
+  // serialized into it here. Previously only text/image/voice/file had a
+  // `content` field on the payload — `profile` (built as { type, profile })
+  // fell through to `content: undefined`, so nothing meaningful was ever
+  // saved, and after a refresh the card came back as "Unknown".
   const backendPayload = {
     type: payload.type.toUpperCase(),
-    content: payload.type === "text" ? payload.text : payload.content,
+    content:
+      payload.type === "text"
+        ? payload.text
+        : payload.type === "profile"
+          ? JSON.stringify(payload.profile ?? {})
+          : payload.content,
   };
 
   const myId = getMyId();

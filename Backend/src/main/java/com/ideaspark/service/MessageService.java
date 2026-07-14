@@ -221,6 +221,7 @@ public class MessageService {
             case VOICE -> me.getName() + " sent you a voice note";
             case FILE -> me.getName() + " sent you a file";
             case IDEA -> me.getName() + " shared an idea";
+            case PROFILE -> me.getName() + " shared a profile";
             default -> me.getName() + " sent you a message: " +
                     (content.length() > 40 ? content.substring(0, 40) + "…" : content);
         };
@@ -366,7 +367,8 @@ public class MessageService {
 
         List<LinkDTO> links = new ArrayList<>();
         for (Message m : textMessages) {
-            if (m.getContent() == null) continue;
+            if (m.getContent() == null)
+                continue;
             Matcher matcher = URL_PATTERN.matcher(m.getContent());
             while (matcher.find()) {
                 LinkDTO link = new LinkDTO();
@@ -408,7 +410,9 @@ public class MessageService {
             return;
         }
 
-        if (type == MessageType.TEXT || type == MessageType.IDEA) {
+        if (type == MessageType.TEXT
+                || type == MessageType.IDEA
+                || type == MessageType.PROFILE) {
             long used = messageRepository.countByConversationAndSenderAndType(
                     conv, sender, MessageType.TEXT);
 
@@ -460,6 +464,7 @@ public class MessageService {
                 case VOICE -> "Voice note";
                 case FILE -> "Sent a file";
                 case IDEA -> "Shared an idea";
+                case PROFILE -> "Shared a profile";
                 default -> last.getContent();
             };
         }

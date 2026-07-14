@@ -2,6 +2,7 @@ package com.ideaspark.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,32 +30,45 @@ public class Message {
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
-    // "TEXT", "IMAGE", "VOICE", "FILE", "IDEA"
+    // Supported message types:
+    // TEXT, IMAGE, VOICE, FILE, IDEA, PROFILE
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 20)
     private MessageType type;
 
-    // For TEXT: the message text. For IMAGE/VOICE/FILE: the R2 file URL.
-    // For IDEA: a JSON snapshot of the shared idea
-    // ({ ideaId, title, imageUrl, isPremium }) so the chat can render a
-    // tappable card that links to the idea.
+    /*
+     * TEXT    -> Plain message text
+     * IMAGE   -> Image URL
+     * VOICE   -> Voice recording URL
+     * FILE    -> File URL
+     * IDEA    -> JSON snapshot of the shared idea
+     *            { ideaId, title, imageUrl, isPremium }
+     * PROFILE -> JSON snapshot of the shared profile
+     *            { id, name, avatarColor, profileImage }
+     */
     @Column(columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "is_read")
     private boolean isRead = false;
 
-    // Emoji reactions keyed by reacting user's id (one emoji per user per message).
+    // Emoji reactions keyed by reacting user's id
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "message_reactions", joinColumns = @JoinColumn(name = "message_id"))
+    @CollectionTable(
+            name = "message_reactions",
+            joinColumns = @JoinColumn(name = "message_id")
+    )
     @MapKeyColumn(name = "user_id")
     @Column(name = "emoji", length = 16)
     @Builder.Default
     private Map<UUID, String> reactions = new HashMap<>();
 
-    // Ids of users who deleted this message only for themselves ("delete for me").
+    // Users who deleted this message only for themselves
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "message_deleted_for", joinColumns = @JoinColumn(name = "message_id"))
+    @CollectionTable(
+            name = "message_deleted_for",
+            joinColumns = @JoinColumn(name = "message_id")
+    )
     @Column(name = "user_id")
     @Builder.Default
     private Set<UUID> deletedFor = new HashSet<>();
@@ -68,6 +82,11 @@ public class Message {
     }
 
     public enum MessageType {
-        TEXT, IMAGE, VOICE, FILE, IDEA
+        TEXT,
+        IMAGE,
+        VOICE,
+        FILE,
+        IDEA,
+        PROFILE
     }
 }

@@ -11,6 +11,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav.premium';
 import IdeaCard from '../components/common/IdeaCard.premium';
 import Icon from '../components/common/Icon';
+import ProfileShareButton from '../components/common/ProfileShareButton';
 import { useAuth } from '../context/AuthContext';
 import { fetchUserById, fetchFollowStats, followUser, unfollowUser } from '../api/userApi';
 import { fetchIdeasByUser } from '../api/ideaApi';
@@ -158,8 +159,11 @@ export default function UserProfile() {
             </svg>
           </button>
           <h1 className="text-white font-bold text-lg">Profile</h1>
-          {/* spacer to balance the back button so the title stays centered */}
-          <span className="w-9 h-9" />
+          {/* was a plain spacer to balance the back button — now the share
+              button doubles as that balance, so the title stays centered */}
+          <div className="w-9 h-9 flex items-center justify-center">
+            {id && <ProfileShareButton userId={id} name={profile?.name} />}
+          </div>
         </div>
 
         <div className="relative z-10 mt-6 flex justify-center">

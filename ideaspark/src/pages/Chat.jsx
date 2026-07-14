@@ -236,6 +236,7 @@ function Bubble({
   showReactionBar,
   onReact,
   onOpenIdea,
+  onOpenProfile,
 }) {
   const pressTimer = useRef(null);
   const startPress = () => {
@@ -407,6 +408,35 @@ function Bubble({
           </p>
           <p className="mt-1.5 text-[12px] font-semibold text-[#1565C0]">
             View idea →
+          </p>
+        </div>
+      </button>
+    );
+  } else if (m.type === "profile") {
+    // Shared profile — a tappable card that opens the shared user's profile.
+    const profile = m.profile || {};
+    content = (
+      <button
+        onClick={() => {
+          if (!selectMode) onOpenProfile?.(profile);
+        }}
+        className="flex items-center gap-3 w-[230px] rounded-2xl bg-white text-left shadow-sm border border-[#E3F2FD] px-4 py-3 active:scale-[0.99] transition-transform"
+      >
+        <Avatar
+          initial={profile.initial || "?"}
+          color={profile.avatarColor || "#1565C0"}
+          src={profile.profileImage}
+          size={44}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#1565C0]">
+            Shared profile
+          </p>
+          <p className="mt-0.5 text-[14px] font-bold text-[#0D2137] truncate">
+            {profile.name || "Unknown"}
+          </p>
+          <p className="mt-1 text-[12px] font-semibold text-[#1565C0]">
+            View profile →
           </p>
         </div>
       </button>
@@ -624,6 +654,11 @@ export default function Chat() {
   const [forwardContacts, setForwardContacts] = useState(null); // null = loading
   const [forwardPicked, setForwardPicked] = useState([]); // selected contact ids
   const [forwardSearch, setForwardSearch] = useState("");
+
+  // Share Profile: pick any user, then send their profile as a PROFILE message
+  const [profilePickerOpen, setProfilePickerOpen] = useState(false);
+  const [profilePickerContacts, setProfilePickerContacts] = useState(null); // null = loading
+  const [profilePickerSearch, setProfilePickerSearch] = useState("");
 
   // Free-tier messaging limit upsell modal
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -917,6 +952,8 @@ export default function Chat() {
       return { type: "voice", content: m.content, duration: m.duration };
     if (m.type === "file")
       return { type: "file", content: m.content, fileName: m.fileName };
+    if (m.type === "profile")
+      return { type: "profile", profile: m.profile };
     return { type: "text", text: m.text ?? m.content ?? "" };
   };
 
@@ -999,6 +1036,41 @@ export default function Chat() {
       return;
     }
     pushSent({ type: "text", text: q.emoji, replyTo: replySnippet() });
+    setReplyTo(null);
+  };
+
+  // ── Open the "Share Profile" user picker ─────────────────────────────────
+  const openProfilePicker = async () => {
+    setProfilePickerOpen(true);
+    setProfilePickerContacts(null);
+    setProfilePickerSearch("");
+    try {
+      const { data } = await fetchContacts();
+      setProfilePickerContacts(data || []);
+    } catch {
+      setProfilePickerContacts([]);
+    }
+  };
+
+  // ── Share a selected user's profile as a rich card in this chat ─────────
+  // `selectedUser` is whichever contact was tapped in the Share Profile
+  // picker — it is NOT necessarily the logged-in user.
+  const handleSendProfile = (selectedUser) => {
+    if (!selectedUser?.id) return;
+    if (fileLimitReached) {
+      setShowLimitModal(true);
+      return;
+    }
+    const profile = {
+      id: selectedUser.id,
+      name: selectedUser.name || "Unknown",
+      initial:
+        selectedUser.initial ||
+        (selectedUser.name || "U").trim().charAt(0).toUpperCase(),
+      avatarColor: selectedUser.avatarColor || "#1565C0",
+      profileImage: selectedUser.profileImage || null,
+    };
+    pushSent({ type: "profile", profile, replyTo: replySnippet() });
     setReplyTo(null);
   };
 
@@ -1686,6 +1758,10 @@ export default function Chat() {
                       : `/ideas/${idea.id}`,
                   );
                 }}
+                onOpenProfile={(profile) => {
+                  if (!profile?.id) return;
+                  navigate(`/profile/${profile.id}`);
+                }}
               />
             ))
           )}
@@ -2241,10 +2317,10 @@ export default function Chat() {
             if (kind === "camera") cameraRef.current?.click();
             else if (kind === "gallery") galleryRef.current?.click();
             else if (kind === "files") filesRef.current?.click();
-            else
-              showToast(
-                `${kind === "idea" ? "Idea" : "Profile"} sharing coming soon.`,
-              );
+            else if (kind === "profile") {
+              if (fileLimitReached) setShowLimitModal(true);
+              else openProfilePicker();
+            } else showToast("Idea sharing coming soon.");
           }}
         />
       )}
@@ -2639,6 +2715,140 @@ export default function Chat() {
                       <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
                     </svg>
                   </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+      {/* ── Share Profile picker ── */}
+      {/* Pick any user from contacts/search, then send THEIR profile card
+          into this chat (not necessarily the logged-in user's own profile). */}
+      {profilePickerOpen &&
+        (() => {
+          const pq = profilePickerSearch.trim().toLowerCase();
+          const list = (profilePickerContacts || []).filter(
+            (c) =>
+              !pq ||
+              c.name.toLowerCase().includes(pq) ||
+              (c.handle || "").toLowerCase().includes(pq),
+          );
+          return (
+            <div className="fixed inset-0 z-[55] flex">
+              <div
+                className="flex-1"
+                onClick={() => setProfilePickerOpen(false)}
+              />
+              <div className="sc-slide-in w-full max-w-[380px] h-full bg-white shadow-2xl flex flex-col">
+                {/* Header */}
+                <div className="shrink-0 bg-[#1565C0] px-5 py-4 flex items-center justify-between">
+                  <h2 className="text-white text-lg font-bold">
+                    Share Profile
+                  </h2>
+                  <button
+                    onClick={() => setProfilePickerOpen(false)}
+                    aria-label="Close"
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-white hover:bg-white/15 active:scale-90 transition-all"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 6l12 12M6 18L18 6"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Search */}
+                <div className="shrink-0 px-4 pt-4">
+                  <div className="flex items-center gap-2 bg-[#F0F6FF] border border-[#E3F2FD] rounded-full px-4 py-2.5">
+                    <svg
+                      className="w-4 h-4 text-[#90A4AE] shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <circle cx="11" cy="11" r="7" />
+                      <path strokeLinecap="round" d="M21 21l-4.3-4.3" />
+                    </svg>
+                    <input
+                      autoFocus
+                      value={profilePickerSearch}
+                      onChange={(e) => setProfilePickerSearch(e.target.value)}
+                      placeholder="Search people..."
+                      className="flex-1 min-w-0 bg-transparent text-[14px] text-[#0D2137] placeholder-[#90A4AE] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <p className="shrink-0 px-5 pt-4 pb-1 text-[12px] font-semibold text-[#90A4AE]">
+                  Tap someone to share their profile
+                </p>
+
+                <div className="border-b border-[#F0F6FF] mt-1" />
+
+                {/* Contacts */}
+                <div className="flex-1 overflow-y-auto">
+                  {profilePickerContacts === null ? (
+                    <p className="text-center text-[13px] text-[#90A4AE] py-10">
+                      Loading people…
+                    </p>
+                  ) : list.length === 0 ? (
+                    <p className="text-center text-[13px] text-[#90A4AE] py-10">
+                      No people found.
+                    </p>
+                  ) : (
+                    list.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          setProfilePickerOpen(false);
+                          handleSendProfile(c);
+                        }}
+                        className="w-full flex items-center gap-3 px-5 py-2.5 text-left hover:bg-[#F8FAFF] transition-colors"
+                      >
+                        <Avatar
+                          initial={c.initial}
+                          color={c.avatarColor}
+                          src={c.profileImage}
+                          size={42}
+                          online={c.online}
+                        />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[15px] font-semibold text-[#0D2137] truncate">
+                            {c.name}
+                            {c.isSelf && (
+                              <span className="font-normal"> (You)</span>
+                            )}
+                          </span>
+                          <span className="block text-[12px] text-[#90A4AE] truncate">
+                            {c.handle || ""}
+                          </span>
+                        </span>
+                        <svg
+                          className="w-4 h-4 text-[#BBDEFB] shrink-0"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

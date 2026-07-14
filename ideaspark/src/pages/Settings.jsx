@@ -37,13 +37,9 @@ export default function Settings() {
     comments: true,
   });
   const [privacy, setPrivacy] = useState({
-    publicProfile: true,
     showActivity: true,
   });
   const [deleting, setDeleting] = useState(false);
-  // Briefly shown under Public Profile when someone tries to turn it off —
-  // that toggle is hard-locked ON for now (see handlePublicProfileToggle).
-  const [publicProfileLocked, setPublicProfileLocked] = useState(false);
 
   // Load the user's saved notification preferences (defaults above are just
   // the ON-by-default fallback shown while this is in flight / if it fails).
@@ -81,8 +77,7 @@ export default function Settings() {
     });
   };
 
-  // Load the user's saved Activity Status preference. Public Profile isn't
-  // fetched — it's always true (locked ON), never persisted.
+  // Load the user's saved Activity Status preference.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -114,15 +109,6 @@ export default function Settings() {
       );
       setPrivacy(previous);
     });
-  };
-
-  // Public Profile is hard-locked ON for now — no backend support yet for
-  // private accounts / follow requests. Any attempt to turn it off just
-  // shows a brief explanation instead of changing state.
-  const handlePublicProfileToggle = (value) => {
-    if (value) return; // already ON, nothing to do
-    setPublicProfileLocked(true);
-    setTimeout(() => setPublicProfileLocked(false), 4000);
   };
 
   // Delete-account confirmation modal state.
@@ -359,23 +345,6 @@ export default function Settings() {
           </Section>
 
           <Section title="Privacy">
-            <Row
-              icon={<Icon name="globe" className="w-5 h-5 text-[#3B82F6]" />}
-              label="Public Profile"
-              sublabel="Others can find your profile"
-              right={
-                <Toggle
-                  value={privacy.publicProfile}
-                  onChange={handlePublicProfileToggle}
-                />
-              }
-            />
-            {publicProfileLocked && (
-              <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border-b border-[#BBDEFB] text-amber-700 text-xs font-medium">
-                <Icon name="alert-triangle" className="w-4 h-4 shrink-0" />
-                It's a Default Setting. No one can change it.
-              </div>
-            )}
             <Row
               icon={<Icon name="activity" className="w-5 h-5 text-[#3347E8]" />}
               label="Activity Status"
