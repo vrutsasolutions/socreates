@@ -43,6 +43,61 @@ function avatarPalette(name = '') {
   return AVATAR_PALETTES[idx] || AVATAR_PALETTES[0];
 }
 
+/* ── Paywalled description ──────────────────────────────────
+   For locked (premium, not-yet-subscribed) viewers: only the first line of
+   the real description is ever rendered — everything after it is replaced
+   with a couple of soft blurred placeholder bars (not the real text), so
+   there is nothing for the person to read no matter how blur/opacity is
+   supported on their device. Unlocked viewers see the normal clamped text,
+   unchanged. */
+function IdeaDescription({ text, locked, fontSize, lineHeight, clampLines, style }) {
+  if (!locked) {
+    return (
+      <p style={{
+        margin: 0,
+        fontSize, color: '#546E7A', lineHeight,
+        display: '-webkit-box',
+        WebkitLineClamp: clampLines,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+        fontFamily: 'Inter, sans-serif',
+        ...style,
+      }}>
+        {text}
+      </p>
+    );
+  }
+
+  const barHeight = Math.max(6, Math.round(fontSize * 0.62));
+  return (
+    <div style={style}>
+      <p style={{
+        margin: `0 0 ${Math.round(barHeight * 0.85)}px`,
+        fontSize, color: '#546E7A', lineHeight,
+        display: '-webkit-box',
+        WebkitLineClamp: 1,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+        fontFamily: 'Inter, sans-serif',
+      }}>
+        {text}
+      </p>
+      <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: Math.round(barHeight * 0.7) }}>
+        <span style={{
+          display: 'block', height: barHeight, width: '92%', borderRadius: 999,
+          background: 'linear-gradient(90deg, #E2E6F0, #F0F2F8, #E2E6F0)',
+          filter: 'blur(2.5px)',
+        }} />
+        <span style={{
+          display: 'block', height: barHeight, width: '64%', borderRadius: 999,
+          background: 'linear-gradient(90deg, #E2E6F0, #F0F2F8, #E2E6F0)',
+          filter: 'blur(2.5px)',
+        }} />
+      </div>
+    </div>
+  );
+}
+
 /* ── Skeleton ────────────────────────────────────────────── */
 export function IdeaCardSkeleton({ variant = 'card' } = {}) {
   if (variant === 'list') {
@@ -375,16 +430,13 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
             }}>
               {idea.title}
             </h3>
-            <p style={{
-              margin: 0,
-              fontSize: 13.5, color: '#546E7A', lineHeight: 1.5,
-              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              fontFamily: 'Inter, sans-serif',
-              ...(locked ? { filter: 'blur(3.5px)', userSelect: 'none', pointerEvents: 'none' } : {}),
-            }}>
-              {idea.description}
-            </p>
+            <IdeaDescription
+              text={locked ? (idea.previewText || 'Subscribe to unlock the full details of this premium idea.') : idea.description}
+              locked={locked}
+              fontSize={13.5}
+              lineHeight={1.5}
+              clampLines={2}
+            />
           </div>
 
           <div style={{
@@ -587,25 +639,14 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
         </h3>
 
         {/* Description */}
-        <p style={{
-          margin: '0 0 12px',
-          fontSize: 11.5,
-          color: '#546E7A',
-          lineHeight: 1.55,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-          flex: 1,
-          fontFamily: 'Inter, sans-serif',
-          ...(locked ? {
-            filter: 'blur(3.5px)',
-            userSelect: 'none',
-            pointerEvents: 'none',
-          } : {}),
-        }}>
-          {idea.description}
-        </p>
+        <IdeaDescription
+          text={locked ? (idea.previewText || 'Subscribe to unlock the full details of this premium idea.') : idea.description}
+          locked={locked}
+          fontSize={11.5}
+          lineHeight={1.55}
+          clampLines={2}
+          style={{ marginBottom: 12, flex: 1 }}
+        />
 
         {/* Actions row */}
         {actionsRow}
