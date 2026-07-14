@@ -63,14 +63,47 @@ export default function PremiumDetail() {
   const creatorId = idea?.creatorId;
   const canFollow = !!creatorId && !!user?.id && creatorId !== user.id;
 
-  // Premium ideas stay locked until the viewer holds an active membership.
-  const isLocked = !user?.isPremium;
+  // Locking is decided server-side (IdeaService.getById) and arrives on the
+  // idea itself — never inferred purely from user?.isPremium here, because a
+  // free-plan reader IS allowed to fully open a limited number of premium
+  // ideas (see idea.freeReadsUsed/freeReadsLimit below). Reader-premium and
+  // creator-pro subscribers get idea.locked === false from the server with
+  // unlimited reads either way.
+  //   lockReason "premium"      → not signed in / never read any premium idea yet
+  //   lockReason "read_limit"   → free reader has used all of their premium slots
+  //   lockReason "already_read" → free reader already spent a slot on THIS
+  //                               exact premium idea earlier; reopening it
+  //                               never grants full access a second time
+  const isLocked = !!idea?.locked;
+  const lockReason = idea?.lockReason;
 
+  // Fetching an idea isn't a side-effect-free GET: getById() spends a
+  // premium-read slot the first time a free user opens a premium idea. In
+  // dev, React.StrictMode (see main.jsx) deliberately double-invokes this
+  // effect, which would otherwise fire the request twice for the exact same
+  // "visit" and silently spend a slot on the throwaway first response.
+  //
+  // Fix: cache the in-flight promise per id in a ref instead of starting a
+  // second network call. Both invocations still attach their own `alive`
+  // handler to that ONE shared promise — the first invocation's handler is
+  // a no-op once its cleanup fires (StrictMode's synthetic unmount), and
+  // the second (surviving) invocation's handler is the one that actually
+  // updates state when the single real request resolves. This is NOT the
+  // same as just skipping the second invocation outright (an earlier,
+  // broken version of this fix did that) — skipping it entirely leaves
+  // nothing subscribed with `alive === true`, and the page hangs on its
+  // loading skeleton forever because setLoading(false) never runs.
+  const fetchRef = useRef({ id: null, promise: null });
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setError(false);
-    Promise.all([fetchIdeaById(id), fetchComments(id)])
+
+    if (fetchRef.current.id !== id) {
+      fetchRef.current = { id, promise: Promise.all([fetchIdeaById(id), fetchComments(id)]) };
+    }
+
+    fetchRef.current.promise
       .then(([ideaRes, commentRes]) => {
         if (!alive) return;
         setIdea(ideaRes.data);
@@ -311,13 +344,36 @@ export default function PremiumDetail() {
                     <div className="w-14 h-14 bg-[#E3F2FD] rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <Icon name="lock" className="w-7 h-7 text-[#1565C0]" />
                     </div>
-                    <h3 className="text-[#0D2137] font-bold text-lg mb-2">Unlock Premium Ideas</h3>
-                    <p className="text-[#546E7A] text-[15px] leading-relaxed mb-6 max-w-xs mx-auto">
-                      Get unlimited access to all premium ideas from expert creators.
-                    </p>
+                    {lockReason === 'already_read' ? (
+                      <>
+                        <h3 className="text-[#0D2137] font-bold text-lg mb-2">You've already read this one</h3>
+                        <p className="text-[#546E7A] text-[15px] leading-relaxed mb-1 max-w-xs mx-auto">
+                          Free accounts can open each premium idea fully just once. Upgrade to premium to reread it anytime.
+                        </p>
+                      </>
+                    ) : lockReason === 'read_limit' ? (
+                      <>
+                        <h3 className="text-[#0D2137] font-bold text-lg mb-2">You've hit your free premium limit</h3>
+                        <p className="text-[#546E7A] text-[15px] leading-relaxed mb-1 max-w-xs mx-auto">
+                          Free accounts can read {idea.freeReadsLimit ?? 5} premium ideas fully. Subscribe for unlimited access.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-[#0D2137] font-bold text-lg mb-2">Unlock Premium Ideas</h3>
+                        <p className="text-[#546E7A] text-[15px] leading-relaxed mb-1 max-w-xs mx-auto">
+                          Get unlimited access to all premium ideas from expert creators.
+                        </p>
+                      </>
+                    )}
+                    {idea.freeReadsUsed != null && (
+                      <p className="text-[#90A4AE] text-xs mb-5">
+                        {idea.freeReadsUsed}/{idea.freeReadsLimit ?? 5} free premium ideas read
+                      </p>
+                    )}
                     <button
                       onClick={() => navigate('/membership')}
-                      className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-[0.97] transition-all shadow-md shadow-blue-300/30 text-[15px]"
+                      className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-[0.97] transition-all shadow-md shadow-blue-300/30 text-[15px] mt-4"
                     >
                       Upgrade to Premium →
                     </button>
