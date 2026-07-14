@@ -35,15 +35,27 @@ public class IdeaDTO {
     private LocalDateTime createdAt;
     private long commentCount;
 
-    // ── Free-plan read cap (see IdeaService.FREE_READ_LIMIT) ────────────────
-    // Set only by getById(), the idea-detail endpoint. When true, `description`
-    // is deliberately blanked out server-side (not just hidden by CSS) so a
-    // free reader who's used up their 10 free ideas can't read the full text
-    // via the network response — image/title/creator/category still come
-    // through as normal, matching the "blurred description" product spec.
-    // lockReason: "read_limit" (this cap) | "premium" (idea.isPremium and the
-    // viewer isn't a subscriber — the existing, separate premium-content gate,
-    // surfaced here too so any future caller doesn't have to re-derive it).
+    // ── Free-plan premium-read cap (see IdeaService.PREMIUM_FREE_READ_LIMIT) ─
+    // Normal (non-premium) ideas are never limited or locked for a signed-in
+    // free reader — unlimited reading. Only PREMIUM ideas are capped: a free
+    // reader may fully open up to PREMIUM_FREE_READ_LIMIT distinct premium
+    // ideas, one time each (see lockReason "already_read" below). Set by
+    // getById(), the idea-detail endpoint. When true, `description` is
+    // deliberately blanked out server-side (not just hidden by CSS) so a
+    // locked reader can't read the full text via the network response —
+    // image/title/creator/category still come through as normal, matching
+    // the "blurred description" product spec.
+    // lockReason:
+    //   "premium"      — guest (not signed in), idea is premium.
+    //   "read_limit"   — signed-in free reader has already spent all
+    //                    PREMIUM_FREE_READ_LIMIT slots on OTHER premium
+    //                    ideas and this is a new one.
+    //   "already_read" — signed-in free reader already spent a slot on THIS
+    //                    premium idea earlier; re-opening the same idea a
+    //                    second time never grants full access again, even
+    //                    though a slot was already used and even if slots
+    //                    remain — it shows the blurred version, same as a
+    //                    locked idea.
     private boolean locked;
     private String lockReason;
     private Integer freeReadsUsed;
