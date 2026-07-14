@@ -48,4 +48,11 @@ public class IdeaDTO {
     private String lockReason;
     private Integer freeReadsUsed;
     private Integer freeReadsLimit;
+
+    // Short, safe teaser (first sentence or ~140 chars, word-boundary cut)
+    // built server-side from the real description whenever `description` is
+    // being blanked out above. Lets the locked-idea UI show one legible line
+    // — matching the product's "1-line preview, rest blurred" design —
+    // without ever sending the rest of the paywalled text over the wire.
+    private String previewText;
 }
