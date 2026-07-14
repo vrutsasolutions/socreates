@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CATEGORY_COLORS, defaultColor, IdeaIcon } from './categoryIcons';
 
 /** Normalize an idea's images: prefer imageUrls[], fall back to single imageUrl. */
 export function ideaImages(idea) {
@@ -10,17 +11,39 @@ export function ideaImages(idea) {
 
 /**
  * Swipeable image gallery for detail views — arrows + dots + counter.
- * Renders nothing when there are no images; a plain image when there is one.
+ * When there are no images (or the current one fails to load), renders the
+ * same category-tinted placeholder bar used on IdeaCard's thumbnail, instead
+ * of rendering nothing.
  */
-export default function ImageGallery({ images = [], title = '' }) {
+export default function ImageGallery({ images = [], title = '', category }) {
   const [idx, setIdx] = useState(0);
-  if (!images.length) return null;
-  const active = Math.min(idx, images.length - 1);
+  const [broken, setBroken] = useState(() => new Set());
+  const active = Math.min(idx, Math.max(images.length - 1, 0));
+  const catColor = CATEGORY_COLORS[category] || defaultColor;
+
+  if (!images.length || broken.has(active)) {
+    return (
+      <div
+        className="relative rounded-2xl overflow-hidden mb-4 h-44 flex items-center justify-center"
+        style={{ background: `linear-gradient(145deg, ${catColor.bg} 0%, ${catColor.bg}cc 100%)` }}
+      >
+        <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+          <IdeaIcon category={category} color={catColor.dot} size={28} />
+        </div>
+      </div>
+    );
+  }
+
   const go = (d) => setIdx((i) => (i + d + images.length) % images.length);
 
   return (
     <div className="relative rounded-2xl overflow-hidden bg-[#F0F2F8] mb-4">
-      <img src={images[active]} alt={title} className="w-full max-h-72 object-cover" />
+      <img
+        src={images[active]}
+        alt={title}
+        onError={() => setBroken((b) => new Set(b).add(active))}
+        className="w-full max-h-72 object-cover"
+      />
       {images.length > 1 && (
         <>
           <button onClick={() => go(-1)} aria-label="Previous image"
