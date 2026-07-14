@@ -49,21 +49,20 @@ public class EmailService {
     }
 
     // HTML template for OTP email
+    // FIX: removed the <style>/@media block (many mobile mail clients strip <style> tags
+    // and CSS classes entirely, e.g. the Gmail Android/iOS app). The OTP box now uses
+    // only inline styles, sized small enough (26px font / 4px letter-spacing / compact
+    // padding) to fit narrow phone screens on its own, with no dependency on media queries.
     private String buildOtpEmailHtml(String otp) {
         return """
                 <div style="font-family: Arial, sans-serif; max-width: 480px; width: 100%%; margin: auto; padding: 32px 20px; border-radius: 12px; background: #f4f7ff; box-sizing: border-box;">
-                    <style>
-                        @media only screen and (max-width: 480px) {
-                            .otp-badge { font-size: 26px !important; letter-spacing: 4px !important; padding: 12px 8px !important; }
-                        }
-                    </style>
                     <h2 style="color: #1565C0;">SoCreate</h2>
                     <p style="color: #333;">Hello,</p>
                     <p style="color: #333;">Your OTP for email verification is:</p>
                     <div style="text-align: center; margin: 24px 0;">
-                        <table role="presentation" align="center" style="margin: 0 auto; border-collapse: collapse;">
+                        <table role="presentation" align="center" style="margin: 0 auto; border-collapse: collapse; max-width: 100%%;">
                             <tr>
-                                <td class="otp-badge" style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1565C0; background: #fff; padding: 16px 20px; border-radius: 8px; border: 2px dashed #1565C0; white-space: nowrap; font-family: 'Courier New', monospace;">
+                                <td style="font-size: 26px; font-weight: bold; letter-spacing: 4px; color: #1565C0; background: #fff; padding: 12px 10px; border-radius: 8px; border: 2px dashed #1565C0; white-space: nowrap; font-family: 'Courier New', monospace;">
                                     %s
                                 </td>
                             </tr>
@@ -80,21 +79,18 @@ public class EmailService {
     }
 
     // HTML template for password reset email
+    // FIX: same change as buildOtpEmailHtml — removed the <style>/@media block, kept the
+    // OTP box compact using only inline styles so it renders consistently on every client.
     private String buildPasswordResetHtml(String otp) {
         return """
                 <div style="font-family: Arial, sans-serif; max-width: 480px; width: 100%%; margin: auto; padding: 32px 20px; border-radius: 12px; background: #f4f7ff; box-sizing: border-box;">
-                    <style>
-                        @media only screen and (max-width: 480px) {
-                            .otp-badge { font-size: 26px !important; letter-spacing: 4px !important; padding: 12px 8px !important; }
-                        }
-                    </style>
                     <h2 style="color: #1565C0;">SoCreate</h2>
                     <p style="color: #333;">Hello,</p>
                     <p style="color: #333;">Your OTP for password reset is:</p>
                     <div style="text-align: center; margin: 24px 0;">
-                        <table role="presentation" align="center" style="margin: 0 auto; border-collapse: collapse;">
+                        <table role="presentation" align="center" style="margin: 0 auto; border-collapse: collapse; max-width: 100%%;">
                             <tr>
-                                <td class="otp-badge" style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1565C0; background: #fff; padding: 16px 20px; border-radius: 8px; border: 2px dashed #1565C0; white-space: nowrap; font-family: 'Courier New', monospace;">
+                                <td style="font-size: 26px; font-weight: bold; letter-spacing: 4px; color: #1565C0; background: #fff; padding: 12px 10px; border-radius: 8px; border: 2px dashed #1565C0; white-space: nowrap; font-family: 'Courier New', monospace;">
                                     %s
                                 </td>
                             </tr>
