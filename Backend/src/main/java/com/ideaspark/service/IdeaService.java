@@ -46,6 +46,53 @@ public class IdeaService {
         return false;
     }
 
+    // Builds a short, safe teaser from the real (possibly paywalled)
+    // description — used instead of the full text whenever `description` is
+    // being blanked out for a locked idea, so the client always has exactly
+    // one legible line to show and never more. Cuts at the first sentence
+    // if it's short enough, otherwise at the last whole word within ~140
+    // chars (never mid-word), with an ellipsis to signal it's truncated.
+    private String buildPreviewText(String fullDescription) {
+        if (fullDescription == null || fullDescription.isBlank()) {
+            return null;
+        }
+        String trimmed = fullDescription.strip();
+        int maxLen = 140;
+
+        int sentenceEnd = -1;
+        for (String terminator : new String[]{". ", "! ", "? "}) {
+            int idx = trimmed.indexOf(terminator);
+            if (idx != -1 && idx <= maxLen && (sentenceEnd == -1 || idx < sentenceEnd)) {
+                sentenceEnd = idx + 1; // include the punctuation, drop the trailing space
+            }
+        }
+        if (sentenceEnd != -1) {
+            return trimmed.substring(0, sentenceEnd);
+        }
+        if (trimmed.length() <= maxLen) {
+            return trimmed;
+        }
+        int cut = trimmed.lastIndexOf(' ', maxLen);
+        if (cut <= 0) cut = maxLen;
+        return trimmed.substring(0, cut).stripTrailing() + "…";
+    }
+
+    // Applies the premium-content gate uniformly across every DTO-building
+    // path — list feeds, search, the premium grid, and idea detail — so a
+    // non-subscriber's network response never carries the real description
+    // for a locked idea anywhere it can be rendered, only the short
+    // previewText teaser. Centralized here instead of only in getById() so
+    // Home/Search/Premium card feeds get the same server-side protection.
+    private void applyPremiumLockIfNeeded(IdeaDTO dto, Idea idea, User viewer, boolean isOwner) {
+        if (!idea.isPremium() || isOwner) return;
+        boolean readerPremium = viewer != null && viewer.isPremium();
+        if (readerPremium) return;
+        dto.setPreviewText(buildPreviewText(idea.getDescription()));
+        dto.setDescription(null);
+        dto.setLocked(true);
+        dto.setLockReason("premium");
+    }
+
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
         List<Idea> ideas = switch (sort != null ? sort : "latest") {
             case "trending" -> ideaRepository.findAllByOrderByLikeCountDesc();
@@ -95,21 +142,13 @@ public class IdeaService {
         boolean isOwner = currentUser != null && idea.getCreator() != null
                 && idea.getCreator().getId().equals(currentUser.getId());
 
-        // ── Existing premium-content gate ───────────────────────────────
-        // idea.isPremium() ideas are a separate, harder lock (the whole idea,
-        // handled by /premium/:id → PremiumDetail.jsx) that a non-subscriber
-        // never gets past regardless of their free-read count. Surfacing it
-        // here too keeps the DTO self-describing for any caller, and — unlike
-        // today's client-only check — actually strips the description server
-        // side instead of just hiding it with CSS.
-        if (idea.isPremium() && !isOwner) {
-            boolean readerPremium = currentUser != null && currentUser.isPremium();
-            if (!readerPremium) {
-                dto.setDescription(null);
-                dto.setLocked(true);
-                dto.setLockReason("premium");
-                return dto;
-            }
+        // ── Premium-content gate ────────────────────────────────────────
+        // toDTO() above already applied this gate centrally (so Home/Search/
+        // Premium-grid feeds get the same server-side stripping) — nothing
+        // further to do here for that case, just stop before the free-read
+        // logic below runs on top of an already-locked idea.
+        if (dto.isLocked()) {
+            return dto;
         }
 
         // ── Free-plan read cap ──────────────────────────────────────────
@@ -131,6 +170,7 @@ public class IdeaService {
                     dto.setFreeReadsLimit(FREE_READ_LIMIT);
                 } else if (readCount >= FREE_READ_LIMIT) {
                     // Cap reached and this is a NEW idea — lock it.
+                    dto.setPreviewText(buildPreviewText(idea.getDescription()));
                     dto.setDescription(null);
                     dto.setLocked(true);
                     dto.setLockReason("read_limit");
@@ -565,6 +605,11 @@ public class IdeaService {
             dto.setSavedByCurrentUser(savedIdeaIds.contains(idea.getId()));
             dto.setLikedByCurrentUser(likedIdeaIds.contains(idea.getId()));
         }
+
+        boolean isOwner = currentUser != null && idea.getCreator() != null
+                && idea.getCreator().getId().equals(currentUser.getId());
+        applyPremiumLockIfNeeded(dto, idea, currentUser, isOwner);
+
         return dto;
     }
 
@@ -589,15 +634,20 @@ public class IdeaService {
             dto.setCreatorImage(idea.getCreator().getProfileImage());
         }
 
-        if (currentUserEmail != null) {
-            userRepository.findByEmail(currentUserEmail).ifPresent(user -> {
-                dto.setSavedByCurrentUser(
-                        savedIdeaRepository.existsByUserIdAndIdeaId(user.getId(), idea.getId()));
+        User viewer = currentUserEmail != null
+                ? userRepository.findByEmail(currentUserEmail).orElse(null)
+                : null;
 
-                dto.setLikedByCurrentUser(
-                        ideaLikeRepository.existsByUserAndIdea(user, idea));
-            });
+        if (viewer != null) {
+            dto.setSavedByCurrentUser(
+                    savedIdeaRepository.existsByUserIdAndIdeaId(viewer.getId(), idea.getId()));
+            dto.setLikedByCurrentUser(
+                    ideaLikeRepository.existsByUserAndIdea(viewer, idea));
         }
+
+        boolean isOwner = viewer != null && idea.getCreator() != null
+                && idea.getCreator().getId().equals(viewer.getId());
+        applyPremiumLockIfNeeded(dto, idea, viewer, isOwner);
 
         return dto;
     }
