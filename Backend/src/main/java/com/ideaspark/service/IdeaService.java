@@ -90,14 +90,67 @@ public class IdeaService {
     // for a locked idea anywhere it can be rendered, only the short
     // previewText teaser. Centralized here instead of only in getById() so
     // Home/Search/Premium card feeds get the same server-side protection.
+    //
+    // IMPORTANT: this mirrors getById()'s per-idea read-cap rules (below)
+    // but is READ-ONLY — it never writes an IdeaRead row. A card showing up
+    // in a feed/grid must reflect what would happen if the viewer actually
+    // opened it (so unread premium ideas still under the cap show their
+    // real, unblurred description on the card), but only actually opening
+    // the idea via getById() spends a slot. That keeps Home/Premium/Search
+    // cards unblurred right up until THIS specific idea's slot is spent or
+    // the lifetime cap is hit — matching the "blur only once used" spec.
     private void applyPremiumLockIfNeeded(IdeaDTO dto, Idea idea, User viewer, boolean isOwner) {
         if (!idea.isPremium() || isOwner) return;
-        boolean readerPremium = viewer != null && viewer.isPremium();
-        if (readerPremium) return;
-        dto.setPreviewText(buildPreviewText(idea.getDescription()));
-        dto.setDescription(null);
-        dto.setLocked(true);
-        dto.setLockReason("premium");
+
+        if (viewer == null) {
+            // Guests always see the locked/blurred preview — premium
+            // requires being signed in at all, before any per-user quota
+            // even applies.
+            dto.setPreviewText(buildPreviewText(idea.getDescription()));
+            dto.setDescription(null);
+            dto.setLocked(true);
+            dto.setLockReason("premium");
+            return;
+        }
+
+        boolean exempt = viewer.isPremium()
+                || membershipRepository.hasActiveCreatorPro(viewer.getId(), LocalDateTime.now());
+        if (exempt) return; // dto.description already holds the real text
+
+        boolean alreadyRead = ideaReadRepository.existsByUserIdAndIdeaId(viewer.getId(), idea.getId());
+        if (alreadyRead) {
+            // This exact premium idea's one-time slot was already spent —
+            // lock/blur the card, same as the detail page would.
+            dto.setPreviewText(buildPreviewText(idea.getDescription()));
+            dto.setDescription(null);
+            dto.setLocked(true);
+            dto.setLockReason("already_read");
+            dto.setFreeReadsLimit(PREMIUM_FREE_READ_LIMIT);
+            return;
+        }
+
+        long premiumReadCount = ideaReadRepository.countPremiumReadsByUserId(viewer.getId());
+        if (premiumReadCount >= PREMIUM_FREE_READ_LIMIT) {
+            // All slots spent on OTHER premium ideas, and this one's new —
+            // lock/blur the card.
+            dto.setPreviewText(buildPreviewText(idea.getDescription()));
+            dto.setDescription(null);
+            dto.setLocked(true);
+            dto.setLockReason("read_limit");
+            dto.setFreeReadsUsed((int) premiumReadCount);
+            dto.setFreeReadsLimit(PREMIUM_FREE_READ_LIMIT);
+            return;
+        }
+
+        // Never opened yet, and slots remain — keep the card unlocked with
+        // the real description. dto.description is already the idea's real
+        // text (set by the caller before this method runs); nothing to
+        // blank out. No IdeaRead row is written here — that only happens
+        // when the viewer actually opens the idea via getById().
+        dto.setLocked(false);
+        dto.setLockReason(null);
+        dto.setFreeReadsUsed((int) premiumReadCount);
+        dto.setFreeReadsLimit(PREMIUM_FREE_READ_LIMIT);
     }
 
     public List<IdeaDTO> getAllIdeas(String sort, String currentUserEmail) {
