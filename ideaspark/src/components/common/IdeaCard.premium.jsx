@@ -154,8 +154,14 @@ export function IdeaCardSkeleton({ variant = 'card' } = {}) {
 export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
   const navigate        = useNavigate();
   const { user }        = useAuth();
-  // Premium ideas are only obscured until the viewer holds a membership.
-  const locked          = idea.isPremium && !user?.isPremium;
+  // `idea.locked` comes straight from the backend's per-idea, per-user gate
+  // (IdeaService.applyPremiumLockIfNeeded) — it's already false for premium
+  // ideas the viewer can still open in full (unread, under their free-read
+  // cap) and only true once THIS idea has actually been spent (read once
+  // already, or the cap was hit on other ideas). Falls back to the old
+  // blanket premium-lock rule only when `locked` isn't present at all, e.g.
+  // offline mock data, so nothing breaks if a card ever arrives without it.
+  const locked          = idea.isPremium && (idea.locked ?? !user?.isPremium);
   const [saved,  setSaved]  = useState(idea.savedByCurrentUser ?? false);
   const [likes,  setLikes]  = useState(idea.likeCount || 0);
   const [liked,  setLiked]  = useState(idea.likedByCurrentUser ?? false);
