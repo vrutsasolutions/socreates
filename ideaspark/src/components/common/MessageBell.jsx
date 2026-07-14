@@ -12,6 +12,9 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 import Icon from './Icon';
+import useAnchoredPosition from './useAnchoredPosition';
+
+const PANEL_WIDTH = 320;
 
 function timeAgo(iso) {
   const then = new Date(iso).getTime();
@@ -29,16 +32,10 @@ export default function MessageBell() {
   const navigate = useNavigate();
   const { groupedMessageItems, unreadMessages, loading, markGroupAsRead, clearMessageNotifications } = useNotifications();
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, right: 16 });
   const wrapRef = useRef(null);
+  const pos = useAnchoredPosition(open, wrapRef, PANEL_WIDTH, 10);
 
-  const toggle = () => {
-    if (!open && wrapRef.current) {
-      const r = wrapRef.current.getBoundingClientRect();
-      setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
-    }
-    setOpen((o) => !o);
-  };
+  const toggle = () => setOpen((o) => !o);
 
   useEffect(() => {
     if (!open) return;
@@ -87,8 +84,14 @@ export default function MessageBell() {
           <div className="fixed inset-0 z-[60] bg-black/20" onClick={() => setOpen(false)} aria-hidden />
           <div
             style={{ top: pos.top, right: pos.right }}
-            className="fixed w-80 max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-xl
-                       ring-1 ring-black/5 z-[61] text-left overflow-hidden">
+            className="fixed w-80 max-w-[calc(100vw-1rem)] z-[61] text-left">
+            {/* Caret — anchors the panel visually to the message icon it came from */}
+            <div
+              className="absolute w-3 h-3 bg-white rotate-45 ring-1 ring-black/5"
+              style={{ top: -6, right: pos.arrowRight - 6 }}
+              aria-hidden
+            />
+            <div className="relative bg-white rounded-2xl shadow-xl ring-1 ring-black/5 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#E3F2FD]">
               <span className="font-bold text-[15px] text-[#0D2137]" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em' }}>
@@ -146,6 +149,7 @@ export default function MessageBell() {
                   </button>
                 ))
               )}
+            </div>
             </div>
           </div>
         </>,
