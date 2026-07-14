@@ -42,7 +42,7 @@ export default function ImageGallery({ images = [], title = '', category }) {
         src={images[active]}
         alt={title}
         onError={() => setBroken((b) => new Set(b).add(active))}
-        className="w-full max-h-72 object-cover"
+        className="w-full max-h-72 object-contain"
       />
       {images.length > 1 && (
         <>
