@@ -435,7 +435,8 @@ export default function AddIdea() {
 
   const MAX_IMAGES = 5;
   const TITLE_MAX  = 200;
-  const DESC_MAX   = 3000;
+  const DESC_MIN   = 100;
+  const DESC_MAX   = 5000;
   const [images,   setImages]   = useState([]);
   const [previews, setPreviews] = useState([]);
 
@@ -534,6 +535,8 @@ export default function AddIdea() {
     if (step === 0) {
       if (!form.title.trim())       return setError('Title is required');
       if (!form.description.trim()) return setError('Description is required');
+      if (form.description.trim().length < DESC_MIN)
+        return setError(`Description must be at least ${DESC_MIN} characters (currently ${form.description.trim().length}).`);
       if (!form.category)           return setError('Please select a category');
       setError('');
     }
@@ -679,6 +682,9 @@ export default function AddIdea() {
                 rows={5}
                 className={inputCls}
               />
+              <p className={`text-[11px] mt-1 ${form.description.trim().length < DESC_MIN ? 'text-[#E53935]' : 'text-[#90A4AE]'}`}>
+                Minimum {DESC_MIN} characters {form.description.trim().length < DESC_MIN && `(${DESC_MIN - form.description.trim().length} more needed)`}
+              </p>
             </div>
 
             <div>
