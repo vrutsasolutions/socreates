@@ -136,26 +136,11 @@ export default function Premium() {
           ) : (
             <div className="grid grid-cols-2 gap-3 pb-6">
               {ideas.map((idea) => (
-                <div key={idea.id} className="relative">
-                  <IdeaCard idea={idea} />
-
-                  {!isPremium && (
-                    <div
-                      onClick={() => navigate('/membership')}
-                      className="absolute inset-0 bg-white/80 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <div className="w-10 h-10 bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl flex items-center justify-center">
-                        <Icon name="lock" className="w-5 h-5 text-[#1565C0]" />
-                      </div>
-                      <span className="text-xs text-[#1565C0] font-medium">
-                        Premium only
-                      </span>
-                      <span className="text-xs text-[#1565C0]">
-                        Upgrade →
-                      </span>
-                    </div>
-                  )}
-                </div>
+                // IdeaCard already shows the image, title, and a 1-line
+                // preview with the rest blurred for non-subscribers (same
+                // treatment as Home/Search/Saved) — no separate lock overlay
+                // needed here anymore.
+                <IdeaCard key={idea.id} idea={idea} />
               ))}
             </div>
           )}
