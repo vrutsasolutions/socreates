@@ -247,7 +247,7 @@ export default function PremiumDetail() {
           ) : (
             <>
               {/* ── Idea body ────────────────────────────────── */}
-              {!isLocked && <ImageGallery images={ideaImages(idea)} title={idea.title} />}
+              <ImageGallery images={ideaImages(idea)} title={idea.title} category={idea.category} />
 
               {/* Creator row */}
               <div className="flex items-center gap-3 mb-3">
@@ -293,10 +293,19 @@ export default function PremiumDetail() {
 
               {isLocked ? (
                 <>
-                  {/* Blurred preview + upgrade gate for non-subscribers */}
-                  <p className="text-[#546E7A] text-[15px] leading-relaxed blur-[4px] select-none pointer-events-none line-clamp-4 mb-6" aria-hidden="true">
-                    {idea.description}
+                  {/* Preview for non-subscribers — only the real first line
+                      is ever rendered; the rest is represented by soft
+                      blurred placeholder bars (never the real text), so
+                      there's nothing to read no matter how blur/opacity
+                      renders on the device. */}
+                  <p className="text-[#546E7A] text-[15px] leading-relaxed line-clamp-1 mb-2.5">
+                    {idea.previewText || 'Subscribe to unlock the full details of this premium idea.'}
                   </p>
+                  <div aria-hidden="true" className="flex flex-col gap-2 mb-6">
+                    <span className="block h-[9px] w-[92%] rounded-full" style={{ background: 'linear-gradient(90deg, #E2E6F0, #F0F2F8, #E2E6F0)', filter: 'blur(3px)' }} />
+                    <span className="block h-[9px] w-[78%] rounded-full" style={{ background: 'linear-gradient(90deg, #E2E6F0, #F0F2F8, #E2E6F0)', filter: 'blur(3px)' }} />
+                    <span className="block h-[9px] w-[60%] rounded-full" style={{ background: 'linear-gradient(90deg, #E2E6F0, #F0F2F8, #E2E6F0)', filter: 'blur(3px)' }} />
+                  </div>
 
                   <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl p-6 text-center shadow-sm">
                     <div className="w-14 h-14 bg-[#E3F2FD] rounded-2xl flex items-center justify-center mx-auto mb-4">
