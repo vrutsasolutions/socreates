@@ -7,5 +7,4 @@ public class UpdateProfileRequest {
     private String name;
     private String username; // optional — legacy users can set theirs
     private String bio;
-    private String password; // optional new password
 }
