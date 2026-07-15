@@ -641,6 +641,32 @@ export default function Chat() {
   const textInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
 
+  // ── Real visible height, keyboard-aware ─────────────────────────────────
+  // h-screen (100vh) doesn't shrink when the on-screen keyboard opens on
+  // many mobile browsers/WebViews — the layout viewport it's based on stays
+  // full-height, so the composer (the last item in this flex column) ends
+  // up laid out behind the keyboard instead of pinned right above it.
+  // window.visualViewport reports the actual visible height and fires
+  // resize/scroll as the keyboard opens, closes, or the page pans, so we
+  // track it and size the root container to that instead of trusting vh.
+  const [viewportH, setViewportH] = useState(
+    () => window.visualViewport?.height ?? window.innerHeight,
+  );
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return; // no support — the h-screen/100vh class still applies
+
+    const update = () => setViewportH(vv.height);
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   // Message selection / per-message actions
   const [menuOpen, setMenuOpen] = useState(false); // header 3-dot dropdown
   const [selectMode, setSelectMode] = useState(false);
@@ -773,7 +799,7 @@ export default function Chat() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages]);
+  }, [messages, viewportH]);
 
   // ── Clean up mic on unmount ─────────────────────────────────────────────
   useEffect(() => {
@@ -1416,7 +1442,10 @@ export default function Chat() {
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div className="h-screen flex flex-col bg-[#F4F7FF]">
+    <div
+      className="h-screen flex flex-col bg-[#F4F7FF]"
+      style={{ height: viewportH }}
+    >
       <style>{`
         @keyframes scWave   { 0%,100%{ transform:scaleY(0.5);} 50%{ transform:scaleY(1);} }
         .sc-wave-bar        { animation:scWave 900ms ease-in-out infinite; transform-origin:center; }
