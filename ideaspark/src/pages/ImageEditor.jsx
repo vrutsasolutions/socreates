@@ -401,6 +401,7 @@ function ToolBtn({ label, onClick, active, children }) {
   return (
     <button
       onClick={onClick}
+      style={{ flexShrink: 0 }}
       className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
     >
       <div
@@ -865,7 +866,19 @@ export default function ImageEditor() {
         <div
           style={{
             position: "relative",
-            display: "flex",
+            // Deliberately NOT display:"flex" here. As a flex container,
+            // the <img> below becomes a flex item whose width/height get
+            // resolved independently by the flex algorithm (flex-basis:auto
+            // + the default cross-axis "stretch"), which can inflate the
+            // img's own rendered box beyond its actual visible
+            // (letterboxed) picture once object-fit:contain shrinks the
+            // content inside it. imgRect / the crop overlay are sized to
+            // that box via clientWidth/clientHeight, so the crop selection
+            // ends up larger than the photo with a visible gap around it.
+            // Plain block layout lets the <img> size itself with the
+            // normal CSS2.1 dual max-width/max-height algorithm, which
+            // preserves its intrinsic aspect ratio directly — so the
+            // rendered box always matches the visible photo exactly.
             maxWidth: "100%",
             maxHeight: "100%",
           }}
@@ -1098,13 +1111,19 @@ export default function ImageEditor() {
           boxShadow: "0 -4px 20px rgba(21,101,192,0.07)",
         }}
       >
-        {/* 5 tools row */}
+        {/* 5 tools row — horizontally scrollable so nothing gets squished
+            or clipped on narrow screens; scrollbar hidden for a clean look
+            (see .sc-toolbar-scroll rule injected in the spinner <style> tag
+            below the component). */}
         <div
+          className="sc-toolbar-scroll"
           style={{
             display: "flex",
-            justifyContent: "center",
+            justifyContent: "flex-start",
             gap: 16,
             padding: "14px 20px 4px",
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
           }}
         >
           <ToolBtn
@@ -1366,7 +1385,11 @@ export default function ImageEditor() {
       </div>
 
       {/* spinner keyframe */}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .sc-toolbar-scroll::-webkit-scrollbar { display: none; }
+        .sc-toolbar-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+      `}</style>
     </div>
   );
 }
