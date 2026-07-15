@@ -41,6 +41,13 @@ public class UserController {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final com.ideaspark.service.PresenceService presenceService;
+    private final CreatorMonthlyMetricsRepository creatorMonthlyMetricsRepository;
+    private final BlockedUserRepository blockedUserRepository;
+    private final IdeaReadRepository ideaReadRepository;
+    private final ReportRepository reportRepository;
+    private final MembershipRepository membershipRepository;
+    private final MembershipPaymentRepository membershipPaymentRepository;
+    private final CreatorEarningRepository creatorEarningRepository;
 
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(
@@ -258,6 +265,36 @@ public class UserController {
             conversations
                     .forEach(conv -> messageRepository.deleteAll(messageRepository.findByConversationId(conv.getId())));
             conversationRepository.deleteAll(conversations);
+
+            // ── Tables that were missing from this method — each has a NOT NULL
+            // FK to users.id with no DB-level cascade (ddl-auto=validate never
+            // wrote one), so leaving any of them un-cleared trips the same
+            // "violates foreign key constraint" error on userRepository.delete().
+
+            creatorMonthlyMetricsRepository.deleteAll(
+                    creatorMonthlyMetricsRepository.findByCreatorId(userId));
+
+            ideaReadRepository.deleteAll(
+                    ideaReadRepository.findByUserId(userId));
+
+            // blocked_users has two FKs (blocker_id, blocked_id) — clear both
+            // directions, since a row where someone else blocked this user
+            // still references users.id.
+            blockedUserRepository.deleteAll(blockedUserRepository.findByBlocker(user));
+            blockedUserRepository.deleteAll(blockedUserRepository.findByBlocked(user));
+
+            // reports has two FKs (reporter_id, reported_user_id) — same reasoning.
+            reportRepository.deleteAll(reportRepository.findByReporter(user));
+            reportRepository.deleteAll(reportRepository.findByReportedUser(user));
+
+            membershipRepository.deleteAll(membershipRepository.findByUserId(userId));
+
+            // Financial history — hard-deleted per product decision (no
+            // anonymize/retain requirement for this app).
+            membershipPaymentRepository.deleteAll(
+                    membershipPaymentRepository.findByUserIdOrderByCreatedAtDesc(userId));
+            creatorEarningRepository.deleteAll(
+                    creatorEarningRepository.findByCreatorIdOrderByMonthDesc(userId));
 
             userRepository.delete(user);
 
