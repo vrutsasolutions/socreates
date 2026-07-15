@@ -9,7 +9,7 @@ import lombok.Data;
 public class CheckoutRequest {
     private String plan;       // "reader" | "creator"
     private String billing;    // "monthly" | "yearly"
-    private String gateway;    // "razorpay" | "stripe"
+    private String gateway;    // "razorpay" (only supported gateway)
     private String planLabel;  // display, e.g. "Creators Pro"
     private String price;      // display, e.g. "₹999"
 }
