@@ -16,6 +16,12 @@ public interface BlockedUserRepository extends JpaRepository<BlockedUser, UUID> 
 
     List<BlockedUser> findByBlocker(User blocker);
 
+    // Needed alongside findByBlocker so account deletion can clear rows where
+    // this user is on either side of the blocker_id / blocked_id FK — a row
+    // where someone else blocked THIS user still references users.id and
+    // would trip the same FK violation otherwise.
+    List<BlockedUser> findByBlocked(User blocked);
+
     boolean existsByBlockerAndBlockedOrBlockerAndBlocked(
             User blocker1,
             User blocked1,
