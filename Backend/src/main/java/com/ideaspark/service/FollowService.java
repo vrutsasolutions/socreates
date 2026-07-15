@@ -126,6 +126,27 @@ public class FollowService {
         return "Unfollowed successfully";
     }
 
+    // Remove someone from YOUR followers list. This is the mirror image of
+    // unfollow(): unfollow deletes the row where YOU are the follower;
+    // this deletes the row where THEY are the follower and you are the one
+    // being followed, so they stop following you (and won't reappear after
+    // a refresh, since it's now actually persisted rather than removed only
+    // from local frontend state).
+    public String removeFollower(UUID currentUserId, UUID followerUserId) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+        User followerUser = userRepository.findById(followerUserId)
+                .orElseThrow(() -> new RuntimeException("Follower not found"));
+
+        Optional<Follow> follow = followRepository.findByFollowerAndFollowing(followerUser, currentUser);
+        if (follow.isEmpty()) {
+            return "Not a follower";
+        }
+
+        followRepository.delete(follow.get());
+        return "Follower removed successfully";
+    }
+
     // Get followers list of a user
     public List<FollowResponse> getFollowers(UUID userId) {
         User user = userRepository.findById(userId)
