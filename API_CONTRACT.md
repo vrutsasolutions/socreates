@@ -204,7 +204,6 @@ these endpoints ship; flip to `false` to go live.
 |---|---|---|---|---|
 | POST | `/create-order` | `Checkout` | `{ orderId, amount, currency }` | ⏳ |
 | POST | `/subscribe` | `Checkout` + `{ paymentId, orderId, signature }` | `{ user }` | ⏳ |
-| POST | `/stripe/checkout` | `Checkout` | `{ checkoutUrl }` | ⏳ |
 | POST | `/cancel` | `{}` | `{ user }` | ⏳ |
 | POST | `/refund` | `{}` | `{ user }` | ✅ |
 
@@ -212,18 +211,15 @@ these endpoints ship; flip to `false` to go live.
 `{ plan, billing, gateway, planLabel, price }`
 - `plan` ∈ `reader | creator`  (Go Premium / Creators Pro)
 - `billing` ∈ `monthly | yearly`
-- `gateway` ∈ `razorpay | stripe`
+- `gateway` — always `razorpay` (the only supported gateway)
 - `planLabel` — display string, e.g. `"Creators Pro"`
 - `price` — display string, e.g. `"₹999"` (server is source of truth for the real amount)
 
 **`amount`** on `/create-order` is in **paise** (₹799 → `79900`) for the Razorpay order.
 
-**`/subscribe`** is called after a successful gateway charge:
-- **Razorpay:** sent from the in-browser `handler` with `paymentId` / `orderId` /
-  `signature` — backend **must verify the signature** before granting premium.
-- **Stripe:** the live flow redirects to `checkoutUrl`; confirmation happens via the
-  Stripe **webhook**, after which the user returns premium. (`/subscribe` is the
-  mock/Razorpay path.)
+**`/subscribe`** is called after a successful Razorpay charge, sent from the
+in-browser `handler` with `paymentId` / `orderId` / `signature` — backend **must
+verify the signature** before granting premium.
 
 **`/cancel`** ends the active membership and returns the user with `isPremium: false`
 and `membership: null`.
@@ -261,12 +257,11 @@ aren't configured. Frontend: `refundMembership()` in `paymentApi.jsx`, wired to 
 > the Active status view and unlocks premium content (§3 `/ideas/premium`).
 
 **Gaps for the backend to close:**
-1. Implement the four endpoints above; verify the Razorpay signature server-side.
-2. Add a Stripe webhook to confirm async payments and set `isPremium`/`membership`.
-3. ✅ DONE for auth (§1 `/register`,`/login`,`/google` now embed `isPremium` +
+1. Implement the endpoints above; verify the Razorpay signature server-side.
+2. ✅ DONE for auth (§1 `/register`,`/login`,`/google` now embed `isPremium` +
    full `membership`). ⏳ Still TODO: add the same to §2 `GET /me` so a hard page
    refresh that re-hydrates from `/me` keeps the membership too.
-4. Populate `membership.stats` from real engagement data (currently mock placeholders).
+3. Populate `membership.stats` from real engagement data (currently mock placeholders).
 
 ### 8a. Creator payouts ✅  `/api/creator`  — frontend: `src/api/paymentApi.jsx`
 
@@ -374,5 +369,3 @@ accounts and user↔user (non-creator) chats are **unlimited**.
 in `messagingApi.jsx` but have no backend route yet.
 
 ---
-
-
