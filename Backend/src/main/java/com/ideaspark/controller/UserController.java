@@ -83,10 +83,6 @@ public class UserController {
             user.setBio(req.getBio());
         }
 
-        if (req.getPassword() != null && !req.getPassword().isBlank()) {
-            user.setPassword(passwordEncoder.encode(req.getPassword()));
-        }
-
         if (avatar != null && !avatar.isEmpty()) {
             String imageUrl = cloudflareImageService.upload(avatar);
             user.setProfileImage(imageUrl);
@@ -94,6 +90,53 @@ public class UserController {
 
         User savedUser = userRepository.save(user);
         return ResponseEntity.ok(toDTO(savedUser));
+    }
+
+    // PUT /api/users/me/password
+    // Powers the "Password" tab on Edit Profile. This endpoint was missing
+    // entirely — the frontend called it, got a 404, and every attempt fell
+    // through to GlobalExceptionHandler's generic 500 message ("Something
+    // went wrong. Please try again later."), which is exactly what was
+    // being shown on screen.
+    @PutMapping("/me/password")
+    public ResponseEntity<Map<String, String>> changePassword(
+            @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+
+        // Google-auth accounts have no local password to change/verify against.
+        if ("google".equalsIgnoreCase(user.getAuthProvider())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Your account signs in with Google and has no password to change"));
+        }
+
+        if (request == null
+                || request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()
+                || request.getNewPassword() == null || request.getNewPassword().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Current and new password are required"));
+        }
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("message", "Current password is incorrect"));
+        }
+
+        if (request.getNewPassword().length() < 6) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "New password must be at least 6 characters"));
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "New password must be different from the current password"));
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
     }
 
     // GET /api/users/me/privacy-preferences
