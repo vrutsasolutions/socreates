@@ -82,6 +82,13 @@ export const unfollowUser = (targetUserId) =>
   USE_MOCK.users
     ? mockResponse('Unfollowed successfully')
     : api.delete(`/follow/${targetUserId}`);
+
+// DELETE /api/follow/followers/{followerUserId} → remove someone from your
+// followers list (the reverse of unfollow — they stop following you).
+export const removeFollower = (followerUserId) =>
+  USE_MOCK.users
+    ? mockResponse('Follower removed successfully')
+    : api.delete(`/follow/followers/${followerUserId}`);
     
 // DELETE /api/users/me → delete account with password verification
 export const deleteAccount = (password) =>
