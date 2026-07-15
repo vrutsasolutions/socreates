@@ -1027,9 +1027,14 @@ export default function Chat() {
     const end = el?.selectionEnd ?? text.length;
     const next = text.slice(0, start) + emoji + text.slice(end);
     setText(next);
+    // Update the caret position for the next insert, but deliberately don't
+    // call el.focus() here — focusing would fire the input's onFocus
+    // handler and close the emoji tray after every single tap, when the
+    // whole point is to let several emojis be picked in a row (WhatsApp-
+    // style). setSelectionRange still works on an unfocused input; the
+    // caret lands correctly whenever the user does tap back in.
     requestAnimationFrame(() => {
       if (!el) return;
-      el.focus();
       const caret = start + emoji.length;
       el.setSelectionRange(caret, caret);
     });
@@ -2107,6 +2112,7 @@ export default function Chat() {
               <input
                 ref={textInputRef}
                 value={text}
+                onFocus={() => setEmojiOpen(false)}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSendText();
@@ -2174,6 +2180,16 @@ export default function Chat() {
             onChange={handleDocs}
           />
         </div>
+      )}
+
+      {/* Docks in-flow directly below the composer (not a full-screen
+          overlay) so the +/emoji/input/mic/send row stays visible above it,
+          exactly like WhatsApp's in-place emoji tray. */}
+      {emojiOpen && (
+        <EmojiPickerSheet
+          onClose={() => setEmojiOpen(false)}
+          onSelect={(emoji) => insertEmoji(emoji)}
+        />
       )}
 
       {/* ── Send Photo compose ── */}
@@ -2339,13 +2355,6 @@ export default function Chat() {
             className="max-h-[85%] max-w-[92%] rounded-2xl object-contain"
           />
         </div>
-      )}
-
-      {emojiOpen && (
-        <EmojiPickerSheet
-          onClose={() => setEmojiOpen(false)}
-          onSelect={(emoji) => insertEmoji(emoji)}
-        />
       )}
 
       {attachOpen && (
