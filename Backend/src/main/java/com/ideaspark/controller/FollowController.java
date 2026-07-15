@@ -17,7 +17,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/follow")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class FollowController {
 
     private final FollowService followService;
@@ -46,6 +45,18 @@ public class FollowController {
             @PathVariable UUID targetUserId) {
         UUID currentUserId = getCurrentUserId(userDetails);
         return ResponseEntity.ok(followService.unfollow(currentUserId, targetUserId));
+    }
+
+    // Remove someone from YOUR followers list (they stop following you).
+    // Distinct from unfollow above: that stops YOU following THEM; this
+    // stops THEM following YOU. Kept under its own "/followers/" segment so
+    // it can't collide with the single-segment "/{targetUserId}" mapping.
+    @DeleteMapping("/followers/{followerUserId}")
+    public ResponseEntity<String> removeFollower(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID followerUserId) {
+        UUID currentUserId = getCurrentUserId(userDetails);
+        return ResponseEntity.ok(followService.removeFollower(currentUserId, followerUserId));
     }
 
     // Get followers of a user
