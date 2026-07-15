@@ -61,22 +61,34 @@ export default function Search() {
         <div className="pointer-events-none absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
         <div className="pointer-events-none absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
 
-        {/* Search Bar */}
-        <div className="flex items-center gap-3 bg-white border border-[#BBDEFB] rounded-2xl px-4 py-3 focus-within:border-[#1565C0] transition">
-          <svg className="w-4 h-4 text-[#90A4AE] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search ideas, categories, creators..."
-            className="flex-1 bg-transparent text-[#0D2137] text-sm placeholder-[#90A4AE] outline-none focus:outline-none focus:ring-0 focus:shadow-none border-none appearance-none"
-            autoFocus
-          />
-          {query && (
-            <button onClick={() => setQuery('')} className="text-[#90A4AE] hover:text-[#0D2137] transition text-sm">✕</button>
-          )}
+        {/* Top bar — back button + Search Bar */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/home')}
+            aria-label="Go to home"
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+
+          <div className="flex-1 flex items-center gap-3 bg-white border border-[#BBDEFB] rounded-2xl px-4 py-3 focus-within:border-[#1565C0] transition">
+            <svg className="w-4 h-4 text-[#90A4AE] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search ideas, categories, creators..."
+              className="flex-1 bg-transparent text-[#0D2137] text-sm placeholder-[#90A4AE] outline-none focus:outline-none focus:ring-0 focus:shadow-none border-none appearance-none"
+              autoFocus
+            />
+            {query && (
+              <button onClick={() => setQuery('')} className="text-[#90A4AE] hover:text-[#0D2137] transition text-sm">✕</button>
+            )}
+          </div>
         </div>
 
         {/* Category Filter */}
