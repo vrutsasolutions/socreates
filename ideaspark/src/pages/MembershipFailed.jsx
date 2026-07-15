@@ -72,11 +72,6 @@ export default function MembershipFailed() {
             style={{ background: 'linear-gradient(135deg, #4F8EF7, #3B6FE0)' }}>
             Retry with Razorpay
           </button>
-          <button onClick={() => retry('stripe')}
-            className="w-full text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-[15px]"
-            style={{ background: 'linear-gradient(135deg, #7C5CFC, #6246EA)' }}>
-            Retry with Stripe
-          </button>
         </div>
 
         <button onClick={() => navigate('/membership')}
