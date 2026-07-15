@@ -2,9 +2,10 @@
 //  paymentApi — membership / subscription endpoints
 //  ----------------------------------------------------------------------
 //  Mock-first: while USE_MOCK.payment is true these simulate a successful
-//  gateway round-trip (no real Razorpay/Stripe call) and return a premium
+//  gateway round-trip (no real Razorpay call) and return a premium
 //  `user` object with a populated `membership`. Flip USE_MOCK.payment to
 //  false once Vishakha ships /api/payment/* per API_CONTRACT.md.
+//  Razorpay is the only supported gateway — Stripe was never implemented.
 // ════════════════════════════════════════════════════════════════════════
 
 import api from './axiosInstance';
@@ -36,7 +37,7 @@ export function buildMembership({ plan, billing, gateway, planLabel, price }) {
   return {
     plan,                       // 'reader' | 'creator'
     billing,                    // 'monthly' | 'yearly'
-    gateway,                    // 'razorpay' | 'stripe'
+    gateway,                    // 'razorpay'
     planLabel: planLabel ?? 'Premium',
     price:     price ?? '',
     status:    'active',
@@ -64,15 +65,6 @@ export const subscribe = (payload) =>
         user: { ...readUser(), isPremium: true, membership: buildMembership(payload) },
       })
     : api.post('/payment/subscribe', payload);
-
-/** Start a Stripe Checkout session (returns a redirect URL on the live API). */
-export const stripeCheckout = (payload) =>
-  USE_MOCK.payment
-    ? mockResponse({
-        mock: true,
-        user: { ...readUser(), isPremium: true, membership: buildMembership(payload) },
-      })
-    : api.post('/payment/stripe/checkout', payload);
 
 /** Cancel an active membership. */
 export const cancelMembership = () =>
