@@ -33,7 +33,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, login } = useAuth();
-  const [loading, setLoading] = useState('');   // '' | 'razorpay' | 'stripe'
+  const [loading, setLoading] = useState('');   // '' | 'razorpay'
   const [error, setError]     = useState('');
 
   const order = location.state || {};
