@@ -33,7 +33,11 @@ const Toggle = ({ value, onChange }) => (
 const StarRating = ({ value, onChange }) => {
   const [hover, setHover] = useState(0);
   return (
-    <div className="flex items-center justify-center gap-2" role="radiogroup" aria-label="Rating">
+    <div
+      className="flex items-center justify-center gap-2"
+      role="radiogroup"
+      aria-label="Rating"
+    >
       {[1, 2, 3, 4, 5].map((n) => {
         const filled = (hover || value) >= n;
         return (
@@ -157,6 +161,12 @@ export default function Settings() {
   const [showDelete, setShowDelete] = useState(false);
   const [deletePwd, setDeletePwd] = useState("");
   const [deleteError, setDeleteError] = useState("");
+
+  // Contact Support popup state.
+  const [showSupport, setShowSupport] = useState(false);
+  const SUPPORT_PHONE = "+91 9994586462";
+  const SUPPORT_PHONE_TEL = "+919994586462";
+  const SUPPORT_EMAIL = "contact@vrutsasolutions.com";
 
   // Feedback popup state (Settings > Support > Feedback). `feedbackGiven`
   // is null while loading, then a feedback object once submitted (ever),
@@ -496,7 +506,7 @@ export default function Settings() {
                 <Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />
               }
               label="Contact Support"
-              onClick={() => navigate("/assistant")}
+              onClick={() => setShowSupport(true)}
             />
             <Row
               icon={<Icon name="star" className="w-5 h-5 text-[#F59E0B]" />}
@@ -688,6 +698,74 @@ export default function Settings() {
                 )}
                 {submittingFeedback ? "Submitting..." : "Submit"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSupport && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
+          onClick={() => setShowSupport(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="support-title"
+        >
+          <div
+            className="w-full max-w-sm bg-[#F0F6FF] rounded-2xl shadow-2xl p-7"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2
+              id="support-title"
+              className="text-[#0D2137] text-2xl font-bold text-center mb-6"
+            >
+              Contact Support
+            </h2>
+
+            <p className="text-[#0D2137] text-base font-medium mb-5">
+              Need help?
+            </p>
+
+            <div className="space-y-5 mb-6">
+              <a
+                href={`tel:${SUPPORT_PHONE_TEL}`}
+                className="flex items-center gap-3 text-[#0D2137] text-base hover:opacity-70 transition"
+              >
+                <Icon
+                  name="phone"
+                  className="w-5 h-5 text-[#546E7A] shrink-0"
+                />
+                <span>{SUPPORT_PHONE}</span>
+              </a>
+
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="flex items-center gap-3 text-[#0D2137] text-base hover:opacity-70 transition"
+              >
+                <Icon name="mail" className="w-5 h-5 text-[#546E7A] shrink-0" />
+                <span>{SUPPORT_EMAIL}</span>
+              </a>
+            </div>
+
+            <div className="text-[#0D2137] text-base mb-8">
+              <p>Mon - Sun</p>
+              <p>9:00 AM - 6:00 PM</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowSupport(false)}
+                className="flex-1 bg-white border border-[#CBD5E1] text-[#0D2137] font-semibold py-3 rounded-xl hover:bg-[#F8FAFF] active:scale-95 transition"
+              >
+                Close
+              </button>
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="flex-1 text-center bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-3 rounded-xl active:scale-95 transition"
+              >
+                Contact
+              </a>
             </div>
           </div>
         </div>

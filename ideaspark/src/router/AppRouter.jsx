@@ -50,6 +50,7 @@ import AIAssistant from "../pages/AIAssistant";
 import ImageEditor from "../pages/ImageEditor";
 import BlockedUsers from "../pages/BlockedUsers";
 
+
 function PrivateRoute({ children }) {
   const { user } = useAuth();
   return user ? children : <Navigate to="/login" replace />;
@@ -94,6 +95,7 @@ export default function AppRouter() {
         <Route path="/membership/success" element={<PrivateRoute><MembershipSuccess /></PrivateRoute>} />
         <Route path="/membership/failure" element={<PrivateRoute><MembershipFailed /></PrivateRoute>} />
         <Route path="/account/subscription" element={<PrivateRoute><AccountSubscription /></PrivateRoute>} />
+        
 
         <Route path="/creator-dashboard" element={<PrivateRoute><CreatorDashboard /></PrivateRoute>} />
         <Route path="/creator-pro" element={<PrivateRoute><CreatorPro /></PrivateRoute>} />
