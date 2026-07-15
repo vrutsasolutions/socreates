@@ -25,6 +25,7 @@ import {
   fetchSuggestedCreators,
   followUser,
   unfollowUser,
+  removeFollower,
 } from "../api/userApi";
 
 const TABS = [
@@ -194,10 +195,15 @@ export default function FollowList() {
     setParams({ tab: key }, { replace: true });
   };
 
-  // Drop a follower from your list. No backend "remove follower" endpoint
-  // exists yet, so this is an optimistic, local-only removal.
+  // Drop a follower from your list — optimistic, reverted if the call
+  // fails. Previously this only updated local state with no backend call,
+  // so the person reappeared on refresh; now it actually persists via
+  // DELETE /api/follow/followers/{id}.
   const handleRemove = (person) => {
     setFollowers((prev) => prev.filter((p) => p.userId !== person.userId));
+    removeFollower(person.userId).catch(() =>
+      setFollowers((prev) => [person, ...prev]),
+    );
   };
 
   // Unfollow someone you follow — optimistic, reverted if the call fails.
