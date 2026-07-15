@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS membership (
   user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
   plan       VARCHAR(20) NOT NULL,   -- "reader" | "creator"
   billing    VARCHAR(20),            -- "monthly" | "yearly"
-  gateway    VARCHAR(20),            -- "razorpay" | "stripe"
+  gateway    VARCHAR(20),            -- "razorpay" (only supported gateway)
   plan_label VARCHAR(255),           -- display, e.g. "Creators Pro"
   price      VARCHAR(20),            -- display, e.g. "₹999"
   status     VARCHAR(20) DEFAULT 'active',
