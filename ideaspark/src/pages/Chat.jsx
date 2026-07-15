@@ -1955,7 +1955,7 @@ export default function Chat() {
             </button>
             <button
               onClick={() => setShowLimitModal(true)}
-              className="flex-1 flex items-center gap-2 bg-[#F0F6FF] border border-[#BBDEFB] rounded-full px-4 py-2.5 text-left active:scale-[0.99] transition-all"
+              className="flex-1 min-w-0 flex items-center gap-2 bg-[#F0F6FF] border border-[#BBDEFB] rounded-full px-4 py-2.5 text-left active:scale-[0.99] transition-all"
             >
               <svg
                 className="w-4 h-4 text-[#90A4AE] shrink-0"
@@ -1967,7 +1967,7 @@ export default function Chat() {
                 <rect x="4" y="11" width="16" height="10" rx="2" />
                 <path d="M8 11V7a4 4 0 018 0v4" />
               </svg>
-              <span className="flex-1 text-[14px] text-[#90A4AE]">
+              <span className="flex-1 min-w-0 truncate text-[14px] text-[#90A4AE]">
                 Messaging limit reached
               </span>
             </button>
@@ -2073,7 +2073,7 @@ export default function Chat() {
                 />
               </svg>
             </button>
-            <div className="flex-1 flex items-center gap-2 bg-[#F0F6FF] border border-[#BBDEFB] rounded-full px-4 py-2.5">
+            <div className="flex-1 min-w-0 flex items-center gap-2 bg-[#F0F6FF] border border-[#BBDEFB] rounded-full px-4 py-2.5">
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -2081,7 +2081,7 @@ export default function Chat() {
                   if (e.key === "Enter") handleSendText();
                 }}
                 placeholder="Message..."
-                className="flex-1 bg-transparent text-[14px] text-[#0D2137] placeholder-[#90A4AE] focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent text-[14px] text-[#0D2137] placeholder-[#90A4AE] focus:outline-none"
               />
               <button
                 onClick={startRecording}
