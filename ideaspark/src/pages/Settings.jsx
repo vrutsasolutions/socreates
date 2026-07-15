@@ -9,6 +9,7 @@ import {
   fetchPrivacyPreferences,
   updatePrivacyPreferences,
 } from "../api/userApi";
+import { fetchMyFeedback, submitFeedback } from "../api/feedbackApi";
 
 const Toggle = ({ value, onChange }) => (
   <button
@@ -25,6 +26,47 @@ const Toggle = ({ value, onChange }) => (
     />
   </button>
 );
+
+// 5-star rating input for the Feedback popup. Renders its own SVGs (rather
+// than the shared <Icon>, which hardcodes fill="none") so each star can be
+// filled solid up to `value` (or up to the hovered star while hovering).
+const StarRating = ({ value, onChange }) => {
+  const [hover, setHover] = useState(0);
+  return (
+    <div className="flex items-center justify-center gap-2" role="radiogroup" aria-label="Rating">
+      {[1, 2, 3, 4, 5].map((n) => {
+        const filled = (hover || value) >= n;
+        return (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={value === n}
+            aria-label={`${n} star${n > 1 ? "s" : ""}`}
+            onClick={() => onChange(n)}
+            onMouseEnter={() => setHover(n)}
+            onMouseLeave={() => setHover(0)}
+            className="active:scale-90 transition-transform"
+          >
+            <svg
+              className={`w-9 h-9 transition-colors ${filled ? "text-[#F59E0B]" : "text-[#CBD5E1]"}`}
+              viewBox="0 0 24 24"
+              fill={filled ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9L12 2.5z"
+              />
+            </svg>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -116,6 +158,34 @@ export default function Settings() {
   const [deletePwd, setDeletePwd] = useState("");
   const [deleteError, setDeleteError] = useState("");
 
+  // Feedback popup state (Settings > Support > Feedback). `feedbackGiven`
+  // is null while loading, then a feedback object once submitted (ever),
+  // or false if this account hasn't given feedback yet — that null/false
+  // split keeps the Support row from flashing "Completed" before the
+  // GET /api/feedback/me check resolves.
+  const [feedbackGiven, setFeedbackGiven] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackReview, setFeedbackReview] = useState("");
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await fetchMyFeedback();
+        if (!cancelled) setFeedbackGiven(data || false);
+      } catch (err) {
+        console.error("[settings] failed to load feedback status", err);
+        if (!cancelled) setFeedbackGiven(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -148,6 +218,43 @@ export default function Settings() {
       );
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const openFeedbackModal = () => {
+    if (feedbackGiven) return; // one-time — already submitted, can't reopen
+    setFeedbackRating(0);
+    setFeedbackReview("");
+    setFeedbackError("");
+    setShowFeedback(true);
+  };
+
+  const closeFeedbackModal = () => {
+    if (submittingFeedback) return;
+    setShowFeedback(false);
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (feedbackRating < 1) {
+      setFeedbackError("Please select a star rating.");
+      return;
+    }
+    try {
+      setSubmittingFeedback(true);
+      setFeedbackError("");
+      const { data } = await submitFeedback({
+        rating: feedbackRating,
+        review: feedbackReview.trim(),
+      });
+      setFeedbackGiven(data);
+      setShowFeedback(false);
+    } catch (err) {
+      setFeedbackError(
+        err?.response?.data?.message ||
+          "Failed to submit feedback. Please try again.",
+      );
+    } finally {
+      setSubmittingFeedback(false);
     }
   };
   const Section = ({ title, children }) => (
@@ -391,6 +498,19 @@ export default function Settings() {
               label="Contact Support"
               onClick={() => navigate("/assistant")}
             />
+            <Row
+              icon={<Icon name="star" className="w-5 h-5 text-[#F59E0B]" />}
+              label="Feedback"
+              sublabel={feedbackGiven ? undefined : "Rate your experience"}
+              right={
+                feedbackGiven ? (
+                  <span className="text-[#10B981] text-xs font-semibold">
+                    Completed ✓
+                  </span>
+                ) : undefined
+              }
+              onClick={feedbackGiven ? undefined : openFeedbackModal}
+            />
           </Section>
 
           <Section title="Danger Zone">
@@ -492,6 +612,81 @@ export default function Settings() {
                   <span className="w-4 h-4 border-2 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
                 )}
                 {deleting ? "Deleting..." : "Delete account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFeedback && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
+          onClick={closeFeedbackModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="feedback-title"
+        >
+          <div
+            className="w-full max-w-sm bg-[#F0F6FF] border-2 border-[#1565C0] rounded-2xl shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-11 h-11 rounded-full bg-[#FFF3E0] flex items-center justify-center mb-4 mx-auto">
+              <Icon name="star" className="w-5 h-5 text-[#F59E0B]" />
+            </div>
+
+            <h2
+              id="feedback-title"
+              className="text-[#0D2137] text-lg font-bold text-center"
+            >
+              Rate Your Experience
+            </h2>
+            <p className="text-[#546E7A] text-sm mt-1.5 text-center leading-relaxed">
+              Your feedback helps us improve SoCreate. This can only be
+              submitted once, so take your time.
+            </p>
+
+            <div className="mt-5">
+              <StarRating value={feedbackRating} onChange={setFeedbackRating} />
+            </div>
+
+            <label
+              htmlFor="feedback-review"
+              className="block text-[#90A4AE] text-xs font-medium mt-5 mb-2"
+            >
+              Experience, changes, or fixes you'd like to see (optional)
+            </label>
+            <textarea
+              id="feedback-review"
+              rows={4}
+              value={feedbackReview}
+              onChange={(e) => setFeedbackReview(e.target.value)}
+              placeholder="Tell us what's working, what's not, and what you'd like to see next..."
+              className="w-full bg-white border border-[#BBDEFB] rounded-xl px-4 py-3 text-[#0D2137] text-sm placeholder-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#1565C0]/20 focus:border-[#1565C0] transition resize-none"
+            />
+
+            {feedbackError && (
+              <p className="text-red-500 text-xs mt-2">{feedbackError}</p>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={closeFeedbackModal}
+                disabled={submittingFeedback}
+                className="flex-1 bg-white border border-[#CBD5E1] text-[#0D2137] font-semibold py-3 rounded-xl hover:bg-[#F8FAFF] active:scale-95 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitFeedback}
+                disabled={submittingFeedback || feedbackRating < 1}
+                className="flex-1 bg-[#1565C0] text-white font-semibold py-3 rounded-xl hover:bg-[#0D47A1] active:scale-95 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submittingFeedback && (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                {submittingFeedback ? "Submitting..." : "Submit"}
               </button>
             </div>
           </div>

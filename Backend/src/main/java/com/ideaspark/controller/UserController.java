@@ -48,6 +48,7 @@ public class UserController {
     private final MembershipRepository membershipRepository;
     private final MembershipPaymentRepository membershipPaymentRepository;
     private final CreatorEarningRepository creatorEarningRepository;
+    private final FeedbackRepository feedbackRepository;
 
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(
@@ -295,6 +296,10 @@ public class UserController {
                     membershipPaymentRepository.findByUserIdOrderByCreatedAtDesc(userId));
             creatorEarningRepository.deleteAll(
                     creatorEarningRepository.findByCreatorIdOrderByMonthDesc(userId));
+
+            // feedback (new since the account-deletion fix above) — same FK
+            // shape as the rest: NOT NULL user_id, no DB cascade.
+            feedbackRepository.findByUserId(userId).ifPresent(feedbackRepository::delete);
 
             userRepository.delete(user);
 
