@@ -26,7 +26,7 @@ public class Membership {
     private String billing; // "monthly" | "yearly"
 
     @Column(length = 20)
-    private String gateway; // "razorpay" | "stripe"
+    private String gateway; // "razorpay" (only supported gateway)
 
     @Column(name = "plan_label")
     private String planLabel; // display, e.g. "Creators Pro"
