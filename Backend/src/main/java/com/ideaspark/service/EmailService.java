@@ -331,7 +331,7 @@ public class EmailService {
 
             helper.setFrom("vrutsasolutions@gmail.com", "SoCreate");
             helper.setTo("vrutsasolutions@gmail.com");
-            helper.setSubject("New App Feedback (" + rating + "★) — " + userName);
+            helper.setSubject("SoCreate App Feedback (" + rating + "★) — " + userName);
             helper.setText(buildFeedbackEmailHtml(userName, userEmail, rating, review), true);
 
             mailSender.send(message);
@@ -349,7 +349,7 @@ public class EmailService {
 
         return """
                 <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; padding: 28px; border-radius: 14px; background: #f4f7ff;">
-                    <h2 style="color: #1565C0;">New App Feedback</h2>
+                    <h2 style="color: #1565C0;">SoCreate App Feedback</h2>
                     <p style="color:#333;"><strong>%s</strong> (%s) rated the app:</p>
                     <p style="font-size: 28px; color: #F59E0B; letter-spacing: 2px; margin: 8px 0 20px;">%s <span style="font-size:16px; color:#546E7A;">(%d/5)</span></p>
                     <div style="background:#fff; border:1px solid #BBDEFB; border-radius:10px; padding:16px; color:#0D2137; font-size:14px; line-height:1.6;">
