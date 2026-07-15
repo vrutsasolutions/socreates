@@ -318,4 +318,46 @@ public class EmailService {
                 </div>
                 """.formatted(userName, followerCount);
     }
+
+    // ── Feedback (Settings > Support > Feedback popup) ─────────────────────
+    // Async: submitFeedback() already saved the row before calling this, so a
+    // slow/failed SMTP send never blocks or fails the user's submit action —
+    // same pattern as sendNewIdeaNotificationEmail.
+    @Async
+    public void sendFeedbackEmail(String userName, String userEmail, int rating, String review) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom("vrutsasolutions@gmail.com", "SoCreate");
+            helper.setTo("vrutsasolutions@gmail.com");
+            helper.setSubject("New App Feedback (" + rating + "★) — " + userName);
+            helper.setText(buildFeedbackEmailHtml(userName, userEmail, rating, review), true);
+
+            mailSender.send(message);
+            System.out.println("Feedback email sent for: " + userEmail);
+        } catch (MessagingException | java.io.UnsupportedEncodingException e) {
+            System.out.println("Feedback email failed: " + e.getMessage());
+        }
+    }
+
+    private String buildFeedbackEmailHtml(String userName, String userEmail, int rating, String review) {
+        String stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+        String safeReview = (review == null || review.isBlank())
+                ? "<em style=\"color:#999;\">No written feedback provided.</em>"
+                : review.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>");
+
+        return """
+                <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; padding: 28px; border-radius: 14px; background: #f4f7ff;">
+                    <h2 style="color: #1565C0;">New App Feedback</h2>
+                    <p style="color:#333;"><strong>%s</strong> (%s) rated the app:</p>
+                    <p style="font-size: 28px; color: #F59E0B; letter-spacing: 2px; margin: 8px 0 20px;">%s <span style="font-size:16px; color:#546E7A;">(%d/5)</span></p>
+                    <div style="background:#fff; border:1px solid #BBDEFB; border-radius:10px; padding:16px; color:#0D2137; font-size:14px; line-height:1.6;">
+                        %s
+                    </div>
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 24px 0;">
+                    <p style="color: #999; font-size: 12px;">— SoCreate Feedback System</p>
+                </div>
+                """.formatted(userName, userEmail, stars, rating, safeReview);
+    }
 }
