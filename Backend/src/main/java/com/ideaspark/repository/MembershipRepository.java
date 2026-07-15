@@ -13,6 +13,15 @@ import java.util.UUID;
 
 @Repository
 public interface MembershipRepository extends JpaRepository<Membership, UUID> {
+
+    /**
+     * Every membership row for this user regardless of status (active,
+     * cancelled, expired, ...). Used by account deletion — findByUserIdAndStatus
+     * only grabs one status at a time, and any leftover row of any status
+     * still trips the user_id FK on delete.
+     */
+    List<Membership> findByUserId(UUID userId);
+
     Optional<Membership> findTopByUserIdAndStatusOrderByEndDateDesc(UUID userId, String status);
     boolean existsByUserIdAndStatus(UUID userId, String status);
 
