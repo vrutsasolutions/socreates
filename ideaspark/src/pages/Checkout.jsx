@@ -48,8 +48,13 @@ export default function Checkout() {
     navigate('/membership/success', { state: { membership: data.user?.membership } });
   };
 
+  // replace: true swaps the current history entry (Checkout) instead of
+  // pushing a new one, so "Payment Failed" doesn't sit permanently in the
+  // browser/back-button history stack. Without this, pressing back after
+  // leaving the failure screen would bounce the user right back to it.
   const onFailure = (err) =>
     navigate('/membership/failure', {
+      replace: true,
       state: { message: err?.response?.data?.message, plan, billing, planLabel, price },
     });
 
