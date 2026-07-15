@@ -16,6 +16,15 @@ import java.util.List;
 @Repository
 public interface CreatorMonthlyMetricsRepository extends JpaRepository<CreatorMonthlyMetrics, Integer> {
 
+       /**
+        * All metrics rows for this creator, across every month. Used by
+        * account deletion to clear creator_monthly_metrics before deleting
+        * the users row — creator_id is a NOT NULL FK with no DB-level
+        * cascade, so a creator who has ever loaded their dashboard trips a
+        * foreign key violation on delete without this.
+        */
+       List<CreatorMonthlyMetrics> findByCreatorId(UUID creatorId);
+
        /** Fetch this creator's metrics row for a given month (for upsert). */
        Optional<CreatorMonthlyMetrics> findByCreatorIdAndMonth(UUID creatorId, LocalDate month);
 
