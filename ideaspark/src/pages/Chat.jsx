@@ -22,6 +22,7 @@ import {
   ChatActionsLayer,
   ShareAttachSheet,
 } from "../components/messaging/ChatActions";
+import EmojiPickerSheet from "../components/messaging/EmojiPickerSheet";
 import {
   fetchConversation,
   fetchContacts,
@@ -636,6 +637,8 @@ export default function Chat() {
   const [toast, setToast] = useState(null);
   const [replyTo, setReplyTo] = useState(null);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const textInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
 
   // Message selection / per-message actions
@@ -1014,6 +1017,22 @@ export default function Chat() {
           );
       },
     );
+  };
+
+  // ── Emoji insert — inserts at the current cursor position (like WhatsApp)
+  // rather than always appending to the end, then restores focus + caret.
+  const insertEmoji = (emoji) => {
+    const el = textInputRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? text.length;
+    const next = text.slice(0, start) + emoji + text.slice(end);
+    setText(next);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const caret = start + emoji.length;
+      el.setSelectionRange(caret, caret);
+    });
   };
 
   // ── Text send ───────────────────────────────────────────────────────────
@@ -2036,7 +2055,10 @@ export default function Chat() {
             <button
               onClick={() => {
                 if (fileLimitReached) setShowLimitModal(true);
-                else setAttachOpen(true);
+                else {
+                  setEmojiOpen(false);
+                  setAttachOpen(true);
+                }
               }}
               aria-label="Attach"
               className="w-10 h-10 rounded-full bg-[#1565C0] text-white flex items-center justify-center shrink-0 hover:opacity-90 active:scale-95 transition-all"
@@ -2056,8 +2078,16 @@ export default function Chat() {
               </svg>
             </button>
             <button
+              onClick={() => {
+                setAttachOpen(false);
+                setEmojiOpen((o) => !o);
+              }}
               aria-label="Emoji"
-              className="w-10 h-10 rounded-full bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] flex items-center justify-center shrink-0 hover:bg-[#DBEAFE] active:scale-95 transition-all"
+              className={`w-10 h-10 rounded-full border flex items-center justify-center shrink-0 active:scale-95 transition-all ${
+                emojiOpen
+                  ? "bg-[#1565C0] border-[#1565C0] text-white"
+                  : "bg-[#F0F6FF] border-[#BBDEFB] text-[#1565C0] hover:bg-[#DBEAFE]"
+              }`}
             >
               <svg
                 className="w-5 h-5"
@@ -2075,6 +2105,7 @@ export default function Chat() {
             </button>
             <div className="flex-1 min-w-0 flex items-center gap-2 bg-[#F0F6FF] border border-[#BBDEFB] rounded-full px-4 py-2.5">
               <input
+                ref={textInputRef}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
@@ -2308,6 +2339,13 @@ export default function Chat() {
             className="max-h-[85%] max-w-[92%] rounded-2xl object-contain"
           />
         </div>
+      )}
+
+      {emojiOpen && (
+        <EmojiPickerSheet
+          onClose={() => setEmojiOpen(false)}
+          onSelect={(emoji) => insertEmoji(emoji)}
+        />
       )}
 
       {attachOpen && (
