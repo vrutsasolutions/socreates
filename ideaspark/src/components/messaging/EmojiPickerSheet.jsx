@@ -1,17 +1,19 @@
 // ════════════════════════════════════════════════════════════════════════
 //  EmojiPickerSheet — tap-to-insert emoji tray for Chat's composer.
-//  WhatsApp-style: category tabs across the top, a scrollable grid below,
-//  a "Recently used" tab that remembers your last picks (localStorage).
-//  Tapping an emoji inserts it and keeps the sheet open so you can pick
-//  several in a row; tap the backdrop or the emoji toggle button to close.
+//  Docks in-flow directly below the composer row (like WhatsApp's emoji
+//  keyboard), not as a full-screen overlay, so the +/emoji/input/mic/send
+//  bar always stays visible above it while typing or picking emoji.
+//  Category tabs across the top, a scrollable grid below, and a "Recently
+//  used" tab that remembers your last picks (localStorage).
+//  Tapping an emoji inserts it and keeps the tray open so you can pick
+//  several in a row; tap the input field, the collapse chevron, or the
+//  composer's emoji toggle button again to close it.
 // ════════════════════════════════════════════════════════════════════════
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const SHEET_CSS = `
   @keyframes scSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-  @keyframes scFadeIn  { from { opacity: 0; } to { opacity: 1; } }
   .sc-sheet { animation: scSheetUp 220ms cubic-bezier(0.32,0.72,0,1); }
-  .sc-backdrop { animation: scFadeIn 160ms ease; }
 `;
 
 const RECENTS_KEY = "sc_recent_emojis";
@@ -116,11 +118,6 @@ export default function EmojiPickerSheet({ onClose, onSelect }) {
   const [recents, setRecents] = useState(loadRecents);
   const [active, setActive] = useState(recents.length ? "recent" : "smileys");
 
-  useEffect(() => {
-    // If recents were empty on mount but the user picks one, jump the tab
-    // selector's availability without forcing them off their current tab.
-  }, []);
-
   const tabs = useMemo(
     () => [
       ...(recents.length
@@ -143,49 +140,57 @@ export default function EmojiPickerSheet({ onClose, onSelect }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="shrink-0 sc-sheet bg-white border-t border-[#DBEAFE] flex flex-col h-[320px] max-h-[42vh]">
       <style>{SHEET_CSS}</style>
-      <div
-        className="sc-backdrop absolute inset-0 bg-[#0D2137]/45"
-        onClick={onClose}
-      />
-      <div className="sc-sheet relative w-full max-w-[430px] bg-white rounded-t-3xl flex flex-col h-[62vh] max-h-[440px]">
-        <div className="w-10 h-1 rounded-full bg-[#DBEAFE] mx-auto mt-3 mb-2 shrink-0" />
 
-        {/* Category tabs */}
-        <div className="flex gap-1 overflow-x-auto px-3 pb-2 shrink-0 border-b border-[#F0F6FF]">
-          {tabs.map((t) => (
+      {/* Handle + explicit collapse (tapping the input field also closes
+          this, but a visible affordance matters for discoverability). */}
+      <div className="relative shrink-0 pt-2 pb-1">
+        <div className="w-10 h-1 rounded-full bg-[#DBEAFE] mx-auto" />
+        <button
+          onClick={onClose}
+          aria-label="Close emoji picker"
+          className="absolute right-2 top-1 w-8 h-8 rounded-full flex items-center justify-center text-[#90A4AE] hover:bg-[#F0F6FF] active:scale-90 transition-all"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Category tabs */}
+      <div className="flex gap-1 overflow-x-auto px-3 pb-2 shrink-0 border-b border-[#F0F6FF]">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActive(t.key)}
+            aria-label={t.label}
+            className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all active:scale-90 ${
+              active === t.key
+                ? "bg-[#E3F2FD] ring-2 ring-[#1565C0]"
+                : "hover:bg-[#F0F6FF]"
+            }`}
+          >
+            {t.tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Emoji grid */}
+      <div className="flex-1 overflow-y-auto px-2 py-2">
+        <p className="text-[11px] font-bold tracking-widest text-[#90A4AE] uppercase px-2 mb-1.5">
+          {current?.label}
+        </p>
+        <div className="grid grid-cols-7 sm:grid-cols-8">
+          {current?.emojis.map((e, i) => (
             <button
-              key={t.key}
-              onClick={() => setActive(t.key)}
-              aria-label={t.label}
-              className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all active:scale-90 ${
-                active === t.key
-                  ? "bg-[#E3F2FD] ring-2 ring-[#1565C0]"
-                  : "hover:bg-[#F0F6FF]"
-              }`}
+              key={`${e}-${i}`}
+              onClick={() => pick(e)}
+              className="aspect-square flex items-center justify-center text-[26px] rounded-xl hover:bg-[#F0F6FF] active:scale-90 transition-all"
             >
-              {t.tab}
+              {e}
             </button>
           ))}
-        </div>
-
-        {/* Emoji grid */}
-        <div className="flex-1 overflow-y-auto px-2 py-2">
-          <p className="text-[11px] font-bold tracking-widest text-[#90A4AE] uppercase px-2 mb-1.5">
-            {current?.label}
-          </p>
-          <div className="grid grid-cols-7 sm:grid-cols-8">
-            {current?.emojis.map((e, i) => (
-              <button
-                key={`${e}-${i}`}
-                onClick={() => pick(e)}
-                className="aspect-square flex items-center justify-center text-[26px] rounded-xl hover:bg-[#F0F6FF] active:scale-90 transition-all"
-              >
-                {e}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </div>
