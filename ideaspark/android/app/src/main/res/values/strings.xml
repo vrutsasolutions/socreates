@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">IdeaSpark</string>
-    <string name="title_activity_main">IdeaSpark</string>
-    <string name="package_name">com.ideaspark.app</string>
-    <string name="custom_url_scheme">com.ideaspark.app</string>
+    <string name="app_name">SoCreate</string>
+    <string name="title_activity_main">SoCreate</string>
+    <string name="package_name">in.socreate.app</string>
+    <string name="custom_url_scheme">in.socreate.app</string>
 </resources>
