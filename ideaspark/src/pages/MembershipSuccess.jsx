@@ -63,14 +63,30 @@ export default function MembershipSuccess() {
       </div>
 
       {/* Footer */}
-      <div className="px-6 pb-12 pt-6">
-        <button onClick={() => navigate('/home')}
-          className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2 text-[15px]">
-          Go to Home
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </button>
+      <div className="px-6 pb-12 pt-6 space-y-3">
+        {isCreator ? (
+          <>
+            <button onClick={() => navigate('/payout-setup', { state: { fromPurchase: true } })}
+              className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2 text-[15px]">
+              Set up payout details
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
+            <button onClick={() => navigate('/home')}
+              className="w-full text-[#546E7A] font-semibold py-2 text-sm hover:text-[#0D2137] transition-colors">
+              Skip for now, go to Home
+            </button>
+          </>
+        ) : (
+          <button onClick={() => navigate('/home')}
+            className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2 text-[15px]">
+            Go to Home
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
