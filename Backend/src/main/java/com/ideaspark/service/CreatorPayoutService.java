@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ideaspark.model.PayoutAccount;
+import com.ideaspark.repository.PayoutAccountRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,33 +21,41 @@ import java.time.LocalDateTime;
  * Creator self-service payouts via RazorpayX (test mode).
  *
  * Two-step model:
- *   1. Creator saves payout details once → we create a RazorpayX contact +
- *      fund account and persist the ids on the user ({@link #savePayoutDetails}).
- *   2. Creator withdraws a Pending earnings row → we create a RazorpayX payout
- *      to that fund account and flip the row to "Paid" ({@link #requestPayout}).
+ * 1. Creator saves payout details once → we create a RazorpayX contact +
+ * fund account and persist the ids on the user ({@link #savePayoutDetails}).
+ * 2. Creator withdraws a Pending earnings row → we create a RazorpayX payout
+ * to that fund account and flip the row to "Paid" ({@link #requestPayout}).
  */
 @Service
 @RequiredArgsConstructor
 public class CreatorPayoutService {
 
-    private final UserRepository           userRepository;
+    private final UserRepository userRepository;
+    private final PayoutAccountRepository payoutAccountRepository;
     private final CreatorEarningRepository earningRepository;
-    private final RazorpayXService         razorpayX;
+    private final RazorpayXService razorpayX;
 
     // ── GET payout details ────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public PayoutDetailsResponse getPayoutDetails(String email) {
         User user = requireUser(email);
-        boolean configured = notBlank(user.getRazorpayFundAccountId());
-        if (!configured) {
-            return PayoutDetailsResponse.builder().configured(false).build();
+
+        PayoutAccount payoutAccount = user.getActivePayoutAccount();
+
+        if (payoutAccount == null) {
+            return PayoutDetailsResponse.builder()
+                    .configured(false)
+                    .build();
         }
         return PayoutDetailsResponse.builder()
                 .configured(true)
-                .method(user.getPayoutMethod())
-                .destination(maskDestination(user))
-                .accountName(user.getPayoutAccountName())
+                .method(payoutAccount.getPayoutMethod())
+                .accountHolderName(payoutAccount.getPayoutAccountName())
+                .bankName(payoutAccount.getBankName())
+                .destination(maskDestination(payoutAccount))
+                .active(Boolean.TRUE.equals(payoutAccount.getIsActive()))
+                .verified(true)
                 .build();
     }
 
@@ -61,10 +71,16 @@ public class CreatorPayoutService {
         String method = req.getMethod() == null ? "" : req.getMethod().trim().toLowerCase();
 
         // Reuse the creator's existing RazorpayX contact; create it once.
-        String contactId = user.getRazorpayContactId();
+        String contactId = null;
+
+        PayoutAccount existingAccount = user.getActivePayoutAccount();
+
+        if (existingAccount != null) {
+            contactId = existingAccount.getRazorpayContactId();
+        }
         if (!notBlank(contactId)) {
             contactId = razorpayX.createContact(user.getName(), user.getEmail());
-            user.setRazorpayContactId(contactId);
+            
         }
 
         String fundAccountId;
@@ -75,30 +91,63 @@ public class CreatorPayoutService {
                     throw new IllegalArgumentException("Enter a valid UPI ID (e.g. name@bank).");
                 }
                 fundAccountId = razorpayX.createVpaFundAccount(contactId, vpa);
-                user.setPayoutVpa(vpa);
-                // Clear any stale bank fields so masking/mode stay consistent.
-                user.setPayoutAccountNumber(null);
-                user.setPayoutIfsc(null);
-                user.setPayoutAccountName(null);
+
             }
             case "bank_account" -> {
-                String name = req.getAccountName() == null ? "" : req.getAccountName().trim();
+                String name = req.getAccountHolderName() == null ? "" : req.getAccountHolderName().trim();
                 String acct = req.getAccountNumber() == null ? "" : req.getAccountNumber().trim();
-                String ifsc = req.getIfsc() == null ? "" : req.getIfsc().trim().toUpperCase();
-                if (name.isBlank()) throw new IllegalArgumentException("Account holder name is required.");
-                if (!acct.matches("\\d{6,20}")) throw new IllegalArgumentException("Enter a valid account number.");
-                if (!ifsc.matches("[A-Z]{4}0[A-Z0-9]{6}")) throw new IllegalArgumentException("Enter a valid IFSC code.");
+                String ifsc = req.getIfscCode() == null ? "" : req.getIfscCode().trim().toUpperCase();
+                if (name.isBlank())
+                    throw new IllegalArgumentException("Account holder name is required.");
+                if (!acct.matches("\\d{6,20}"))
+                    throw new IllegalArgumentException("Enter a valid account number.");
+                if (!ifsc.matches("[A-Z]{4}0[A-Z0-9]{6}"))
+                    throw new IllegalArgumentException("Enter a valid IFSC code.");
                 fundAccountId = razorpayX.createBankFundAccount(contactId, name, ifsc, acct);
-                user.setPayoutAccountName(name);
-                user.setPayoutAccountNumber(acct);
-                user.setPayoutIfsc(ifsc);
-                user.setPayoutVpa(null);
+
             }
             default -> throw new IllegalArgumentException("method must be 'vpa' or 'bank_account'.");
         }
 
-        user.setPayoutMethod(method);
-        user.setRazorpayFundAccountId(fundAccountId);
+        // Deactivate previous payout account (if any)
+        PayoutAccount oldAccount = user.getActivePayoutAccount();
+
+        if (oldAccount != null) {
+            oldAccount.setIsActive(false);
+            payoutAccountRepository.save(oldAccount);
+        }
+
+        // Store only the last 4 digits of the account number
+        String last4 = null;
+        if ("bank_account".equals(method) && req.getAccountNumber() != null) {
+            String accountNumber = req.getAccountNumber().trim();
+            if (accountNumber.length() >= 4) {
+                last4 = accountNumber.substring(accountNumber.length() - 4);
+            }
+        }
+
+        // Create new payout account
+        PayoutAccount payoutAccount = PayoutAccount.builder()
+                .user(user)
+                .legalName(req.getLegalName())
+                .panNumber(req.getPanNumber())
+                .mobileNumber(req.getMobileNumber())
+                .bankName(req.getBankName())
+                .payoutAccountName(req.getAccountHolderName())
+                .payoutAccountNumberLast4(last4)
+                .payoutIfsc(req.getIfscCode())
+                .payoutMethod(method)
+                .razorpayContactId(contactId)
+                .payoutVpa(req.getVpa())
+                .razorpayContactId(contactId)
+                .razorpayFundAccountId(fundAccountId)
+                .isActive(true)
+                .build();
+
+        payoutAccountRepository.save(payoutAccount);
+
+        // Link it to the user
+        user.setActivePayoutAccount(payoutAccount);
         userRepository.save(user);
 
         return getPayoutDetails(email);
@@ -114,7 +163,9 @@ public class CreatorPayoutService {
         }
         User user = requireUser(email);
 
-        if (!notBlank(user.getRazorpayFundAccountId())) {
+        PayoutAccount payoutAccount = user.getActivePayoutAccount();
+
+        if (payoutAccount == null || !Boolean.TRUE.equals(payoutAccount.getIsActive())) {
             throw new IllegalStateException("Add your payout details before withdrawing.");
         }
 
@@ -146,12 +197,18 @@ public class CreatorPayoutService {
 
         // VPA → UPI, bank_account → IMPS. reference_id = row id makes the call
         // idempotent (a replay returns the original payout, never a duplicate).
-        String mode = "vpa".equalsIgnoreCase(user.getPayoutMethod()) ? "UPI" : "IMPS";
+        String mode = "vpa".equalsIgnoreCase(payoutAccount.getPayoutMethod())
+                ? "UPI"
+                : "IMPS";
         String reference = earning.getId().toString();
 
         JSONObject payout;
         try {
-            payout = razorpayX.createPayout(user.getRazorpayFundAccountId(), amountPaise, mode, reference);
+            payout = razorpayX.createPayout(
+                    payoutAccount.getRazorpayFundAccountId(),
+                    amountPaise,
+                    mode,
+                    reference);
         } catch (RazorpayXService.RazorpayXException e) {
             // Bubble up RazorpayX's message; controller maps to a 4xx/5xx.
             throw e;
@@ -159,12 +216,14 @@ public class CreatorPayoutService {
             throw new RuntimeException("Could not reach RazorpayX: " + e.getMessage(), e);
         }
 
-        String payoutId     = payout.optString("id", null);
+        String payoutId = payout.optString("id", null);
         String payoutStatus = payout.optString("status", "processing");
 
         earning.setStatus("Paid");
         earning.setRazorpayPayoutId(payoutId);
         earning.setPaidAt(LocalDateTime.now());
+        earning.setPayoutAccount(payoutAccount);
+
         earningRepository.save(earning);
 
         return PayoutResultResponse.builder()
@@ -197,14 +256,14 @@ public class CreatorPayoutService {
     }
 
     /** Human-readable, masked destination for display (never the full number). */
-    private static String maskDestination(User user) {
-        if ("vpa".equalsIgnoreCase(user.getPayoutMethod()) && notBlank(user.getPayoutVpa())) {
-            return user.getPayoutVpa();
+    private static String maskDestination(PayoutAccount account) {
+        if ("vpa".equalsIgnoreCase(account.getPayoutMethod()) && notBlank(account.getPayoutVpa())) {
+            return account.getPayoutVpa();
         }
-        String acct = user.getPayoutAccountNumber();
+        String acct = account.getPayoutAccountNumberLast4();
         if (notBlank(acct)) {
             String last4 = acct.length() > 4 ? acct.substring(acct.length() - 4) : acct;
-            String bank  = notBlank(user.getPayoutIfsc()) ? user.getPayoutIfsc().substring(0, 4) : "BANK";
+            String bank = notBlank(account.getPayoutIfsc()) ? account.getPayoutIfsc().substring(0, 4) : "BANK";
             return bank + " ****" + last4;
         }
         return null;

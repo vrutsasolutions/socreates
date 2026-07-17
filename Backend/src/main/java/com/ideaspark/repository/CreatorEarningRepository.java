@@ -15,46 +15,69 @@ import java.util.UUID;
 @Repository
 public interface CreatorEarningRepository extends JpaRepository<CreatorEarning, UUID> {
 
-    /** All earnings for a creator, newest month first. */
+    /**
+     * All earnings for a creator, newest month first.
+     */
     List<CreatorEarning> findByCreatorIdOrderByMonthDesc(UUID creatorId);
 
-    /** Look up a specific month row for upsert logic. */
+    /**
+     * Look up a specific month's earning.
+     */
     Optional<CreatorEarning> findByCreatorIdAndMonth(UUID creatorId, LocalDate month);
 
     /**
-     * Look up an earning by the RazorpayX payout id set on it when the
-     * withdrawal was fired. Used by the payout webhook as a fallback when the
-     * event's reference_id (= earning.id) is missing or malformed, so a status
-     * update can still be reconciled to the right row.
+     * Lookup by Razorpay payout id.
      */
     Optional<CreatorEarning> findByRazorpayPayoutId(String razorpayPayoutId);
 
     /**
-     * Atomic claim for
-     * {@link com.ideaspark.service.CreatorPayoutService#requestPayout}.
+     * Returns all earnings for a month having the specified status.
+     */
+    List<CreatorEarning> findByMonthAndStatus(LocalDate month, String status);
+
+    /**
+     * Returns all earnings with the given status.
+     */
+    List<CreatorEarning> findByStatus(String status);
+
+    /**
+     * Returns payouts that are scheduled and due to be processed.
+     */
+    @Query("""
+                SELECT e
+                FROM CreatorEarning e
+                WHERE e.status = 'Scheduled'
+                  AND e.scheduledFor IS NOT NULL
+                  AND e.scheduledFor <= CURRENT_TIMESTAMP
+            """)
+    List<CreatorEarning> findScheduledPayouts();
+
+    /**
+     * Returns payouts that previously failed processing and
+     * are ready for another retry attempt.
+     */
+    @Query("""
+                SELECT e
+                FROM CreatorEarning e
+                WHERE e.status = 'Processing'
+                  AND e.retryCount < 3
+                  AND e.nextRetryAt IS NOT NULL
+                  AND e.nextRetryAt <= CURRENT_TIMESTAMP
+            """)
+    List<CreatorEarning> findDueForRetry();
+
+    /**
+     * Atomically claim an earning for payout.
      *
-     * Fix #14 (payout race condition): the old code did a Java-side
-     * "read row -> check status=='Pending' -> ... -> write 'Paid'". Two
-     * concurrent requests for the same row (double-click, retry-on-timeout,
-     * or a deliberate double-submit) could both pass the check before either
-     * one wrote back, so both fired a RazorpayX payout — the creator gets
-     * paid twice for one month's earnings.
-     *
-     * This single UPDATE ... WHERE status = 'Pending' is the fix: Postgres
-     * takes a row lock for the UPDATE, so if two transactions race, the
-     * second one blocks until the first commits or rolls back, then
-     * re-evaluates the WHERE clause and finds status is no longer 'Pending'
-     * -> 0 rows affected. Only the request that gets rowsAffected == 1 may
-     * proceed to call RazorpayX. Must be called BEFORE the external payout
-     * call (not after) — claiming first is what stops the second request
-     * from ever reaching RazorpayX at all, not just from double-writing.
-     *
-     * clearAutomatically = true detaches the persistence context so a
-     * later save() on the (still in-memory) entity performs a fresh merge
-     * rather than working off a first-level-cache copy that predates this
-     * bulk update.
+     * Only one scheduler/thread can transition the row from
+     * Scheduled -> Processing.
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("UPDATE CreatorEarning e SET e.status = 'Processing' WHERE e.id = :id AND e.status = 'Pending'")
+    @Query("""
+                UPDATE CreatorEarning e
+                SET e.status = 'Processing'
+                WHERE e.id = :id
+                  AND e.status = 'Pending'
+            """)
     int claimPendingForPayout(@Param("id") UUID id);
 }

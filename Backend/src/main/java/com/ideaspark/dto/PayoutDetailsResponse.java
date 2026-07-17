@@ -4,23 +4,52 @@ import lombok.Builder;
 import lombok.Data;
 
 /**
- * Response for GET /api/creator/payout-details.
+ * Response for:
+ * GET /api/creator/payout-details
  *
- * {
- *   "configured": true,
- *   "method": "bank_account",
- *   "destination": "HDFC ****4321",   // masked, human-readable
- *   "accountName": "Alex Johnson"
- * }
- *
- * `configured` is false (and the rest null) when the creator hasn't saved any
- * payout details yet — the frontend shows the "add details" form in that case.
+ * Used to display the creator's currently active payout account.
  */
 @Data
 @Builder
 public class PayoutDetailsResponse {
+
+    /**
+     * Whether the creator has completed payout setup.
+     */
     private boolean configured;
-    private String  method;        // "vpa" | "bank_account" | null
-    private String  destination;   // masked VPA or "BANK ****1234"
-    private String  accountName;   // beneficiary name (bank_account only)
+
+    /**
+     * bank_account | vpa
+     */
+    private String method;
+
+    /**
+     * Account holder / beneficiary name.
+     */
+    private String accountHolderName;
+
+    /**
+     * Bank name (ICICI Bank, HDFC Bank, etc.)
+     */
+    private String bankName;
+
+    /**
+     * Masked destination.
+     *
+     * Examples:
+     * XXXX XXXX 4589
+     * creator@okhdfcbank
+     */
+    private String destination;
+
+    /**
+     * Whether this payout account is currently active.
+     */
+    private boolean active;
+
+    /**
+     * Whether the payout account has been verified.
+     * (Currently always true after successful Razorpay setup.)
+     */
+    private boolean verified;
 }

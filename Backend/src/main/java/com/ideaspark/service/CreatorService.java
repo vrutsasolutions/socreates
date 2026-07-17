@@ -49,6 +49,10 @@ public class CreatorService {
     private static final BigDecimal READER_POOL_SHARE       = new BigDecimal("0.50");
     private static final BigDecimal CREATOR_PRO_POOL_SHARE  = new BigDecimal("0.25");
 
+    // ── Formatters for DTO date/time strings ──────────────────────────────────
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE;      // "2026-06-01"
+    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ISO_LOCAL_DATE_TIME; // "2026-06-01T00:00:00"
+
     // ────────────────────────────────────────────────────────────────────────
     //  GET /api/creator/dashboard
     // ────────────────────────────────────────────────────────────────────────
@@ -184,8 +188,6 @@ public class CreatorService {
         List<CreatorEarning> rows =
                 earningRepository.findByCreatorIdOrderByMonthDesc(creator.getId());
 
-        DateTimeFormatter fmt = DateTimeFormatter.ISO_LOCAL_DATE; // "2026-06-01"
-
         return rows.stream()
                 .map(row -> {
                     // score_percent stored in DB; convert to 0-100 int for display
@@ -199,10 +201,17 @@ public class CreatorService {
                             : 0;
 
                     return CreatorEarningDTO.builder()
-                            .month(row.getMonth().format(fmt))
+                            .month(row.getMonth().format(DATE_FMT))
                             .score(scoreDisplay)
                             .earning(earningRupees)
                             .status(row.getStatus())
+                            .scheduledFor(row.getScheduledFor() != null
+                                    ? row.getScheduledFor().format(DATETIME_FMT) : null)
+                            .paidAt(row.getPaidAt() != null
+                                    ? row.getPaidAt().format(DATETIME_FMT) : null)
+                            .destination(maskDestination(row.getPayoutAccount()))
+                            .failureReason(row.getFailureReason())
+                            .retryCount(row.getRetryCount() != null ? row.getRetryCount() : 0)
                             .build();
                 })
                 .toList();
@@ -444,5 +453,32 @@ public class CreatorService {
     public long socreateSharePaise(long readerRevenuePaise, long creatorProRevenuePaise) {
         long totalRevenue = readerRevenuePaise + creatorProRevenuePaise;
         return totalRevenue - creatorPoolPaise(readerRevenuePaise, creatorProRevenuePaise);
+    }
+
+    /**
+     * Human-readable, masked payout destination for display (never the full
+     * account number). Returns null if there's no active payout account.
+     *
+     * NOTE: this duplicates CreatorPayoutService#maskDestination(). Kept as a
+     * separate copy for now to avoid a cross-service dependency; if the two
+     * drift, consider promoting this to a shared utility class or a static
+     * method on PayoutAccount itself.
+     */
+    private static String maskDestination(PayoutAccount account) {
+        if (account == null) {
+            return null;
+        }
+        if ("vpa".equalsIgnoreCase(account.getPayoutMethod())
+                && account.getPayoutVpa() != null && !account.getPayoutVpa().isBlank()) {
+            return account.getPayoutVpa();
+        }
+        String acct = account.getPayoutAccountNumberLast4();
+        if (acct != null && !acct.isBlank()) {
+            String last4 = acct.length() > 4 ? acct.substring(acct.length() - 4) : acct;
+            String bank = account.getPayoutIfsc() != null && !account.getPayoutIfsc().isBlank()
+                    ? account.getPayoutIfsc().substring(0, 4) : "BANK";
+            return bank + " ****" + last4;
+        }
+        return null;
     }
 }
