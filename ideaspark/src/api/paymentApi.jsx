@@ -1,194 +1,291 @@
 // ════════════════════════════════════════════════════════════════════════
-//  paymentApi — membership / subscription endpoints
-//  ----------------------------------------------------------------------
-//  Mock-first: while USE_MOCK.payment is true these simulate a successful
-//  gateway round-trip (no real Razorpay call) and return a premium
-//  `user` object with a populated `membership`. Flip USE_MOCK.payment to
-//  false once Vishakha ships /api/payment/* per API_CONTRACT.md.
-//  Razorpay is the only supported gateway — Stripe was never implemented.
+// paymentApi — membership, subscription and creator payout destination
 //
-//  July 2026 — Scheduled payouts migration:
-//  Self-service withdrawals are GONE. requestPayout() has been removed —
-//  payouts now fire automatically via a backend cron on the 15th of every
-//  month (with daily retries on failure, per HR). This module now only
-//  manages the payout DESTINATION (getPayoutDetails / savePayoutDetails);
-//  the actual money movement is entirely backend-driven.
+// Scheduled payout model:
+// - Creators no longer request withdrawals.
+// - The frontend only manages payout setup/destination.
+// - The backend distributes and processes payouts automatically.
 // ════════════════════════════════════════════════════════════════════════
 
-import api from './axiosInstance';
-import { USE_MOCK, mockResponse } from './config';
+import api from "./axiosInstance";
+import { USE_MOCK, mockResponse } from "./config";
 
 const readUser = () => {
-  try { return JSON.parse(localStorage.getItem('user')) || {}; }
-  catch { return {}; }
+  try {
+    return JSON.parse(localStorage.getItem("user")) || {};
+  } catch {
+    return {};
+  }
 };
 
-/** True when the user holds an active Creator Pro subscription. */
+/**
+ * True when a user has an active Creator Pro subscription.
+ */
 export const hasCreatorPro = (user) =>
-  !!(user?.creatorPro || (user?.isPremium && user?.membership?.plan === 'creator'));
+  Boolean(
+    user?.creatorPro ||
+      (user?.isPremium &&
+        user?.membership?.plan === "creator")
+  );
 
 /**
- * The verified badge is now earned by paying for ANY membership (Premium or
- * Creator Pro). There is no separate verification flow — buying a plan IS the
- * verification. Use this everywhere the "Verified" tag/gate is shown.
+ * Membership purchase acts as verification.
  */
-export const isVerified = (user) => !!user?.isPremium;
+export const isVerified = (user) =>
+  Boolean(user?.isPremium);
 
-/** Build a membership descriptor from the checkout payload. */
-export function buildMembership({ plan, billing, gateway, planLabel, price }) {
-  const now    = new Date();
+/**
+ * Builds a local mock membership descriptor.
+ */
+export function buildMembership({
+  plan,
+  billing,
+  gateway,
+  planLabel,
+  price,
+}) {
+  const now = new Date();
   const renews = new Date(now);
-  if (billing === 'yearly') renews.setFullYear(now.getFullYear() + 1);
-  else                      renews.setMonth(now.getMonth() + 1);
+
+  if (billing === "yearly") {
+    renews.setFullYear(now.getFullYear() + 1);
+  } else {
+    renews.setMonth(now.getMonth() + 1);
+  }
 
   return {
-    plan,                       // 'reader' | 'creator'
-    billing,                    // 'monthly' | 'yearly'
-    gateway,                    // 'razorpay'
-    planLabel: planLabel ?? 'Premium',
-    price:     price ?? '',
-    status:    'active',
+    plan,
+    billing,
+    gateway,
+    planLabel: planLabel ?? "Premium",
+    price: price ?? "",
+    status: "active",
     startedAt: now.toISOString(),
-    renewsAt:  renews.toISOString(),
-    stats:     { read: 47, saved: 12, shared: 8 },
+    renewsAt: renews.toISOString(),
+    stats: {
+      read: 47,
+      saved: 12,
+      shared: 8,
+    },
   };
 }
 
-/** Create a payment order (amount in paise for Razorpay). The live response
- *  also carries `keyId` so the checkout can open without a frontend env var. */
+/**
+ * Creates a Razorpay payment order.
+ */
 export const createOrder = (payload) =>
   USE_MOCK.payment
     ? mockResponse({
-        orderId:  'order_mock_' + Date.now(),
-        amount:   (payload.amountPaise ?? 79900),
-        currency: 'INR',
+        orderId: `order_mock_${Date.now()}`,
+        amount: payload.amountPaise ?? 79900,
+        currency: "INR",
       })
-    : api.post('/payment/create-order', payload);
+    : api.post("/payment/create-order", payload);
 
-/** Confirm the subscription after a successful gateway charge. */
+/**
+ * Confirms membership after successful payment.
+ */
 export const subscribe = (payload) =>
   USE_MOCK.payment
     ? mockResponse({
-        user: { ...readUser(), isPremium: true, membership: buildMembership(payload) },
+        user: {
+          ...readUser(),
+          isPremium: true,
+          membership: buildMembership(payload),
+        },
       })
-    : api.post('/payment/subscribe', payload);
+    : api.post("/payment/subscribe", payload);
 
-/** Cancel an active membership. */
+/**
+ * Cancels an active membership.
+ */
 export const cancelMembership = () =>
   USE_MOCK.payment
-    ? mockResponse({ user: { ...readUser(), isPremium: false, membership: null } })
-    : api.post('/payment/cancel', {});
+    ? mockResponse({
+        user: {
+          ...readUser(),
+          isPremium: false,
+          membership: null,
+        },
+      })
+    : api.post("/payment/cancel", {});
 
-/** Request a refund of the most recent captured payment. Reverses the charge
- *  via Razorpay AND revokes premium access immediately — returns the same
- *  { user: {...isPremium:false, membership:null} } shape as cancel, so callers
- *  persist it with login(user, token) identically. The refund.processed webhook
- *  finalizes the money side server-side; no extra frontend step is needed. */
+/**
+ * Requests a refund of the latest eligible payment.
+ */
 export const refundMembership = () =>
   USE_MOCK.payment
-    ? mockResponse({ user: { ...readUser(), isPremium: false, membership: null } })
-    : api.post('/payment/refund', {});
+    ? mockResponse({
+        user: {
+          ...readUser(),
+          isPremium: false,
+          membership: null,
+        },
+      })
+    : api.post("/payment/refund", {});
 
-/** Fetch current subscription status fresh from the server.
- *  GET /api/payment/status → MembershipDTO { id, plan, status, startDate, endDate }
- *  when a membership is active, or { success:false, message } when there is none. */
+/**
+ * Fetches the authenticated user's membership status.
+ */
 export const fetchMySubscription = () =>
-  api.get('/payment/status');
+  api.get("/payment/status");
 
-/** Fetch historical monthly creator earnings.
- *  Each row: { month, score, earning, status, scheduledFor, paidAt,
- *              destination, failureReason, rolledFrom }
- *  status ∈ Estimating | Scheduled | Processing | Paid | Setup_Missing |
- *           Failed | Rolled_Over | Absorbed */
+/**
+ * Fetches creator earnings history.
+ *
+ * Row fields may include:
+ * month, score, earning, status, scheduledFor, paidAt,
+ * destination, failureReason, retryCount.
+ */
 export const fetchCreatorEarnings = () =>
-  api.get('/creator/earnings');
+  api.get("/creator/earnings");
 
-// ── Creator payout destination (RazorpayX) ────────────────────────────────
-//  Flow: creator fills out the Payout Setup form once (Personal + Bank/UPI +
-//  Tax details). Backend creates a RazorpayX contact + fund account and
-//  stores the destination. Money movement is fully automatic afterwards —
-//  a monthly cron pays out on the 15th, retries on failure for 3 days, then
-//  alerts the creator + admin by email if it still hasn't gone through.
+// ── Creator payout destination ───────────────────────────────────────────
 
-/** Get the creator's saved payout destination (masked).
- *  Response when configured: { configured:true, method, legalName,
- *    maskedPan, maskedMobile, bankName, maskedAccountNumber, ifsc, vpa,
- *    destination, verified }
- *  Response when not set up: { configured:false } */
+/**
+ * Gets the currently active payout destination.
+ *
+ * Live response:
+ * {
+ *   configured,
+ *   method,
+ *   accountHolderName,
+ *   bankName,
+ *   destination,
+ *   maskedPan,
+ *   maskedMobile,
+ *   active,
+ *   verified
+ * }
+ */
 export const getPayoutDetails = () =>
   USE_MOCK.payment
-    ? mockResponse({ configured: false })
-    : api.get('/creator/payout-details');
+    ? mockResponse({
+        configured: false,
+        active: false,
+        verified: false,
+      })
+    : api.get("/creator/payout-details");
 
-/** Save/replace the payout destination. Creating a new one deactivates the
- *  previous fund account in RazorpayX (best-effort) — full history is kept
- *  server-side for audit, the creator only ever sees the current one.
+/**
+ * Creates or replaces a payout destination.
  *
- *  payload (common, always required):
- *    { legalName, pan, mobile, confirmOwnership: true, method }
- *  payload (method === 'vpa'):
- *    { ...common, vpa }
- *  payload (method === 'bank_account'):
- *    { ...common, accountNumber, confirmAccountNumber, ifsc, bankName }
+ * Common required payload:
+ * {
+ *   method,
+ *   legalName,
+ *   mobileNumber,
+ *   panNumber,
+ *   ownershipConfirmed
+ * }
+ *
+ * VPA:
+ * {
+ *   ...common,
+ *   vpa
+ * }
+ *
+ * Bank:
+ * {
+ *   ...common,
+ *   accountHolderName,
+ *   accountNumber,
+ *   confirmAccountNumber,
+ *   ifscCode,
+ *   bankName
+ * }
  */
 export const savePayoutDetails = (payload) =>
   USE_MOCK.payment
-    ? mockResponse({
-        configured: true,
-        method: payload.method,
-        legalName: payload.legalName,
-        maskedPan: 'XXXXX' + String(payload.pan || '').slice(5, 9) + 'X',
-        maskedMobile: 'XXXXXX' + String(payload.mobile || '').slice(-4),
-        bankName: payload.bankName ?? null,
-        maskedAccountNumber: payload.method === 'bank_account'
-          ? 'XXXXXXXX' + String(payload.accountNumber || '').slice(-4)
-          : null,
-        ifsc: payload.ifsc ?? null,
-        vpa: payload.method === 'vpa' ? payload.vpa : null,
-        destination: payload.method === 'vpa'
-          ? payload.vpa
-          : `${payload.bankName || 'BANK'} XXXXXXXX${String(payload.accountNumber || '').slice(-4)}`,
-        verified: true,
-      })
-    : api.put('/creator/payout-details', payload);
+    ? mockSavePayoutDetails(payload)
+    : api.put("/creator/payout-details", payload);
 
 /**
- * Update ONLY the bank destination for a creator who already has payout
- * details on file — the lighter "Update bank account" flow (Figma screen 4).
- * Does not re-collect legalName / pan / mobile since those don't change per
- * bank swap; the backend is expected to carry them forward from the
- * existing active row.
- *
- * ⚠️ NEEDS BACKEND SUPPORT — targets PUT /creator/payout-details/bank-account,
- * which does not exist on the currently-delivered contract. The existing
- * PUT /creator/payout-details (savePayoutDetails above) requires legalName +
- * pan + mobile on every call, which this screen intentionally doesn't ask
- * for. Flag for Vishakha: add a service method that looks up the creator's
- * current active PayoutAccount row, reuses its legalName/pan/mobile/
- * razorpay_contact_id, and only swaps accountHolderName/accountNumber/ifsc/
- * bankName — otherwise following the exact same insert-new-row +
- * deactivate-old-fund-account flow already built into savePayoutDetails().
- *
- * payload: { accountHolderName, accountNumber, confirmAccountNumber, ifsc, bankName }
+ * Admin distribution endpoint.
  */
-export const updateBankAccount = (payload) =>
-  USE_MOCK.payment
-    ? mockResponse({
-        configured: true,
-        method: 'bank_account',
-        bankName: payload.bankName || 'BANK',
-        maskedAccountNumber: 'XXXXXXXX' + String(payload.accountNumber || '').slice(-4),
-        ifsc: payload.ifsc ?? null,
-        destination: `${payload.bankName || 'BANK'} XXXXXXXX${String(payload.accountNumber || '').slice(-4)}`,
-        verified: true,
-      })
-    : api.put('/creator/payout-details/bank-account', payload);
-
-/** Run the monthly revenue distribution for a month (admin action).
- *  Builds the revenue pool from captured membership payments and writes a
- *  Scheduled (or Rolled_Over, if under ₹500) earnings row per eligible
- *  creator. `month` = ISO 1st-of-month, e.g. '2026-07-01'. Returns
- *  { message, month, totalRevenuePaise, creatorPoolPaise,
- *    socreateSharePaise, earningsCreated, rolledOver, rolledIn }. */
 export const distributeRevenue = (month) =>
   api.post(`/admin/pools/${month}/distribute`);
+
+function mockSavePayoutDetails(payload) {
+  const isBank =
+    payload.method === "bank_account";
+
+  const accountNumber =
+    String(payload.accountNumber ?? "");
+
+  const mobileNumber =
+    String(payload.mobileNumber ?? "");
+
+  const panNumber =
+    String(payload.panNumber ?? "").toUpperCase();
+
+  const destination = isBank
+    ? `${payload.bankName || "BANK"} ****${accountNumber.slice(-4)}`
+    : maskVpa(payload.vpa);
+
+  return mockResponse({
+    configured: true,
+    method: payload.method,
+    accountHolderName:
+      payload.accountHolderName ||
+      payload.legalName ||
+      null,
+    bankName: isBank
+      ? payload.bankName || null
+      : null,
+    destination,
+    maskedPan: maskPan(panNumber),
+    maskedMobile: maskMobile(mobileNumber),
+    active: true,
+    verified: true,
+  });
+}
+
+function maskPan(pan) {
+  if (!pan) {
+    return null;
+  }
+
+  if (pan.length < 6) {
+    return "****";
+  }
+
+  return `${pan.slice(0, 5)}****${pan.slice(-1)}`;
+}
+
+function maskMobile(mobile) {
+  const digits =
+    String(mobile).replace(/\D/g, "");
+
+  if (!digits) {
+    return null;
+  }
+
+  if (digits.length <= 4) {
+    return "****";
+  }
+
+  return `${"*".repeat(digits.length - 4)}${digits.slice(-4)}`;
+}
+
+function maskVpa(vpa) {
+  if (!vpa) {
+    return null;
+  }
+
+  const atIndex = vpa.indexOf("@");
+
+  if (atIndex <= 0) {
+    return vpa;
+  }
+
+  const prefix = vpa.slice(0, atIndex);
+  const provider = vpa.slice(atIndex);
+
+  const visiblePrefix =
+    prefix.length <= 2
+      ? prefix.slice(0, 1)
+      : prefix.slice(0, 2);
+
+  return `${visiblePrefix}***${provider}`;
+}

@@ -34,7 +34,6 @@ import CreatorPro from "../pages/CreatorPro";
 import PayoutSetup from "../pages/PayoutSetup";
 import PayoutSettings from "../pages/PayoutSettings";
 import PayoutDetail from "../pages/PayoutDetail";
-import UpdateBankAccount from "../pages/UpdateBankAccount";
 import Search from "../pages/Search";
 import Profile from "../pages/Profile";
 import UserProfile from "../pages/UserProfile";
@@ -106,7 +105,7 @@ export default function AppRouter() {
         <Route path="/payout-setup" element={<PrivateRoute><PayoutSetup /></PrivateRoute>} />
         <Route path="/payout-settings" element={<PrivateRoute><PayoutSettings /></PrivateRoute>} />
         <Route path="/payout-detail" element={<PrivateRoute><PayoutDetail /></PrivateRoute>} />
-        <Route path="/update-bank-account" element={<PrivateRoute><UpdateBankAccount /></PrivateRoute>} />
+        
         <Route path="/messages/:id/media" element={<PrivateRoute><ChatMedia /></PrivateRoute>}/>
 
         <Route path="/search" element={<PrivateRoute><Search /></PrivateRoute>} />

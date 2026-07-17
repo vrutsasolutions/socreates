@@ -2,9 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosInstance";
-import { fetchCreatorEarnings, distributeRevenue, getPayoutDetails } from "../api/paymentApi";
+import {
+  fetchCreatorEarnings,
+  distributeRevenue,
+  getPayoutDetails,
+} from "../api/paymentApi";
 
-/* ── Fallback data (used until the live endpoint ships) ─────────── */
+/* ── Fallback data ─────────────────────────────────────────────── */
+
 const MOCK_DASHBOARD = {
   status: {
     creatorPro: true,
@@ -41,7 +46,7 @@ const MOCK_DASHBOARD = {
     freeIdeas: 17,
     premiumReads: 2150,
   },
-  monthlyScore: 85, // out of 100
+  monthlyScore: 85,
 };
 
 const MOCK_REVENUE = [
@@ -64,10 +69,18 @@ const MOCK_REVENUE = [
   },
 ];
 
-const fmt = (n) => Number(n ?? 0).toLocaleString("en-IN");
+const ADMIN_EMAIL =
+  import.meta.env.VITE_ADMIN_EMAIL ||
+  "vrutsasolutions@gmail.com";
+
+const fmt = (value) =>
+  Number(value ?? 0).toLocaleString("en-IN");
 
 const fmtDate = (iso) => {
-  if (!iso) return null;
+  if (!iso) {
+    return null;
+  }
+
   try {
     return new Date(iso).toLocaleDateString("en-IN", {
       day: "numeric",
@@ -79,47 +92,28 @@ const fmtDate = (iso) => {
   }
 };
 
-/** Month name one after the given ISO month — used for "Rolled over to X". */
 const fmtNextMonthName = (iso) => {
-  if (!iso) return "next month";
+  if (!iso) {
+    return "next month";
+  }
+
   try {
-    const d = new Date(iso);
-    d.setMonth(d.getMonth() + 1);
-    return d.toLocaleDateString("en-IN", { month: "long" });
+    const date = new Date(iso);
+    date.setMonth(date.getMonth() + 1);
+
+    return date.toLocaleDateString("en-IN", {
+      month: "long",
+    });
   } catch {
     return "next month";
   }
 };
 
-// Same account as the backend's app.admin.email (SecurityConfig / hasRole("ADMIN")).
-// Purely a UI gate — hiding the button for non-admins is a UX nicety; the
-// backend is what actually enforces this and rejects everyone else with 403
-// regardless of what's shown here.
-const ADMIN_EMAIL =
-  import.meta.env.VITE_ADMIN_EMAIL || "vrutsasolutions@gmail.com";
-
-/* Normalize a revenue-history row coming from /api/creator/earnings into the
-   shape the table renders. */
-function normalizeRevenue(row) {
-  return {
-    monthIso: row.month ?? row.monthIso ?? null,
-    month: row.monthLabel ?? fmtMonth(row.month) ?? "—",
-    score: row.score ?? row.sharePercent ?? row.score_percent ?? 0,
-    earning:
-      row.earning ??
-      row.revenueRupees ??
-      (row.revenuePaise != null ? row.revenuePaise / 100 : 0),
-    status: row.status ?? "Scheduled",
-    scheduledFor: row.scheduledFor ?? null,
-    paidAt: row.paidAt ?? null,
-    destination: row.destination ?? null,
-    failureReason: row.failureReason ?? null,
-    rolledFrom: row.rolledFrom ?? null,
-  };
-}
-
 function fmtMonth(iso) {
-  if (!iso) return null;
+  if (!iso) {
+    return null;
+  }
+
   try {
     return new Date(iso).toLocaleString("en-IN", {
       month: "long",
@@ -130,23 +124,58 @@ function fmtMonth(iso) {
   }
 }
 
+function normalizeRevenue(row) {
+  return {
+    monthIso: row.month ?? row.monthIso ?? null,
+    month: row.monthLabel ?? fmtMonth(row.month) ?? "—",
+    score:
+      row.score ??
+      row.sharePercent ??
+      row.score_percent ??
+      0,
+    earning:
+      row.earning ??
+      row.revenueRupees ??
+      (row.revenuePaise != null
+        ? row.revenuePaise / 100
+        : 0),
+    status: row.status ?? "Scheduled",
+    scheduledFor: row.scheduledFor ?? null,
+    paidAt: row.paidAt ?? null,
+    destination: row.destination ?? null,
+    failureReason: row.failureReason ?? null,
+    rolledFrom: row.rolledFrom ?? null,
+  };
+}
+
 export default function CreatorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
   const isAdmin =
-    !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    Boolean(user?.email) &&
+    user.email.toLowerCase() ===
+      ADMIN_EMAIL.toLowerCase();
+
   const [data, setData] = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [distBusy, setDistBusy] = useState(false); // running distribution
-  const [distMsg, setDistMsg] = useState(""); // distribution result text
-  const [payoutConfigured, setPayoutConfigured] = useState(true); // assume yes until checked, avoids banner flash
+
+  const [distBusy, setDistBusy] = useState(false);
+  const [distMsg, setDistMsg] = useState("");
+
+  const [payoutConfigured, setPayoutConfigured] =
+    useState(true);
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
+
     try {
-      const { data: res } = await api.get("/creator/dashboard");
-      setData(res);
+      const { data: response } = await api.get(
+        "/creator/dashboard",
+      );
+
+      setData(response);
     } catch {
       setData(MOCK_DASHBOARD);
     } finally {
@@ -156,23 +185,35 @@ export default function CreatorDashboard() {
 
   const loadRevenue = useCallback(async () => {
     try {
-      const { data: res } = await fetchCreatorEarnings();
-      const rows = Array.isArray(res) ? res : (res?.earnings ?? []);
-      setRevenue(rows.length ? rows.map(normalizeRevenue) : []);
+      const { data: response } =
+        await fetchCreatorEarnings();
+
+      const rows = Array.isArray(response)
+        ? response
+        : response?.earnings ?? [];
+
+      setRevenue(
+        rows.length
+          ? rows.map(normalizeRevenue)
+          : [],
+      );
     } catch {
       setRevenue(MOCK_REVENUE);
     }
   }, []);
 
-  // Only relevant for Creator Pro members — checks whether payout details
-  // have been set up, to show/hide the "set up now" banner. Failures are
-  // treated as "not configured" so the banner errs toward showing rather
-  // than silently hiding a real setup gap.
   const checkPayoutSetup = useCallback(async () => {
-    if (!user?.creatorPro) return;
+    if (!user?.creatorPro) {
+      return;
+    }
+
     try {
-      const { data: res } = await getPayoutDetails();
-      setPayoutConfigured(!!res?.configured);
+      const { data: response } =
+        await getPayoutDetails();
+
+      setPayoutConfigured(
+        Boolean(response?.configured),
+      );
     } catch {
       setPayoutConfigured(false);
     }
@@ -182,61 +223,692 @@ export default function CreatorDashboard() {
     fetchDashboard();
     loadRevenue();
     checkPayoutSetup();
-  }, [fetchDashboard, loadRevenue, checkPayoutSetup]);
+  }, [
+    fetchDashboard,
+    loadRevenue,
+    checkPayoutSetup,
+  ]);
 
-  // Run the monthly revenue distribution for the most recently CLOSED month
-  // (i.e. last month, not this one). The backend rejects the current or any
-  // future month (RevenueDistributionService.parseTargetMonth guard) — this
-  // used to send the current month, which is exactly the mid-month, partial
-  // data bug that guard exists to prevent.
   const runDistribution = useCallback(async () => {
     const now = new Date();
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1); // JS Date normalizes Jan → prior Dec
-    const month = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}-01`;
+
+    const lastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
+
+    const month = `${lastMonth.getFullYear()}-${String(
+      lastMonth.getMonth() + 1,
+    ).padStart(2, "0")}-01`;
+
     setDistBusy(true);
     setDistMsg("");
+
     try {
-      const { data: res } = await distributeRevenue(month);
-      if (res?.message === "Already distributed") {
-        setDistMsg(`Already distributed for ${month}.`);
-      } else {
-        const pool = ((res?.creatorPoolPaise ?? 0) / 100).toLocaleString(
-          "en-IN",
-        );
+      const { data: response } =
+        await distributeRevenue(month);
+
+      if (response?.message === "Already distributed") {
         setDistMsg(
-          `Distributed ${month}: ${res?.earningsCreated ?? 0} earning(s), creator pool ₹${pool}.`,
+          `Already distributed for ${month}.`,
+        );
+      } else {
+        const creatorPool = (
+          (response?.creatorPoolPaise ?? 0) / 100
+        ).toLocaleString("en-IN");
+
+        setDistMsg(
+          `Distributed ${month}: ${
+            response?.earningsCreated ?? 0
+          } earning(s), creator pool ₹${creatorPool}.`,
         );
       }
+
       await loadRevenue();
-    } catch (e) {
-      setDistMsg(e?.response?.data?.message || "Distribution failed.");
+    } catch (error) {
+      setDistMsg(
+        error?.response?.data?.message ||
+          "Distribution failed.",
+      );
     } finally {
       setDistBusy(false);
     }
   }, [loadRevenue]);
 
-  const d = data ?? MOCK_DASHBOARD;
-  const rev = revenue ?? MOCK_REVENUE;
-  const showSetupBanner = !!user?.creatorPro && !payoutConfigured;
+  const dashboard = data ?? MOCK_DASHBOARD;
+  const revenueRows = revenue ?? MOCK_REVENUE;
+
+  const showSetupBanner =
+    Boolean(user?.creatorPro) &&
+    !payoutConfigured;
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF] pb-12">
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
+    <div className="min-h-screen overflow-x-hidden bg-[#F4F7FF] pb-10 sm:pb-12">
+      {/* Header */}
+      <header className="sticky top-0 z-30 relative border-b border-white/10 bg-[#1565C0] px-3 pt-3 pb-8 shadow-lg sm:px-4 sm:pt-4 sm:pb-10">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute w-40 h-40 rounded-full border-[30px] border-white/5 -top-16 -right-10" />
-          <div className="absolute w-32 h-32 rounded-full border-[24px] border-white/5 -bottom-10 -left-8" />
+          <div className="absolute -right-10 -top-16 h-40 w-40 rounded-full border-[30px] border-white/5" />
+          <div className="absolute -bottom-10 -left-8 h-32 w-32 rounded-full border-[24px] border-white/5" />
         </div>
 
-        {/* Top bar — back (left) + home (right) */}
-        <div className="flex items-center justify-between relative z-10 mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            aria-label="Go back"
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
-          >
+        <div className="relative z-10 mx-auto w-full max-w-6xl">
+          <div className="mb-4 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition-all hover:bg-white/25 active:scale-90"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("/home")}
+              aria-label="Go to home"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition-all hover:bg-white/25 active:scale-90"
+            >
+              <svg
+                className="h-[18px] w-[18px]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" />
+              </svg>
+            </button>
+          </div>
+
+          <div>
+            <h1 className="break-words text-[22px] font-bold leading-tight text-white sm:text-[26px]">
+              Creator Dashboard
+            </h1>
+
+            <p className="mt-1 text-xs leading-relaxed text-white/60 sm:text-sm">
+              Insights, verification and creator
+              performance
+            </p>
+          </div>
+
+          <div className="mt-5 flex min-w-0 items-center gap-3">
+            {user?.profileImage ? (
+              <img
+                src={user.profileImage}
+                alt={user?.name || "You"}
+                className="h-11 w-11 shrink-0 rounded-2xl border border-white/20 object-cover sm:h-12 sm:w-12"
+              />
+            ) : (
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/20 text-lg font-bold text-white sm:h-12 sm:w-12 sm:text-xl">
+                {user?.name?.[0]?.toUpperCase() ?? "A"}
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-bold text-white sm:text-[15px]">
+                {user?.name ?? "Alex Johnson"}
+              </div>
+
+              {dashboard.status.creatorPro &&
+                dashboard.status.verified && (
+                  <div className="mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#A7F3D0] bg-[#ECFDF5] px-2.5 py-0.5 text-[10px] font-bold text-[#065F46] sm:px-3 sm:text-[11px]">
+                    <svg
+                      className="h-3 w-3 shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+
+                    <span className="truncate">
+                      Verified Creator Pro
+                    </span>
+                  </div>
+                )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="bg-[#1565C0]">
+        <main className="mx-auto w-full max-w-6xl rounded-t-[24px] bg-white px-3 pt-5 pb-12 sm:rounded-t-[32px] sm:px-4 sm:pt-6 md:px-6 lg:px-8">
+          <div className="space-y-6 sm:space-y-7">
+            {loading ? (
+              <DashboardSkeleton />
+            ) : (
+              <>
+                {showSetupBanner && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate("/payout-setup")
+                    }
+                    className="flex w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-[#FED7AA] bg-[#FFF7ED] px-3.5 py-3.5 text-left transition-all hover:bg-[#FFEFD9] active:scale-[0.99] sm:px-4"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FEEBC8]">
+                        <svg
+                          className="h-5 w-5 text-[#D97706]"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <rect
+                            x="2"
+                            y="5"
+                            width="20"
+                            height="14"
+                            rx="2"
+                          />
+                          <path d="M2 10h20" />
+                        </svg>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="break-words text-sm font-bold text-[#78350F]">
+                          Set up your payout details
+                        </div>
+
+                        <div className="mt-0.5 break-words text-xs leading-relaxed text-[#92400E]/80">
+                          Required to receive your creator
+                          earnings
+                        </div>
+                      </div>
+                    </div>
+
+                    <svg
+                      className="h-4 w-4 shrink-0 text-[#D97706]"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                )}
+
+                <Section title="Creator Status">
+                  <div className="space-y-3.5 rounded-2xl border border-[#E3F2FD] bg-white p-3.5 shadow-sm sm:p-4">
+                    <StatusRow
+                      label="Creator Pro"
+                      value="Active"
+                      ok={dashboard.status.creatorPro}
+                    />
+
+                    <StatusRow
+                      label="Verified Pro"
+                      value="Verified"
+                      ok={dashboard.status.verified}
+                    />
+
+                    <StatusRow
+                      label="Premium Publishing"
+                      value="Enabled"
+                      ok={
+                        dashboard.status
+                          .premiumPublishing
+                      }
+                    />
+                  </div>
+                </Section>
+
+                <Section title="Performance Overview">
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border border-[#E7E9F4] bg-[#F3F4FB] p-3.5 shadow-sm sm:p-4">
+                      <div className="mb-1 text-xs text-[#90A4AE]">
+                        Total ideas published
+                      </div>
+
+                      <div className="text-2xl font-bold text-[#0D2137]">
+                        {fmt(
+                          dashboard.performance
+                            .ideasPublished,
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
+                      <StatCard
+                        label="Total reads"
+                        value={fmt(
+                          dashboard.performance
+                            .totalReads,
+                        )}
+                      />
+
+                      <StatCard
+                        label="Total likes"
+                        value={fmt(
+                          dashboard.performance
+                            .totalLikes,
+                        )}
+                      />
+
+                      <StatCard
+                        label="Total saves"
+                        value={fmt(
+                          dashboard.performance
+                            .totalSaves,
+                        )}
+                      />
+
+                      <StatCard
+                        label="Total comments"
+                        value={fmt(
+                          dashboard.performance
+                            .totalComments,
+                        )}
+                      />
+                    </div>
+                  </div>
+                </Section>
+
+                <Section title="Content Performance">
+                  
+
+                  <div
+                    className="w-full max-w-full overflow-x-auto rounded-2xl border border-[#E3F2FD] bg-white shadow-sm"
+                    style={{
+                      WebkitOverflowScrolling:
+                        "touch",
+                    }}
+                  >
+                    <table className="w-full min-w-[620px] text-sm">
+                      <thead>
+                        <tr className="border-b border-[#E3F2FD] bg-[#F8FAFF] text-[#0D2137]">
+                          <th className="min-w-[190px] px-4 py-3 text-left font-bold">
+                            Idea
+                          </th>
+
+                          <th className="min-w-[75px] px-3 py-3 text-right font-bold">
+                            Reads
+                          </th>
+
+                          <th className="min-w-[75px] px-3 py-3 text-right font-bold">
+                            Likes
+                          </th>
+
+                          <th className="min-w-[90px] px-3 py-3 text-right font-bold">
+                            Comments
+                          </th>
+
+                          <th className="min-w-[75px] px-3 py-3 text-right font-bold">
+                            Saves
+                          </th>
+
+                          <th className="min-w-[70px] px-4 py-3 text-right font-bold">
+                            Score
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {dashboard.content.map(
+                          (row) => (
+                            <tr
+                              key={row.idea}
+                              className="border-b border-[#F0F2F8] last:border-0"
+                            >
+                              <td className="max-w-[240px] break-words px-4 py-3.5 text-left font-medium text-[#0D2137]">
+                                {row.idea}
+                              </td>
+
+                              <td className="px-3 py-3.5 text-right text-[#546E7A]">
+                                {fmt(row.reads)}
+                              </td>
+
+                              <td className="px-3 py-3.5 text-right text-[#546E7A]">
+                                {fmt(row.likes)}
+                              </td>
+
+                              <td className="px-3 py-3.5 text-right text-[#546E7A]">
+                                {fmt(row.comments)}
+                              </td>
+
+                              <td className="px-3 py-3.5 text-right text-[#546E7A]">
+                                {fmt(row.saves)}
+                              </td>
+
+                              <td className="px-4 py-3.5 text-right font-semibold text-[#0D2137]">
+                                {fmt(row.score)}
+                              </td>
+                            </tr>
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </Section>
+
+                <Section title="Premium Content">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
+                      <MiniCard
+                        label="Premium ideas"
+                        value={fmt(
+                          dashboard.premium
+                            .premiumIdeas,
+                        )}
+                        accent
+                      />
+
+                      <MiniCard
+                        label="Free ideas"
+                        value={fmt(
+                          dashboard.premium
+                            .freeIdeas,
+                        )}
+                      />
+                    </div>
+
+                    <MiniCard
+                      label="Premium reads"
+                      value={fmt(
+                        dashboard.premium
+                          .premiumReads,
+                      )}
+                      accent
+                    />
+                  </div>
+                </Section>
+
+                <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
+                  <div className="space-y-2.5">
+                    <h2 className="px-1 text-[11px] font-bold uppercase tracking-wider text-[#90A4AE]">
+                      Monthly Score
+                    </h2>
+
+                    <div className="flex min-h-[88px] items-center rounded-2xl border border-[#E3F2FD] bg-white p-4 shadow-sm">
+                      <span className="break-words text-2xl font-bold text-[#0D2137]">
+                        {fmt(
+                          dashboard.monthlyScore,
+                        )}
+                        /100
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <h2 className="px-1 text-[11px] font-bold uppercase tracking-wider text-[#90A4AE]">
+                      Payout Settings
+                    </h2>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/payout-settings",
+                        )
+                      }
+                      className="flex min-h-[88px] w-full items-center justify-between gap-2 rounded-2xl border border-[#E3F2FD] bg-white p-4 text-left shadow-sm transition-all hover:bg-[#F8FAFF] active:scale-[0.98]"
+                    >
+                      <span className="min-w-0 break-words text-sm font-bold leading-tight text-[#1565C0]">
+                        Manage payout
+                      </span>
+
+                      <svg
+                        className="h-4 w-4 shrink-0 text-[#1565C0]"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <Section title="Earnings history">
+                  {isAdmin && (
+                    <div className="mb-2 flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                      <button
+                        type="button"
+                        onClick={runDistribution}
+                        disabled={distBusy}
+                        className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-[#BBDEFB] bg-[#F0F6FF] px-3 py-1.5 text-xs font-semibold text-[#1565C0] transition-colors hover:bg-[#E3F2FD] disabled:opacity-60"
+                      >
+                        {distBusy ? (
+                          <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[#BBDEFB] border-t-[#1565C0]" />
+                        ) : (
+                          <svg
+                            className="h-3.5 w-3.5 shrink-0"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-14.9-2M4 15a8 8 0 0014.9 2"
+                            />
+                          </svg>
+                        )}
+
+                        <span className="whitespace-normal break-words text-left">
+                          {distBusy
+                            ? "Distributing…"
+                            : "Run monthly distribution"}
+                        </span>
+                      </button>
+
+                      {distMsg && (
+                        <span className="min-w-0 break-words text-[11px] leading-relaxed text-[#546E7A]">
+                          {distMsg}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="rounded-2xl border border-[#BBDEFB] bg-[#F0F6FF] px-3.5 py-3 text-xs leading-relaxed text-[#0D2137] sm:px-4">
+                    Earnings are paid out on the{" "}
+                    <strong>
+                      15th of every month
+                    </strong>{" "}
+                    for the previous month&apos;s
+                    earnings, directly to your
+                    registered bank account. Minimum
+                    payout: <strong>₹500</strong>.
+                    Amounts below this roll over to the
+                    next month.
+                  </div>
+
+                  
+                  <div
+                    className="w-full max-w-full overflow-x-auto rounded-2xl border border-[#E3F2FD] bg-white shadow-sm"
+                    style={{
+                      WebkitOverflowScrolling:
+                        "touch",
+                    }}
+                  >
+                    <table className="w-full min-w-[680px] text-sm">
+                      <thead>
+                        <tr className="border-b border-[#E3F2FD] bg-[#F8FAFF] text-[#0D2137]">
+                          <th className="min-w-[120px] px-4 py-3 text-left font-bold">
+                            Month
+                          </th>
+
+                          <th className="min-w-[75px] px-3 py-3 text-right font-bold">
+                            Score
+                          </th>
+
+                          <th className="min-w-[90px] px-3 py-3 text-right font-bold">
+                            Earning
+                          </th>
+
+                          <th className="min-w-[150px] px-3 py-3 text-right font-bold">
+                            Status
+                          </th>
+
+                          <th className="min-w-[90px] px-4 py-3 text-right font-bold">
+                            Receipt
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {revenueRows.map(
+                          (row, index) => {
+                            const hasReceipt = [
+                              "paid",
+                              "processing",
+                              "failed",
+                            ].includes(
+                              String(
+                                row.status || "",
+                              ).toLowerCase(),
+                            );
+
+                            return (
+                              <tr
+                                key={`${row.month}-${index}`}
+                                className="border-b border-[#F0F2F8] last:border-0"
+                              >
+                                <td className="min-w-[120px] break-words px-4 py-3.5 text-left align-top font-medium text-[#0D2137]">
+                                  {row.month}
+                                </td>
+
+                                <td className="min-w-[75px] px-3 py-3.5 text-right align-top text-[#546E7A]">
+                                  {fmt(row.score)}
+                                </td>
+
+                                <td className="min-w-[90px] px-3 py-3.5 text-right align-top text-[#546E7A]">
+                                  {fmt(
+                                    row.earning,
+                                  )}
+                                </td>
+
+                                <td className="min-w-[150px] px-3 py-3.5 text-right align-top">
+                                  <EarningStatus
+                                    row={row}
+                                  />
+                                </td>
+
+                                <td className="min-w-[90px] px-4 py-3.5 text-right align-top">
+                                  {hasReceipt ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        navigate(
+                                          "/payout-detail",
+                                          {
+                                            state: {
+                                              row,
+                                            },
+                                          },
+                                        )
+                                      }
+                                      className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-bold text-[#1565C0] transition-all hover:underline active:scale-95"
+                                    >
+                                      View
+
+                                      <svg
+                                        className="h-3 w-3"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={3}
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          d="M9 5l7 7-7 7"
+                                        />
+                                      </svg>
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-[#B0BEC5]">
+                                      —
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          },
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </Section>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+/* ── Status rendering ─────────────────────────────────────────── */
+
+function EarningStatus({ row }) {
+  const status = String(
+    row.status || "",
+  ).toLowerCase();
+
+  switch (status) {
+    case "estimating":
+      return (
+        <span className="text-xs font-medium italic text-[#90A4AE]">
+          Estimating…
+        </span>
+      );
+
+    case "scheduled":
+      return (
+        <span className="inline-block max-w-[160px] break-words text-xs font-semibold leading-relaxed text-[#D97706]">
+          Scheduled for{" "}
+          {fmtDate(row.scheduledFor) ||
+            "the 15th"}
+        </span>
+      );
+
+    case "processing":
+      return (
+        <span className="inline-flex max-w-[160px] items-center justify-end gap-1.5 break-words text-xs font-semibold text-[#1565C0]">
+          <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-[#BBDEFB] border-t-[#1565C0]" />
+          Processing…
+        </span>
+      );
+
+    case "paid":
+      return (
+        <div className="max-w-[170px] text-right">
+          <span className="inline-flex items-center justify-end gap-1 text-xs font-semibold text-[#16A34A]">
             <svg
-              className="w-5 h-5"
+              className="h-3.5 w-3.5 shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -245,462 +917,37 @@ export default function CreatorDashboard() {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M15 19l-7-7 7-7"
+                d="M5 13l4 4L19 7"
               />
             </svg>
-          </button>
-          <button
-            onClick={() => navigate("/home")}
-            aria-label="Go to home"
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
-          >
-            <svg
-              className="w-[18px] h-[18px]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" />
-            </svg>
-          </button>
-        </div>
 
-        <div className="relative z-10">
-          <h1 className="text-[26px] font-bold text-white leading-none">
-            Creator Dashboard
-          </h1>
-          <p className="text-white/60 text-sm mt-1">
-            Insights, verification and creator performance
-          </p>
-        </div>
-
-        {/* Identity + status badge */}
-        <div className="relative z-10 mt-5 flex items-center gap-3">
-          {user?.profileImage ? (
-            <img
-              src={user.profileImage}
-              alt={user?.name || "You"}
-              className="w-12 h-12 rounded-2xl object-cover border border-white/20 shrink-0"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/20 flex items-center justify-center text-white text-xl font-bold shrink-0">
-              {user?.name?.[0]?.toUpperCase() ?? "A"}
-            </div>
-          )}
-          <div className="min-w-0">
-            <div className="text-white font-bold text-[15px] truncate">
-              {user?.name ?? "Alex Johnson"}
-            </div>
-            {d.status.creatorPro && d.status.verified && (
-              <div className="mt-1.5 inline-flex items-center gap-1.5 bg-[#ECFDF5] border border-[#A7F3D0] rounded-full px-3 py-0.5 text-[11px] font-bold text-[#065F46]">
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                Verified Creator Pro
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="bg-[#1565C0]">
-        <div className="bg-white rounded-t-[32px] px-4 pt-6 pb-12 space-y-7">
-          {loading ? (
-            <DashboardSkeleton />
-          ) : (
-            <>
-              {/* ── Payout setup banner ─────────────────────────── */}
-              {showSetupBanner && (
-                <button
-                  onClick={() => navigate("/payout-setup")}
-                  className="w-full flex items-center justify-between gap-3 bg-[#FFF7ED] border border-[#FED7AA] rounded-2xl px-4 py-3.5 text-left hover:bg-[#FFEFD9] active:scale-[0.99] transition-all"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-[#FEEBC8] flex items-center justify-center shrink-0">
-                      <svg className="w-5 h-5 text-[#D97706]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <rect x="2" y="5" width="20" height="14" rx="2" />
-                        <path d="M2 10h20" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[#78350F] text-sm font-bold">Set up your payout details</div>
-                      <div className="text-[#92400E]/80 text-xs mt-0.5">Required to receive your creator earnings</div>
-                    </div>
-                  </div>
-                  <svg className="w-4 h-4 text-[#D97706] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              )}
-
-              {/* ── Creator Status ─────────────────────────────── */}
-              <Section title="Creator Status">
-                <div className="bg-white rounded-2xl border border-[#E3F2FD] p-4 space-y-3.5 shadow-sm">
-                  <StatusRow
-                    label="Creator Pro"
-                    value="Active"
-                    ok={d.status.creatorPro}
-                  />
-                  <StatusRow
-                    label="Verified Pro"
-                    value="Verified"
-                    ok={d.status.verified}
-                  />
-                  <StatusRow
-                    label="Premium Publishing"
-                    value="Enabled"
-                    ok={d.status.premiumPublishing}
-                  />
-                </div>
-              </Section>
-
-              {/* ── Performance Overview ───────────────────────── */}
-              <Section title="Performance Overview">
-                <div className="space-y-3">
-                  {/* Wide highlighted card */}
-                  <div className="bg-[#F3F4FB] border border-[#E7E9F4] rounded-2xl p-4 shadow-sm">
-                    <div className="text-[#90A4AE] text-xs mb-1">
-                      Total ideas published
-                    </div>
-                    <div className="text-[#0D2137] text-2xl font-bold">
-                      {fmt(d.performance.ideasPublished)}
-                    </div>
-                  </div>
-                  {/* 2×2 grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <StatCard
-                      label="Total reads"
-                      value={fmt(d.performance.totalReads)}
-                    />
-                    <StatCard
-                      label="Total Likes"
-                      value={fmt(d.performance.totalLikes)}
-                    />
-                    <StatCard
-                      label="Total saves"
-                      value={fmt(d.performance.totalSaves)}
-                    />
-                    <StatCard
-                      label="Total Comments"
-                      value={fmt(d.performance.totalComments)}
-                    />
-                  </div>
-                </div>
-              </Section>
-
-              {/* ── Content Performance ────────────────────────── */}
-              <Section title="Content Performance">
-                <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm overflow-x-auto">
-                  <table className="w-full text-sm min-w-[520px]">
-                    <thead>
-                      <tr className="bg-[#F8FAFF] text-[#0D2137] border-b border-[#E3F2FD]">
-                        <th className="text-left  font-bold px-4 py-3">Idea</th>
-                        <th className="text-right font-bold px-3 py-3">
-                          Reads
-                        </th>
-                        <th className="text-right font-bold px-3 py-3">
-                          Likes
-                        </th>
-                        <th className="text-right font-bold px-3 py-3">
-                          Comments
-                        </th>
-                        <th className="text-right font-bold px-3 py-3">
-                          Saves
-                        </th>
-                        <th className="text-right font-bold px-4 py-3">
-                          Score
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {d.content.map((row) => (
-                        <tr
-                          key={row.idea}
-                          className="border-b border-[#F0F2F8] last:border-0"
-                        >
-                          <td className="text-left  px-4 py-3.5 text-[#0D2137] font-medium">
-                            {row.idea}
-                          </td>
-                          <td className="text-right px-3 py-3.5 text-[#546E7A]">
-                            {fmt(row.reads)}
-                          </td>
-                          <td className="text-right px-3 py-3.5 text-[#546E7A]">
-                            {fmt(row.likes)}
-                          </td>
-                          <td className="text-right px-3 py-3.5 text-[#546E7A]">
-                            {fmt(row.comments)}
-                          </td>
-                          <td className="text-right px-3 py-3.5 text-[#546E7A]">
-                            {fmt(row.saves)}
-                          </td>
-                          <td className="text-right px-4 py-3.5 text-[#0D2137] font-semibold">
-                            {fmt(row.score)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Section>
-
-              {/* ── Premium Content ────────────────────────────── */}
-              <Section title="Premium Content">
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <MiniCard
-                      label="Premium ideas"
-                      value={fmt(d.premium.premiumIdeas)}
-                      accent
-                    />
-                    <MiniCard
-                      label="Free ideas"
-                      value={fmt(d.premium.freeIdeas)}
-                    />
-                  </div>
-                  <MiniCard
-                    label="Premium reads"
-                    value={fmt(d.premium.premiumReads)}
-                    accent
-                  />
-                </div>
-              </Section>
-
-              {/* ── Monthly Score + Payout Settings ────────────────── */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2.5">
-                  <h2 className="text-[11px] font-bold tracking-wider text-[#90A4AE] uppercase px-1">
-                    Monthly Score
-                  </h2>
-                  <div className="bg-white rounded-2xl border border-[#E3F2FD] p-4 shadow-sm h-[calc(100%-1.875rem)] flex items-center">
-                    <span className="text-[#0D2137] text-2xl font-bold">
-                      {fmt(d.monthlyScore)}/100
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-2.5">
-                  <h2 className="text-[11px] font-bold tracking-wider text-[#90A4AE] uppercase px-1">
-                    Payout Settings
-                  </h2>
-                  <button
-                    onClick={() => navigate("/payout-settings")}
-                    className="w-full bg-white rounded-2xl border border-[#E3F2FD] p-4 shadow-sm h-[calc(100%-1.875rem)] flex items-center justify-between gap-2 hover:bg-[#F8FAFF] active:scale-[0.98] transition-all text-left"
-                  >
-                    <span className="text-[#1565C0] text-sm font-bold leading-tight">
-                      Manage payout
-                    </span>
-                    <svg className="w-4 h-4 text-[#1565C0] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* ── Earnings history ────────────────────────────── */}
-              <Section title="Earnings history">
-                {/* Admin-only: run the monthly revenue distribution. Builds the
-                    pool from captured payments and writes each creator's
-                    Scheduled earning ahead of the automatic payout on the 15th.
-                    Backend (hasRole("ADMIN")) is the real gate — this just
-                    keeps the button from being shown to creators it will
-                    always 403 for. */}
-                {isAdmin && (
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={runDistribution}
-                      disabled={distBusy}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#BBDEFB] bg-[#F0F6FF] text-[#1565C0] text-xs font-semibold px-3 py-1.5 hover:bg-[#E3F2FD] disabled:opacity-60 transition-colors"
-                    >
-                      {distBusy ? (
-                        <span className="w-3.5 h-3.5 border-2 border-[#BBDEFB] border-t-[#1565C0] rounded-full animate-spin" />
-                      ) : (
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-14.9-2M4 15a8 8 0 0014.9 2"
-                          />
-                        </svg>
-                      )}
-                      {distBusy ? "Distributing…" : "Run monthly distribution"}
-                    </button>
-                    {distMsg && (
-                      <span className="text-[11px] text-[#546E7A]">
-                        {distMsg}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Helper text — replaces the old estimated-earnings card and
-                    withdraw button with an explanation of the automatic cycle. */}
-                <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-[#0D2137] text-xs leading-relaxed">
-                  Earnings are paid out on the <strong>15th of every month</strong> for the
-                  previous month's earnings, directly to your registered bank account.
-                  Minimum payout: <strong>₹500</strong>. Amounts below this roll over to
-                  the next month.
-                </div>
-
-                <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[#F8FAFF] text-[#0D2137] border-b border-[#E3F2FD]">
-                        <th className="text-left  font-bold px-4 py-3">
-                          Month
-                        </th>
-                        <th className="text-right font-bold px-3 py-3">
-                          Score
-                        </th>
-                        <th className="text-right font-bold px-3 py-3">
-                          Earning
-                        </th>
-                        <th className="text-right font-bold px-3 py-3">
-                          Status
-                        </th>
-                        <th className="text-right font-bold px-4 py-3">
-                          Receipt
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rev.map((row, i) => {
-                        // Only rows with a real payout attempt have a receipt
-                        // to show — a live estimate or a rolled-over balance
-                        // has no transaction behind it yet.
-                        const hasReceipt = [
-                          "paid",
-                          "processing",
-                          "failed",
-                        ].includes(String(row.status || "").toLowerCase());
-                        return (
-                          <tr
-                            key={row.month + i}
-                            className="border-b border-[#F0F2F8] last:border-0"
-                          >
-                            <td className="text-left  px-4 py-3.5 text-[#0D2137] font-medium align-top">
-                              {row.month}
-                            </td>
-                            <td className="text-right px-3 py-3.5 text-[#546E7A] align-top">
-                              {fmt(row.score)}
-                            </td>
-                            <td className="text-right px-3 py-3.5 text-[#546E7A] align-top">
-                              {fmt(row.earning)}
-                            </td>
-                            <td className="text-right px-3 py-3.5 align-top">
-                              <EarningStatus row={row} />
-                            </td>
-                            <td className="text-right px-4 py-3.5 align-top">
-                              {hasReceipt ? (
-                                <button
-                                  onClick={() =>
-                                    navigate("/payout-detail", {
-                                      state: { row },
-                                    })
-                                  }
-                                  className="inline-flex items-center gap-1 text-[#1565C0] text-xs font-bold hover:underline active:scale-95 transition-all"
-                                >
-                                  View
-                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                                  </svg>
-                                </button>
-                              ) : (
-                                <span className="text-[#B0BEC5] text-xs">—</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </Section>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Status cell ───────────────────────────────────────────────── */
-/**
- * Renders the right-hand status column for one earnings row. Mirrors the
- * backend lifecycle 1:1 — see CreatorEarning.java javadoc for the source
- * of truth on what each status means.
- */
-function EarningStatus({ row }) {
-  const status = String(row.status || "").toLowerCase();
-
-  switch (status) {
-    case "estimating":
-      return (
-        <span className="text-[#90A4AE] text-xs font-medium italic">
-          Estimating…
-        </span>
-      );
-
-    case "scheduled":
-      return (
-        <span className="text-[#D97706] text-xs font-semibold">
-          Scheduled for {fmtDate(row.scheduledFor) || "the 15th"}
-        </span>
-      );
-
-    case "processing":
-      return (
-        <span className="inline-flex items-center gap-1.5 text-[#1565C0] text-xs font-semibold">
-          <span className="w-3 h-3 border-2 border-[#BBDEFB] border-t-[#1565C0] rounded-full animate-spin" />
-          Processing…
-        </span>
-      );
-
-    case "paid":
-      return (
-        <div className="text-right">
-          <span className="text-[#16A34A] text-xs font-semibold inline-flex items-center gap-1">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
             Paid
           </span>
-          <div className="text-[#90A4AE] text-[10px] mt-0.5 leading-tight">
+
+          <div className="mt-0.5 break-words text-[10px] leading-tight text-[#90A4AE]">
             {fmtDate(row.paidAt)}
-            {row.destination ? ` to ${row.destination}` : ""}
+            {row.destination
+              ? ` to ${row.destination}`
+              : ""}
           </div>
         </div>
       );
 
     case "setup_missing":
       return (
-        <span className="text-[#D97706] text-xs font-semibold underline underline-offset-2">
+        <span className="inline-block max-w-[160px] break-words text-xs font-semibold leading-relaxed text-[#D97706] underline underline-offset-2">
           Set up payout details
         </span>
       );
 
     case "failed":
       return (
-        <div className="text-right">
-          <span className="text-[#DC2626] text-xs font-semibold">Payout failed</span>
-          <div className="text-[#90A4AE] text-[10px] mt-0.5 leading-tight">
+        <div className="max-w-[170px] text-right">
+          <span className="break-words text-xs font-semibold text-[#DC2626]">
+            Payout failed
+          </span>
+
+          <div className="mt-0.5 break-words text-[10px] leading-tight text-[#90A4AE]">
             Check payout details
           </div>
         </div>
@@ -708,30 +955,37 @@ function EarningStatus({ row }) {
 
     case "rolled_over":
       return (
-        <span className="text-[#7C3AED] text-xs font-semibold">
-          Rolled over to {fmtNextMonthName(row.monthIso)}
+        <span className="inline-block max-w-[160px] break-words text-xs font-semibold leading-relaxed text-[#7C3AED]">
+          Rolled over to{" "}
+          {fmtNextMonthName(row.monthIso)}
         </span>
       );
 
     case "absorbed":
       return (
-        <span className="text-[#90A4AE] text-xs">
+        <span className="inline-block max-w-[160px] break-words text-xs leading-relaxed text-[#90A4AE]">
           Included in a later payout
         </span>
       );
 
     default:
-      return <span className="text-[#B0BEC5] text-xs">{row.status || "—"}</span>;
+      return (
+        <span className="inline-block max-w-[160px] break-words text-xs text-[#B0BEC5]">
+          {row.status || "—"}
+        </span>
+      );
   }
 }
 
-/* ── Sub-components ───────────────────────────────────────────── */
+/* ── Reusable components ──────────────────────────────────────── */
+
 function Section({ title, children }) {
   return (
-    <section className="space-y-2.5">
-      <h2 className="text-[11px] font-bold tracking-wider text-[#90A4AE] uppercase px-1">
+    <section className="min-w-0 space-y-2.5">
+      <h2 className="break-words px-1 text-[11px] font-bold uppercase tracking-wider text-[#90A4AE]">
         {title}
       </h2>
+
       {children}
     </section>
   );
@@ -739,16 +993,28 @@ function Section({ title, children }) {
 
 function StatusRow({ label, value, ok }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2.5">
+    <div className="flex min-w-0 items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <span
-          className="w-2.5 h-2.5 rounded-sm"
-          style={{ background: ok ? "#22C55E" : "#EF4444" }}
+          className="h-2.5 w-2.5 shrink-0 rounded-sm"
+          style={{
+            background: ok
+              ? "#22C55E"
+              : "#EF4444",
+          }}
         />
-        <span className="text-[#0D2137] text-sm font-medium">{label}</span>
+
+        <span className="min-w-0 break-words text-sm font-medium text-[#0D2137]">
+          {label}
+        </span>
       </div>
+
       <span
-        className={`text-sm font-bold ${ok ? "text-[#16A34A]" : "text-[#EF4444]"}`}
+        className={`shrink-0 text-sm font-bold ${
+          ok
+            ? "text-[#16A34A]"
+            : "text-[#EF4444]"
+        }`}
       >
         {value}
       </span>
@@ -758,33 +1024,54 @@ function StatusRow({ label, value, ok }) {
 
 function StatCard({ label, value }) {
   return (
-    <div className="bg-white rounded-2xl border border-[#E3F2FD] p-4 shadow-sm">
-      <div className="text-[#90A4AE] text-xs mb-1">{label}</div>
-      <div className="text-[#0D2137] text-2xl font-bold">{value}</div>
+    <div className="min-w-0 rounded-2xl border border-[#E3F2FD] bg-white p-3.5 shadow-sm sm:p-4">
+      <div className="mb-1 break-words text-xs text-[#90A4AE]">
+        {label}
+      </div>
+
+      <div className="break-words text-2xl font-bold text-[#0D2137]">
+        {value}
+      </div>
     </div>
   );
 }
 
 function MiniCard({ label, value, accent }) {
-  const bg = accent
+  const background = accent
     ? "bg-[#F8F5FF] border-[#E9D5FF]"
     : "bg-white border-[#E3F2FD]";
-  const val = accent ? "text-[#7C3AED]" : "text-[#0D2137]";
+
+  const valueClass = accent
+    ? "text-[#7C3AED]"
+    : "text-[#0D2137]";
+
   return (
-    <div className={`${bg} rounded-2xl border p-4 shadow-sm`}>
-      <div className="text-[#546E7A] text-sm mb-1">{label}</div>
-      <div className={`${val} text-xl font-bold`}>{value}</div>
+    <div
+      className={`${background} min-w-0 rounded-2xl border p-3.5 shadow-sm sm:p-4`}
+    >
+      <div className="mb-1 break-words text-sm text-[#546E7A]">
+        {label}
+      </div>
+
+      <div
+        className={`${valueClass} break-words text-xl font-bold`}
+      >
+        {value}
+      </div>
     </div>
   );
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-7 animate-pulse">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="space-y-2.5">
-          <div className="h-3 bg-[#E3F2FD] rounded-full w-24" />
-          <div className="bg-[#F0F6FF] rounded-2xl h-28" />
+    <div className="space-y-6 animate-pulse sm:space-y-7">
+      {[0, 1, 2, 3].map((index) => (
+        <div
+          key={index}
+          className="space-y-2.5"
+        >
+          <div className="h-3 w-24 rounded-full bg-[#E3F2FD]" />
+          <div className="h-28 rounded-2xl bg-[#F0F6FF]" />
         </div>
       ))}
     </div>
