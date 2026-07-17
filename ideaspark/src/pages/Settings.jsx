@@ -411,6 +411,24 @@ export default function Settings() {
                 onClick={() => navigate("/account/subscription")}
               />
             )}
+            {user?.creatorPro && (
+              <Row
+                icon={
+                  <svg
+                    className="w-5 h-5 text-[#16A34A]"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                }
+                label="Payout Settings"
+                sublabel="Bank details · Payout schedule"
+                onClick={() => navigate("/payout-settings")}
+              />
+            )}
             <Row
               icon={<Icon name="bookmark" className="w-5 h-5 text-[#10B981]" />}
               label="Saved Ideas"
