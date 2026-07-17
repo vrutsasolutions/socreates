@@ -663,16 +663,33 @@ public class ScheduledPayoutRunner {
         User creator =
                 earning.getCreator();
 
-        if (creator == null
-                || !notBlank(creator.getEmail())) {
+        if (creator == null) {
             return;
         }
 
-        emailService.sendPayoutFailedEmail(
-                creator.getEmail(),
+        String creatorName =
                 notBlank(creator.getName())
                         ? creator.getName()
-                        : "Creator",
+                        : "Creator";
+
+        if (notBlank(creator.getEmail())) {
+            emailService.sendPayoutFailedEmail(
+                    creator.getEmail(),
+                    creatorName,
+                    earning.getMonth().toString(),
+                    toRupees(earning.getRevenuePaise()),
+                    earning.getFailureReason()
+            );
+        }
+
+        // Admin alert is sent regardless of whether the creator has a
+        // usable email on file — the admin still needs to know a payout
+        // permanently failed so it can be followed up on.
+        emailService.sendPayoutFailedAlertToAdmin(
+                creatorName,
+                notBlank(creator.getEmail())
+                        ? creator.getEmail()
+                        : "(no email on file)",
                 earning.getMonth().toString(),
                 toRupees(earning.getRevenuePaise()),
                 earning.getFailureReason()

@@ -703,6 +703,172 @@ public class EmailService {
         }
     }
 
+    /**
+     * Sends an alert to the SoCreate admin inbox after a creator payout
+     * permanently fails (all 3 retry attempts exhausted).
+     *
+     * This is separate from {@link #sendPayoutFailedEmail} (which notifies
+     * the creator) — this one notifies the team so someone can follow up
+     * on the failed payout account.
+     */
+    @Async
+    public void sendPayoutFailedAlertToAdmin(
+            String creatorName,
+            String creatorEmail,
+            String month,
+            long amountRupees,
+            String reason
+    ) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(
+                    "vrutsasolutions@gmail.com",
+                    "SoCreate"
+            );
+
+            helper.setTo("vrutsasolutions@gmail.com");
+
+            helper.setSubject(
+                    "[Admin Alert] Creator payout permanently failed — "
+                            + creatorName
+            );
+
+            helper.setText(
+                    buildPayoutFailedAdminAlertHtml(
+                            creatorName,
+                            creatorEmail,
+                            month,
+                            amountRupees,
+                            reason
+                    ),
+                    true
+            );
+
+            mailSender.send(message);
+
+            System.out.println(
+                    "Payout failure admin alert sent for creator: "
+                            + creatorEmail
+            );
+
+        } catch (MessagingException
+                 | java.io.UnsupportedEncodingException e) {
+
+            /*
+             * Do not throw an exception here because the payout state has
+             * already been saved in the database.
+             */
+            System.out.println(
+                    "Payout failure admin alert failed: "
+                            + e.getMessage()
+            );
+        }
+    }
+
+    private String buildPayoutFailedAdminAlertHtml(
+            String creatorName,
+            String creatorEmail,
+            String month,
+            long amountRupees,
+            String reason
+    ) {
+        String safeReason =
+                reason == null || reason.isBlank()
+                        ? "No failure reason provided by the payout provider."
+                        : escapeHtml(reason);
+
+        return """
+                <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(211,47,47,0.12);">
+
+                    <div style="background: linear-gradient(135deg, #B71C1C 0%%, #D32F2F 100%%); padding: 32px 28px; text-align: center;">
+                        <h1 style="color:#ffffff; margin:0; font-size:22px;">
+                            Admin Alert: Payout Permanently Failed
+                        </h1>
+
+                        <p style="color:rgba(255,255,255,0.88); margin:8px 0 0; font-size:14px;">
+                            All 3 retry attempts have been exhausted
+                        </p>
+                    </div>
+
+                    <div style="background:#f4f7ff; padding:28px;">
+                        <div style="background:#ffffff; border:1px solid #FFCDD2; border-radius:12px; padding:20px;">
+                            <table role="presentation"
+                                   style="width:100%%; border-collapse:collapse;">
+                                <tr>
+                                    <td style="padding:8px 0; color:#666;">
+                                        Creator
+                                    </td>
+
+                                    <td style="padding:8px 0; text-align:right; color:#222; font-weight:bold;">
+                                        %s
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding:8px 0; color:#666;">
+                                        Email
+                                    </td>
+
+                                    <td style="padding:8px 0; text-align:right; color:#222;">
+                                        %s
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding:8px 0; color:#666;">
+                                        Earnings month
+                                    </td>
+
+                                    <td style="padding:8px 0; text-align:right; color:#222; font-weight:bold;">
+                                        %s
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding:8px 0; color:#666;">
+                                        Amount
+                                    </td>
+
+                                    <td style="padding:8px 0; text-align:right; color:#D32F2F; font-size:18px; font-weight:bold;">
+                                        ₹%,d
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding:8px 0; color:#666; vertical-align:top;">
+                                        Failure reason
+                                    </td>
+
+                                    <td style="padding:8px 0; text-align:right; color:#D32F2F; font-weight:bold;">
+                                        %s
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <p style="color:#444; line-height:1.6; margin-top:20px;">
+                            The creator has also been notified by email.
+                            Please check the admin dashboard's failed payouts
+                            list to review or manually reset this earning.
+                        </p>
+
+                        <p style="color:#999; font-size:12px; margin-top:24px;">
+                            — SoCreate Payout System
+                        </p>
+                    </div>
+                </div>
+                """.formatted(
+                escapeHtml(creatorName),
+                escapeHtml(creatorEmail),
+                escapeHtml(month),
+                amountRupees,
+                safeReason
+        );
+    }
+
     private String buildPayoutSuccessfulEmailHtml(
             String creatorName,
             String month,
