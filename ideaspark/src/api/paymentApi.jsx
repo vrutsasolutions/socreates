@@ -6,6 +6,13 @@
 //  `user` object with a populated `membership`. Flip USE_MOCK.payment to
 //  false once Vishakha ships /api/payment/* per API_CONTRACT.md.
 //  Razorpay is the only supported gateway — Stripe was never implemented.
+//
+//  July 2026 — Scheduled payouts migration:
+//  Self-service withdrawals are GONE. requestPayout() has been removed —
+//  payouts now fire automatically via a backend cron on the 15th of every
+//  month (with daily retries on failure, per HR). This module now only
+//  manages the payout DESTINATION (getPayoutDetails / savePayoutDetails);
+//  the actual money movement is entirely backend-driven.
 // ════════════════════════════════════════════════════════════════════════
 
 import api from './axiosInstance';
@@ -88,51 +95,100 @@ export const refundMembership = () =>
 export const fetchMySubscription = () =>
   api.get('/payment/status');
 
-/** Fetch historical monthly creator earnings. */
+/** Fetch historical monthly creator earnings.
+ *  Each row: { month, score, earning, status, scheduledFor, paidAt,
+ *              destination, failureReason, rolledFrom }
+ *  status ∈ Estimating | Scheduled | Processing | Paid | Setup_Missing |
+ *           Failed | Rolled_Over | Absorbed */
 export const fetchCreatorEarnings = () =>
   api.get('/creator/earnings');
 
-// ── Creator payouts (RazorpayX, test mode) ────────────────────────────────
-//  Flow: creator saves payout details once (creates a RazorpayX contact +
-//  fund account on the backend), then withdraws a Pending earnings row, which
-//  fires a RazorpayX payout and flips the row to "Paid". Gated behind the same
-//  USE_MOCK.payment flag as the rest of this module.
+// ── Creator payout destination (RazorpayX) ────────────────────────────────
+//  Flow: creator fills out the Payout Setup form once (Personal + Bank/UPI +
+//  Tax details). Backend creates a RazorpayX contact + fund account and
+//  stores the destination. Money movement is fully automatic afterwards —
+//  a monthly cron pays out on the 15th, retries on failure for 3 days, then
+//  alerts the creator + admin by email if it still hasn't gone through.
 
-/** Get the creator's saved payout destination (masked). */
+/** Get the creator's saved payout destination (masked).
+ *  Response when configured: { configured:true, method, legalName,
+ *    maskedPan, maskedMobile, bankName, maskedAccountNumber, ifsc, vpa,
+ *    destination, verified }
+ *  Response when not set up: { configured:false } */
 export const getPayoutDetails = () =>
   USE_MOCK.payment
     ? mockResponse({ configured: false })
     : api.get('/creator/payout-details');
 
-/** Save/update the payout destination.
- *  payload: { method:'vpa', vpa } | { method:'bank_account', accountName, accountNumber, ifsc } */
+/** Save/replace the payout destination. Creating a new one deactivates the
+ *  previous fund account in RazorpayX (best-effort) — full history is kept
+ *  server-side for audit, the creator only ever sees the current one.
+ *
+ *  payload (common, always required):
+ *    { legalName, pan, mobile, confirmOwnership: true, method }
+ *  payload (method === 'vpa'):
+ *    { ...common, vpa }
+ *  payload (method === 'bank_account'):
+ *    { ...common, accountNumber, confirmAccountNumber, ifsc, bankName }
+ */
 export const savePayoutDetails = (payload) =>
   USE_MOCK.payment
     ? mockResponse({
         configured: true,
         method: payload.method,
+        legalName: payload.legalName,
+        maskedPan: 'XXXXX' + String(payload.pan || '').slice(5, 9) + 'X',
+        maskedMobile: 'XXXXXX' + String(payload.mobile || '').slice(-4),
+        bankName: payload.bankName ?? null,
+        maskedAccountNumber: payload.method === 'bank_account'
+          ? 'XXXXXXXX' + String(payload.accountNumber || '').slice(-4)
+          : null,
+        ifsc: payload.ifsc ?? null,
+        vpa: payload.method === 'vpa' ? payload.vpa : null,
         destination: payload.method === 'vpa'
           ? payload.vpa
-          : `${(payload.ifsc || 'BANK').slice(0, 4)} ****${String(payload.accountNumber || '').slice(-4)}`,
-        accountName: payload.accountName ?? null,
+          : `${payload.bankName || 'BANK'} XXXXXXXX${String(payload.accountNumber || '').slice(-4)}`,
+        verified: true,
       })
     : api.put('/creator/payout-details', payload);
 
-/** Withdraw one Pending earnings row. payload: { month: '2026-05-01' } */
-export const requestPayout = (payload) =>
+/**
+ * Update ONLY the bank destination for a creator who already has payout
+ * details on file — the lighter "Update bank account" flow (Figma screen 4).
+ * Does not re-collect legalName / pan / mobile since those don't change per
+ * bank swap; the backend is expected to carry them forward from the
+ * existing active row.
+ *
+ * ⚠️ NEEDS BACKEND SUPPORT — targets PUT /creator/payout-details/bank-account,
+ * which does not exist on the currently-delivered contract. The existing
+ * PUT /creator/payout-details (savePayoutDetails above) requires legalName +
+ * pan + mobile on every call, which this screen intentionally doesn't ask
+ * for. Flag for Vishakha: add a service method that looks up the creator's
+ * current active PayoutAccount row, reuses its legalName/pan/mobile/
+ * razorpay_contact_id, and only swaps accountHolderName/accountNumber/ifsc/
+ * bankName — otherwise following the exact same insert-new-row +
+ * deactivate-old-fund-account flow already built into savePayoutDetails().
+ *
+ * payload: { accountHolderName, accountNumber, confirmAccountNumber, ifsc, bankName }
+ */
+export const updateBankAccount = (payload) =>
   USE_MOCK.payment
     ? mockResponse({
-        month: payload.month,
-        status: 'Paid',
-        payoutId: 'pout_mock_' + Date.now(),
-        payoutStatus: 'processing',
+        configured: true,
+        method: 'bank_account',
+        bankName: payload.bankName || 'BANK',
+        maskedAccountNumber: 'XXXXXXXX' + String(payload.accountNumber || '').slice(-4),
+        ifsc: payload.ifsc ?? null,
+        destination: `${payload.bankName || 'BANK'} XXXXXXXX${String(payload.accountNumber || '').slice(-4)}`,
+        verified: true,
       })
-    : api.post('/creator/payouts', payload);
+    : api.put('/creator/payout-details/bank-account', payload);
 
 /** Run the monthly revenue distribution for a month (admin action).
  *  Builds the revenue pool from captured membership payments and writes a
- *  Pending earnings row per eligible creator. `month` = ISO 1st-of-month, e.g.
- *  '2026-07-01'. Returns { message, month, totalRevenuePaise, creatorPoolPaise,
- *  socreateSharePaise, earningsCreated }. */
+ *  Scheduled (or Rolled_Over, if under ₹500) earnings row per eligible
+ *  creator. `month` = ISO 1st-of-month, e.g. '2026-07-01'. Returns
+ *  { message, month, totalRevenuePaise, creatorPoolPaise,
+ *    socreateSharePaise, earningsCreated, rolledOver, rolledIn }. */
 export const distributeRevenue = (month) =>
   api.post(`/admin/pools/${month}/distribute`);
