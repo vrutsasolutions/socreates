@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosInstance";
-import { fetchCreatorEarnings, distributeRevenue } from "../api/paymentApi";
-import PayoutModal from "../components/common/PayoutModal";
+import { fetchCreatorEarnings, distributeRevenue, getPayoutDetails } from "../api/paymentApi";
 
 /* ── Fallback data (used until the live endpoint ships) ─────────── */
 const MOCK_DASHBOARD = {
@@ -43,9 +42,6 @@ const MOCK_DASHBOARD = {
     premiumReads: 2150,
   },
   monthlyScore: 85, // out of 100
-  earnings: {
-    estimated: 18420, // ₹ estimated until month-end
-  },
 };
 
 const MOCK_REVENUE = [
@@ -54,7 +50,8 @@ const MOCK_REVENUE = [
     month: "June, 2026",
     score: 70,
     earning: 15000,
-    status: "Pending",
+    status: "Scheduled",
+    scheduledFor: "2026-07-15",
   },
   {
     monthIso: "2026-05-01",
@@ -62,10 +59,37 @@ const MOCK_REVENUE = [
     score: 90,
     earning: 25000,
     status: "Paid",
+    paidAt: "2026-06-15T10:03:00",
+    destination: "ICICI Bank XXXXXXXX4589",
   },
 ];
 
 const fmt = (n) => Number(n ?? 0).toLocaleString("en-IN");
+
+const fmtDate = (iso) => {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+};
+
+/** Month name one after the given ISO month — used for "Rolled over to X". */
+const fmtNextMonthName = (iso) => {
+  if (!iso) return "next month";
+  try {
+    const d = new Date(iso);
+    d.setMonth(d.getMonth() + 1);
+    return d.toLocaleDateString("en-IN", { month: "long" });
+  } catch {
+    return "next month";
+  }
+};
 
 // Same account as the backend's app.admin.email (SecurityConfig / hasRole("ADMIN")).
 // Purely a UI gate — hiding the button for non-admins is a UX nicety; the
@@ -75,10 +99,9 @@ const ADMIN_EMAIL =
   import.meta.env.VITE_ADMIN_EMAIL || "vrutsasolutions@gmail.com";
 
 /* Normalize a revenue-history row coming from /api/creator/earnings into the
-   { month, score, earning, status } shape the table renders. */
+   shape the table renders. */
 function normalizeRevenue(row) {
   return {
-    // Raw ISO date (1st of month) — needed to withdraw this row via the payout API.
     monthIso: row.month ?? row.monthIso ?? null,
     month: row.monthLabel ?? fmtMonth(row.month) ?? "—",
     score: row.score ?? row.sharePercent ?? row.score_percent ?? 0,
@@ -86,7 +109,12 @@ function normalizeRevenue(row) {
       row.earning ??
       row.revenueRupees ??
       (row.revenuePaise != null ? row.revenuePaise / 100 : 0),
-    status: row.status ?? "Pending",
+    status: row.status ?? "Scheduled",
+    scheduledFor: row.scheduledFor ?? null,
+    paidAt: row.paidAt ?? null,
+    destination: row.destination ?? null,
+    failureReason: row.failureReason ?? null,
+    rolledFrom: row.rolledFrom ?? null,
   };
 }
 
@@ -110,19 +138,9 @@ export default function CreatorDashboard() {
   const [data, setData] = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [payoutRow, setPayoutRow] = useState(null); // row being withdrawn
   const [distBusy, setDistBusy] = useState(false); // running distribution
   const [distMsg, setDistMsg] = useState(""); // distribution result text
-
-  // Flip a row to "Paid" locally after a successful payout so the table
-  // reflects it immediately (no refetch needed).
-  const markPaid = useCallback((monthIso) => {
-    setRevenue((rows) =>
-      (rows ?? MOCK_REVENUE).map((r) =>
-        r.monthIso === monthIso ? { ...r, status: "Paid" } : r,
-      ),
-    );
-  }, []);
+  const [payoutConfigured, setPayoutConfigured] = useState(true); // assume yes until checked, avoids banner flash
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
@@ -140,22 +158,37 @@ export default function CreatorDashboard() {
     try {
       const { data: res } = await fetchCreatorEarnings();
       const rows = Array.isArray(res) ? res : (res?.earnings ?? []);
-      setRevenue(rows.length ? rows.map(normalizeRevenue) : MOCK_REVENUE);
+      setRevenue(rows.length ? rows.map(normalizeRevenue) : []);
     } catch {
       setRevenue(MOCK_REVENUE);
     }
   }, []);
 
+  // Only relevant for Creator Pro members — checks whether payout details
+  // have been set up, to show/hide the "set up now" banner. Failures are
+  // treated as "not configured" so the banner errs toward showing rather
+  // than silently hiding a real setup gap.
+  const checkPayoutSetup = useCallback(async () => {
+    if (!user?.creatorPro) return;
+    try {
+      const { data: res } = await getPayoutDetails();
+      setPayoutConfigured(!!res?.configured);
+    } catch {
+      setPayoutConfigured(false);
+    }
+  }, [user?.creatorPro]);
+
   useEffect(() => {
     fetchDashboard();
     loadRevenue();
-  }, [fetchDashboard, loadRevenue]);
+    checkPayoutSetup();
+  }, [fetchDashboard, loadRevenue, checkPayoutSetup]);
 
   // Run the monthly revenue distribution for the most recently CLOSED month
-  // (i.e. last month, not this one). The backend now rejects the current or
-  // any future month (RevenueDistributionService.parseTargetMonth guard) —
-  // this used to send the current month, which is exactly the mid-month,
-  // partial-data bug that guard exists to prevent.
+  // (i.e. last month, not this one). The backend rejects the current or any
+  // future month (RevenueDistributionService.parseTargetMonth guard) — this
+  // used to send the current month, which is exactly the mid-month, partial
+  // data bug that guard exists to prevent.
   const runDistribution = useCallback(async () => {
     const now = new Date();
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1); // JS Date normalizes Jan → prior Dec
@@ -184,6 +217,7 @@ export default function CreatorDashboard() {
 
   const d = data ?? MOCK_DASHBOARD;
   const rev = revenue ?? MOCK_REVENUE;
+  const showSetupBanner = !!user?.creatorPro && !payoutConfigured;
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-12">
@@ -288,6 +322,30 @@ export default function CreatorDashboard() {
             <DashboardSkeleton />
           ) : (
             <>
+              {/* ── Payout setup banner ─────────────────────────── */}
+              {showSetupBanner && (
+                <button
+                  onClick={() => navigate("/payout-setup")}
+                  className="w-full flex items-center justify-between gap-3 bg-[#FFF7ED] border border-[#FED7AA] rounded-2xl px-4 py-3.5 text-left hover:bg-[#FFEFD9] active:scale-[0.99] transition-all"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-[#FEEBC8] flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-[#D97706]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                        <path d="M2 10h20" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[#78350F] text-sm font-bold">Set up your payout details</div>
+                      <div className="text-[#92400E]/80 text-xs mt-0.5">Required to receive your creator earnings</div>
+                    </div>
+                  </div>
+                  <svg className="w-4 h-4 text-[#D97706] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              )}
+
               {/* ── Creator Status ─────────────────────────────── */}
               <Section title="Creator Status">
                 <div className="bg-white rounded-2xl border border-[#E3F2FD] p-4 space-y-3.5 shadow-sm">
@@ -420,7 +478,7 @@ export default function CreatorDashboard() {
                 </div>
               </Section>
 
-              {/* ── Monthly Score + Estimated Earnings ─────────── */}
+              {/* ── Monthly Score + Payout Settings ────────────────── */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2.5">
                   <h2 className="text-[11px] font-bold tracking-wider text-[#90A4AE] uppercase px-1">
@@ -434,26 +492,30 @@ export default function CreatorDashboard() {
                 </div>
                 <div className="space-y-2.5">
                   <h2 className="text-[11px] font-bold tracking-wider text-[#90A4AE] uppercase px-1">
-                    Estimated Earnings
+                    Payout Settings
                   </h2>
-                  <div className="bg-white rounded-2xl border border-[#E3F2FD] p-4 shadow-sm">
-                    <div className="text-[#16A34A] text-2xl font-bold">
-                      ₹{fmt(d.earnings.estimated)}
-                    </div>
-                    <div className="text-[#90A4AE] text-xs mt-0.5">
-                      Estimated until month-end
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => navigate("/payout-settings")}
+                    className="w-full bg-white rounded-2xl border border-[#E3F2FD] p-4 shadow-sm h-[calc(100%-1.875rem)] flex items-center justify-between gap-2 hover:bg-[#F8FAFF] active:scale-[0.98] transition-all text-left"
+                  >
+                    <span className="text-[#1565C0] text-sm font-bold leading-tight">
+                      Manage payout
+                    </span>
+                    <svg className="w-4 h-4 text-[#1565C0] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              {/* ── Revenue History ────────────────────────────── */}
-              <Section title="Revenue History">
+              {/* ── Earnings history ────────────────────────────── */}
+              <Section title="Earnings history">
                 {/* Admin-only: run the monthly revenue distribution. Builds the
-                    pool from captured payments and writes each creator's Pending
-                    earning, after which their Withdraw button appears. Backend
-                    (hasRole("ADMIN")) is the real gate — this just keeps the
-                    button from being shown to creators it will always 403 for. */}
+                    pool from captured payments and writes each creator's
+                    Scheduled earning ahead of the automatic payout on the 15th.
+                    Backend (hasRole("ADMIN")) is the real gate — this just
+                    keeps the button from being shown to creators it will
+                    always 403 for. */}
                 {isAdmin && (
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <button
@@ -487,6 +549,16 @@ export default function CreatorDashboard() {
                     )}
                   </div>
                 )}
+
+                {/* Helper text — replaces the old estimated-earnings card and
+                    withdraw button with an explanation of the automatic cycle. */}
+                <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-[#0D2137] text-xs leading-relaxed">
+                  Earnings are paid out on the <strong>15th of every month</strong> for the
+                  previous month's earnings, directly to your registered bank account.
+                  Minimum payout: <strong>₹500</strong>. Amounts below this roll over to
+                  the next month.
+                </div>
+
                 <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
@@ -504,66 +576,54 @@ export default function CreatorDashboard() {
                           Status
                         </th>
                         <th className="text-right font-bold px-4 py-3">
-                          Action
+                          Receipt
                         </th>
                       </tr>
                     </thead>
                     <tbody>
                       {rev.map((row, i) => {
-                        const paid =
-                          String(row.status).toLowerCase() === "paid";
-                        const canWithdraw =
-                          !paid && Number(row.earning) > 0 && row.monthIso;
+                        // Only rows with a real payout attempt have a receipt
+                        // to show — a live estimate or a rolled-over balance
+                        // has no transaction behind it yet.
+                        const hasReceipt = [
+                          "paid",
+                          "processing",
+                          "failed",
+                        ].includes(String(row.status || "").toLowerCase());
                         return (
                           <tr
                             key={row.month + i}
                             className="border-b border-[#F0F2F8] last:border-0"
                           >
-                            <td className="text-left  px-4 py-3.5 text-[#0D2137] font-medium">
+                            <td className="text-left  px-4 py-3.5 text-[#0D2137] font-medium align-top">
                               {row.month}
                             </td>
-                            <td className="text-right px-3 py-3.5 text-[#546E7A]">
+                            <td className="text-right px-3 py-3.5 text-[#546E7A] align-top">
                               {fmt(row.score)}
                             </td>
-                            <td className="text-right px-3 py-3.5 text-[#546E7A]">
+                            <td className="text-right px-3 py-3.5 text-[#546E7A] align-top">
                               {fmt(row.earning)}
                             </td>
-                            <td
-                              className={`text-right px-3 py-3.5 font-semibold ${
-                                paid ? "text-[#16A34A]" : "text-[#D97706]"
-                              }`}
-                            >
-                              {row.status}
+                            <td className="text-right px-3 py-3.5 align-top">
+                              <EarningStatus row={row} />
                             </td>
-                            <td className="text-right px-4 py-3.5">
-                              {canWithdraw ? (
+                            <td className="text-right px-4 py-3.5 align-top">
+                              {hasReceipt ? (
                                 <button
-                                  onClick={() => setPayoutRow(row)}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-[#1565C0] hover:bg-[#0D47A1] text-white text-xs font-bold px-3 py-1.5 transition-colors active:scale-95"
+                                  onClick={() =>
+                                    navigate("/payout-detail", {
+                                      state: { row },
+                                    })
+                                  }
+                                  className="inline-flex items-center gap-1 text-[#1565C0] text-xs font-bold hover:underline active:scale-95 transition-all"
                                 >
-                                  Withdraw
-                                </button>
-                              ) : paid ? (
-                                <span className="text-[#16A34A] text-xs font-semibold inline-flex items-center gap-1">
-                                  <svg
-                                    className="w-3.5 h-3.5"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={2.5}
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M5 13l4 4L19 7"
-                                    />
+                                  View
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                   </svg>
-                                  Paid
-                                </span>
+                                </button>
                               ) : (
-                                <span className="text-[#B0BEC5] text-xs">
-                                  —
-                                </span>
+                                <span className="text-[#B0BEC5] text-xs">—</span>
                               )}
                             </td>
                           </tr>
@@ -577,17 +637,92 @@ export default function CreatorDashboard() {
           )}
         </div>
       </div>
-
-      {/* Payout (withdraw) modal */}
-      {payoutRow && (
-        <PayoutModal
-          row={payoutRow}
-          onClose={() => setPayoutRow(null)}
-          onPaid={(monthIso) => markPaid(monthIso)}
-        />
-      )}
     </div>
   );
+}
+
+/* ── Status cell ───────────────────────────────────────────────── */
+/**
+ * Renders the right-hand status column for one earnings row. Mirrors the
+ * backend lifecycle 1:1 — see CreatorEarning.java javadoc for the source
+ * of truth on what each status means.
+ */
+function EarningStatus({ row }) {
+  const status = String(row.status || "").toLowerCase();
+
+  switch (status) {
+    case "estimating":
+      return (
+        <span className="text-[#90A4AE] text-xs font-medium italic">
+          Estimating…
+        </span>
+      );
+
+    case "scheduled":
+      return (
+        <span className="text-[#D97706] text-xs font-semibold">
+          Scheduled for {fmtDate(row.scheduledFor) || "the 15th"}
+        </span>
+      );
+
+    case "processing":
+      return (
+        <span className="inline-flex items-center gap-1.5 text-[#1565C0] text-xs font-semibold">
+          <span className="w-3 h-3 border-2 border-[#BBDEFB] border-t-[#1565C0] rounded-full animate-spin" />
+          Processing…
+        </span>
+      );
+
+    case "paid":
+      return (
+        <div className="text-right">
+          <span className="text-[#16A34A] text-xs font-semibold inline-flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Paid
+          </span>
+          <div className="text-[#90A4AE] text-[10px] mt-0.5 leading-tight">
+            {fmtDate(row.paidAt)}
+            {row.destination ? ` to ${row.destination}` : ""}
+          </div>
+        </div>
+      );
+
+    case "setup_missing":
+      return (
+        <span className="text-[#D97706] text-xs font-semibold underline underline-offset-2">
+          Set up payout details
+        </span>
+      );
+
+    case "failed":
+      return (
+        <div className="text-right">
+          <span className="text-[#DC2626] text-xs font-semibold">Payout failed</span>
+          <div className="text-[#90A4AE] text-[10px] mt-0.5 leading-tight">
+            Check payout details
+          </div>
+        </div>
+      );
+
+    case "rolled_over":
+      return (
+        <span className="text-[#7C3AED] text-xs font-semibold">
+          Rolled over to {fmtNextMonthName(row.monthIso)}
+        </span>
+      );
+
+    case "absorbed":
+      return (
+        <span className="text-[#90A4AE] text-xs">
+          Included in a later payout
+        </span>
+      );
+
+    default:
+      return <span className="text-[#B0BEC5] text-xs">{row.status || "—"}</span>;
+  }
 }
 
 /* ── Sub-components ───────────────────────────────────────────── */
