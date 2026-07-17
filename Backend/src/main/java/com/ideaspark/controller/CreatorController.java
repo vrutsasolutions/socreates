@@ -4,12 +4,11 @@ import com.ideaspark.dto.ApiResponse;
 import com.ideaspark.dto.CreatorDashboardDTO;
 import com.ideaspark.dto.CreatorEarningDTO;
 import com.ideaspark.dto.PayoutDetailsRequest;
-import com.ideaspark.dto.PayoutRequest;
 import com.ideaspark.repository.IdeaRepository;
-import com.ideaspark.repository.UserRepository;
 import com.ideaspark.service.CreatorPayoutService;
 import com.ideaspark.service.CreatorService;
 import com.ideaspark.service.RazorpayXService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,170 +24,192 @@ import java.util.UUID;
 /**
  * Creator-specific endpoints.
  *
- *   GET  /api/creator/dashboard  → CreatorDashboardDTO  (JWT required)
- *   GET  /api/creator/earnings   → List<CreatorEarningDTO>  (JWT required)
- *   POST /api/creator/ideas/{id}/read  → 200 OK  (increments read count; public)
+ * GET /api/creator/dashboard
+ * GET /api/creator/earnings
+ * POST /api/creator/ideas/{id}/read
+ * GET /api/creator/payout-details
+ * PUT /api/creator/payout-details
+ *
+ * Creator self-withdrawal has been removed. Payouts are processed
+ * automatically by ScheduledPayoutRunner.
  */
 @RestController
 @RequestMapping("/api/creator")
 @RequiredArgsConstructor
 public class CreatorController {
 
-    private final CreatorService       creatorService;
+    private final CreatorService creatorService;
     private final CreatorPayoutService payoutService;
-    private final IdeaRepository       ideaRepository;
-    private final UserRepository       userRepository;
+    private final IdeaRepository ideaRepository;
 
-    // ── Unauthenticated helper ───────────────────────────────────────────────
     private ResponseEntity<ApiResponse> unauthenticated() {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ApiResponse(false, "User not authenticated"));
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse(
+                        false,
+                        "User not authenticated"
+                ));
     }
 
-    // ────────────────────────────────────────────────────────────────────────
-    //  GET /api/creator/dashboard
-    // ────────────────────────────────────────────────────────────────────────
+    // ── Dashboard ────────────────────────────────────────────────────────────
 
-    /**
-     * Returns the full creator dashboard payload for the authenticated user.
-     *
-     * Response shape:
-     * {
-     *   "status":      { "creatorPro": true, "verified": true, "premiumPublishing": true },
-     *   "performance": { "ideasPublished": 25, "totalReads": 4280, "totalLikes": 72,
-     *                    "totalSaves": 328, "totalComments": 72 },
-     *   "content":     [ { "idea": "AI Farming Platform", "reads": 1200, "likes": 1200,
-     *                      "comments": 1200, "saves": 80, "score": 25 } ],
-     *   "premium":     { "premiumIdeas": 8, "freeIdeas": 17, "premiumReads": 2150 },
-     *   "monthlyScore": 85,
-     *   "earnings":    { "estimated": 18420 }
-     * }
-     */
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(
-            @AuthenticationPrincipal UserDetails userDetails) {
-
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
         if (userDetails == null) {
             return unauthenticated();
         }
 
-        CreatorDashboardDTO dashboard = creatorService.getDashboard(userDetails.getUsername());
+        CreatorDashboardDTO dashboard =
+                creatorService.getDashboard(
+                        userDetails.getUsername()
+                );
+
         return ResponseEntity.ok(dashboard);
     }
 
-    // ────────────────────────────────────────────────────────────────────────
-    //  GET /api/creator/earnings
-    // ────────────────────────────────────────────────────────────────────────
+    // ── Earnings ─────────────────────────────────────────────────────────────
 
-    /**
-     * Returns the revenue history table (one row per calendar month, newest first).
-     *
-     * Response shape (array):
-     * [
-     *   { "month": "2026-06-01", "score": 70, "earning": 15000, "status": "Pending" },
-     *   { "month": "2026-05-01", "score": 90, "earning": 25000, "status": "Paid" }
-     * ]
-     *
-     * The current month row is seeded / refreshed automatically on each call
-     * so the live score is always up to date.
-     */
     @GetMapping("/earnings")
     public ResponseEntity<?> getEarnings(
-            @AuthenticationPrincipal UserDetails userDetails) {
-
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
         if (userDetails == null) {
             return unauthenticated();
         }
 
-        List<CreatorEarningDTO> earnings = creatorService.getEarnings(userDetails.getUsername());
+        List<CreatorEarningDTO> earnings =
+                creatorService.getEarnings(
+                        userDetails.getUsername()
+                );
+
         return ResponseEntity.ok(earnings);
     }
 
-    // ────────────────────────────────────────────────────────────────────────
-    //  POST /api/creator/ideas/{id}/read
-    // ────────────────────────────────────────────────────────────────────────
+    // ── Idea read tracking ───────────────────────────────────────────────────
 
-    /**
-     * Increments the read counter for an idea.
-     * Call this from the frontend when the idea detail page is opened.
-     * No authentication required — anonymous readers count too.
-     *
-     * Returns 200 OK on success, 404 if the idea doesn't exist.
-     */
     @PostMapping("/ideas/{id}/read")
     @Transactional
-    public ResponseEntity<ApiResponse> trackRead(@PathVariable UUID id) {
-
+    public ResponseEntity<ApiResponse> trackRead(
+            @PathVariable UUID id
+    ) {
         if (!ideaRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ApiResponse(false, "Idea not found"));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse(
+                            false,
+                            "Idea not found"
+                    ));
         }
 
         ideaRepository.incrementReadCount(id);
-        return ResponseEntity.ok(new ApiResponse(true, "Read tracked"));
+
+        return ResponseEntity.ok(
+                new ApiResponse(
+                        true,
+                        "Read tracked"
+                )
+        );
     }
 
-    // ────────────────────────────────────────────────────────────────────────
-    //  Payouts (RazorpayX, test mode)
-    // ────────────────────────────────────────────────────────────────────────
+    // ── Payout setup ─────────────────────────────────────────────────────────
 
     /**
-     * GET /api/creator/payout-details — the creator's saved payout destination.
-     *
-     * { "configured": false }  when nothing is saved yet, otherwise
-     * { "configured": true, "method": "bank_account",
-     *   "destination": "HDFC ****4321", "accountName": "Alex Johnson" }
+     * Returns the creator's active payout destination.
      */
     @GetMapping("/payout-details")
-    public ResponseEntity<?> getPayoutDetails(@AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) return unauthenticated();
-        return ResponseEntity.ok(payoutService.getPayoutDetails(userDetails.getUsername()));
+    public ResponseEntity<?> getPayoutDetails(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            return unauthenticated();
+        }
+
+        return ResponseEntity.ok(
+                payoutService.getPayoutDetails(
+                        userDetails.getUsername()
+                )
+        );
     }
 
     /**
-     * PUT /api/creator/payout-details — save/update the payout destination.
-     * Creates the RazorpayX contact + fund account and persists their ids.
-     * Body: { method: "vpa"|"bank_account", vpa | accountName+accountNumber+ifsc }
+     * Creates or replaces the creator's payout destination.
+     *
+     * Payouts themselves are processed automatically. This endpoint only
+     * manages the destination used by the scheduled payout system.
      */
     @PutMapping("/payout-details")
     public ResponseEntity<?> savePayoutDetails(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody PayoutDetailsRequest req) {
-        if (userDetails == null) return unauthenticated();
+            @Valid @RequestBody PayoutDetailsRequest request
+    ) {
+        if (userDetails == null) {
+            return unauthenticated();
+        }
+
         try {
-            return ResponseEntity.ok(payoutService.savePayoutDetails(userDetails.getUsername(), req));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("message", e.getMessage()));
-        } catch (RazorpayXService.RazorpayXException e) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Could not save payout details: " + e.getMessage()));
+            return ResponseEntity.ok(
+                    payoutService.savePayoutDetails(
+                            userDetails.getUsername(),
+                            request
+                    )
+            );
+
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "message",
+                            safeMessage(
+                                    exception,
+                                    "Invalid payout details"
+                            )
+                    ));
+
+        } catch (IllegalStateException exception) {
+            return ResponseEntity
+                    .status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of(
+                            "message",
+                            safeMessage(
+                                    exception,
+                                    "Payout service is unavailable"
+                            )
+                    ));
+
+        } catch (RazorpayXService.RazorpayXException exception) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of(
+                            "message",
+                            safeMessage(
+                                    exception,
+                                    "Razorpay rejected the payout details"
+                            )
+                    ));
+
+        } catch (Exception exception) {
+            return ResponseEntity
+                    .internalServerError()
+                    .body(Map.of(
+                            "message",
+                            "Could not save payout details: "
+                                    + safeMessage(
+                                            exception,
+                                            "Unexpected error"
+                                    )
+                    ));
         }
     }
 
-    /**
-     * POST /api/creator/payouts — withdraw one Pending earnings row via RazorpayX.
-     * Body: { month: "2026-05-01" }. Flips the row to "Paid" on success.
-     */
-    @PostMapping("/payouts")
-    public ResponseEntity<?> requestPayout(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody PayoutRequest req) {
-        if (userDetails == null) return unauthenticated();
-        try {
-            return ResponseEntity.ok(payoutService.requestPayout(userDetails.getUsername(), req.getMonth()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
-        } catch (RazorpayXService.RazorpayXException e) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Payout failed: " + e.getMessage()));
-        }
+    private static String safeMessage(
+            Exception exception,
+            String fallback
+    ) {
+        return exception.getMessage() != null
+                && !exception.getMessage().isBlank()
+                ? exception.getMessage()
+                : fallback;
     }
 }

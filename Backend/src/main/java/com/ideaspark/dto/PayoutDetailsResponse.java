@@ -43,6 +43,16 @@ public class PayoutDetailsResponse {
     private String destination;
 
     /**
+     * Masked PAN, e.g. "ABCDE****F". Never the full PAN.
+     */
+    private String maskedPan;
+
+    /**
+     * Masked mobile number, e.g. "******7890". Never the full number.
+     */
+    private String maskedMobile;
+
+    /**
      * Whether this payout account is currently active.
      */
     private boolean active;

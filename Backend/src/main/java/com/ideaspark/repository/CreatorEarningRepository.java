@@ -13,7 +13,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface CreatorEarningRepository extends JpaRepository<CreatorEarning, UUID> {
+public interface CreatorEarningRepository
+        extends JpaRepository<CreatorEarning, UUID> {
 
     /**
      * All earnings for a creator, newest month first.
@@ -23,61 +24,68 @@ public interface CreatorEarningRepository extends JpaRepository<CreatorEarning, 
     /**
      * Look up a specific month's earning.
      */
-    Optional<CreatorEarning> findByCreatorIdAndMonth(UUID creatorId, LocalDate month);
+    Optional<CreatorEarning> findByCreatorIdAndMonth(
+            UUID creatorId,
+            LocalDate month
+    );
 
     /**
-     * Lookup by Razorpay payout id.
+     * Lookup by Razorpay payout ID.
      */
-    Optional<CreatorEarning> findByRazorpayPayoutId(String razorpayPayoutId);
+    Optional<CreatorEarning> findByRazorpayPayoutId(
+            String razorpayPayoutId
+    );
 
     /**
      * Returns all earnings for a month having the specified status.
      */
-    List<CreatorEarning> findByMonthAndStatus(LocalDate month, String status);
+    List<CreatorEarning> findByMonthAndStatus(
+            LocalDate month,
+            String status
+    );
 
     /**
-     * Returns all earnings with the given status.
+     * Returns all earnings having the specified status.
      */
     List<CreatorEarning> findByStatus(String status);
 
     /**
-     * Returns payouts that are scheduled and due to be processed.
+     * Returns scheduled payouts whose payout time has arrived.
      */
     @Query("""
-                SELECT e
-                FROM CreatorEarning e
-                WHERE e.status = 'Scheduled'
-                  AND e.scheduledFor IS NOT NULL
-                  AND e.scheduledFor <= CURRENT_TIMESTAMP
+            SELECT e
+            FROM CreatorEarning e
+            WHERE e.status = 'Scheduled'
+              AND e.scheduledFor IS NOT NULL
+              AND e.scheduledFor <= CURRENT_TIMESTAMP
             """)
     List<CreatorEarning> findScheduledPayouts();
 
     /**
-     * Returns payouts that previously failed processing and
-     * are ready for another retry attempt.
+     * Returns processing payouts that are ready for another attempt.
      */
     @Query("""
-                SELECT e
-                FROM CreatorEarning e
-                WHERE e.status = 'Processing'
-                  AND e.retryCount < 3
-                  AND e.nextRetryAt IS NOT NULL
-                  AND e.nextRetryAt <= CURRENT_TIMESTAMP
+            SELECT e
+            FROM CreatorEarning e
+            WHERE e.status = 'Processing'
+              AND COALESCE(e.retryCount, 0) < 3
+              AND e.nextRetryAt IS NOT NULL
+              AND e.nextRetryAt <= CURRENT_TIMESTAMP
             """)
     List<CreatorEarning> findDueForRetry();
 
     /**
-     * Atomically claim an earning for payout.
+     * Atomically claims a scheduled earning.
      *
-     * Only one scheduler/thread can transition the row from
-     * Scheduled -> Processing.
+     * Only one scheduler instance can change the same earning from
+     * Scheduled to Processing.
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
-                UPDATE CreatorEarning e
-                SET e.status = 'Processing'
-                WHERE e.id = :id
-                  AND e.status = 'Pending'
+            UPDATE CreatorEarning e
+            SET e.status = 'Processing'
+            WHERE e.id = :id
+              AND e.status = 'Scheduled'
             """)
-    int claimPendingForPayout(@Param("id") UUID id);
+    int claimScheduledForPayout(@Param("id") UUID id);
 }
