@@ -7,6 +7,7 @@ import {
   distributeRevenue,
   getPayoutDetails,
 } from "../api/paymentApi";
+import { isPayoutComplete } from "../utils/payoutStatus";
 
 /* ── Fallback data (used until the live endpoint ships) ─────────── */
 const MOCK_DASHBOARD = {
@@ -144,7 +145,7 @@ export default function CreatorDashboard() {
   const [loading, setLoading] = useState(true);
   const [distBusy, setDistBusy] = useState(false); // running distribution
   const [distMsg, setDistMsg] = useState(""); // distribution result text
-  const [payoutConfigured, setPayoutConfigured] = useState(true); // assume yes until checked, avoids banner flash
+  const [payoutDetails, setPayoutDetails] = useState(null);
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
@@ -176,9 +177,9 @@ export default function CreatorDashboard() {
     if (!user?.creatorPro) return;
     try {
       const { data: res } = await getPayoutDetails();
-      setPayoutConfigured(!!res?.configured);
+      setPayoutDetails(res);
     } catch {
-      setPayoutConfigured(false);
+      setPayoutDetails(null);
     }
   }, [user?.creatorPro]);
 
@@ -221,10 +222,95 @@ export default function CreatorDashboard() {
 
   const d = data ?? MOCK_DASHBOARD;
   const rev = revenue ?? MOCK_REVENUE;
-  const showSetupBanner = !!user?.creatorPro && !payoutConfigured;
+  // Treat "backend says configured but personal/tax details are blank" the
+  // same as "not set up". We only render the banner/modal once the fetch
+  // has actually resolved (payoutDetails !== null) to avoid a flash on
+  // first load.
+  const payoutIncomplete =
+    !!user?.creatorPro &&
+    payoutDetails !== null &&
+    !isPayoutComplete(payoutDetails);
+  const showSetupBanner = payoutIncomplete;
+  // Same signal as the banner — but this one blocks the whole dashboard
+  // until the creator finishes payout setup. No dismiss button by design:
+  // an active Creator Pro member without payout details can't be paid, so
+  // we make sure they can't miss this and can't put it off.
+  const showSetupModal = payoutIncomplete;
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-12">
+      {/* ── Blocking payout setup modal ─────────────────────────── */}
+      {showSetupModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payout-setup-modal-title"
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div
+              className="px-6 pt-6 pb-5 text-white"
+              style={{
+                background:
+                  "linear-gradient(135deg, #1565C0 0%, #0D47A1 100%)",
+              }}
+            >
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-3">
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2zM7 15h4"
+                  />
+                </svg>
+              </div>
+              <h2
+                id="payout-setup-modal-title"
+                className="text-lg font-bold leading-tight"
+              >
+                Set up your payouts to get paid
+              </h2>
+              <p className="text-white/80 text-xs mt-1.5 leading-relaxed">
+                Creator Pro is active on your account, but we don't have
+                your bank or UPI details yet. Add them once and we'll take
+                care of the rest.
+              </p>
+            </div>
+
+            <div className="px-6 py-5 space-y-3 text-sm text-[#546E7A]">
+              <div className="flex items-start gap-2.5">
+                <CheckIcon />
+                <span>Takes about 2 minutes</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckIcon />
+                <span>Your earnings are held safely until setup is done</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckIcon />
+                <span>PAN + bank/UPI needed per RBI norms</span>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6">
+              <button
+                onClick={() =>
+                  navigate("/payout-setup", { state: { fromPurchase: true } })
+                }
+                className="w-full bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 text-white font-bold rounded-xl py-3.5 transition-all"
+              >
+                Set up now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ── Header ──────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-[#1565C0] px-4 pt-4 pb-10 relative shadow-lg border-b border-white/10">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -643,7 +729,14 @@ export default function CreatorDashboard() {
                               {fmt(row.earning)}
                             </td>
                             <td className="text-right px-3 py-3.5 align-top">
-                              <EarningStatus row={row} />
+                              <EarningStatus
+                                row={row}
+                                onSetup={() =>
+                                  navigate("/payout-setup", {
+                                    state: { fromPurchase: true },
+                                  })
+                                }
+                              />
                             </td>
                             <td className="text-right px-4 py-3.5 align-top">
                               {hasReceipt ? (
@@ -697,7 +790,7 @@ export default function CreatorDashboard() {
  * backend lifecycle 1:1 — see CreatorEarning.java javadoc for the source
  * of truth on what each status means.
  */
-function EarningStatus({ row }) {
+function EarningStatus({ row, onSetup }) {
   const status = String(row.status || "").toLowerCase();
 
   switch (status) {
@@ -751,9 +844,13 @@ function EarningStatus({ row }) {
 
     case "setup_missing":
       return (
-        <span className="text-[#D97706] text-xs font-semibold underline underline-offset-2">
+        <button
+          type="button"
+          onClick={onSetup}
+          className="text-[#D97706] hover:text-[#B45309] text-xs font-semibold underline underline-offset-2 cursor-pointer active:scale-95 transition-all"
+        >
           Set up payout details
-        </span>
+        </button>
       );
 
     case "failed":
@@ -852,5 +949,22 @@ function DashboardSkeleton() {
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * Small green checkmark used in the payout-setup blocking modal.
+ */
+function CheckIcon() {
+  return (
+    <svg
+      className="w-4 h-4 text-[#22C55E] mt-0.5 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2.5}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
   );
 }
