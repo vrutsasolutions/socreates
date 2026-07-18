@@ -12,7 +12,7 @@ import { isPayoutComplete } from "../utils/payoutStatus";
  *
  * Three sections, per the agreed spec:
  *   1. Personal   — full legal name, email (read-only), mobile
- *   2. Bank / UPI — method toggle, then either UPI ID or bank details
+ *   2. Bank — account number, confirm, IFSC, bank name (auto-filled from IFSC)
  *                   (account number, confirm, IFSC, bank name auto-filled)
  *   3. Tax        — PAN, ownership confirmation checkbox
  *
@@ -29,7 +29,7 @@ export default function PayoutSetup() {
   const fromPurchase = location.state?.fromPurchase === true;
 
   const [loading, setLoading] = useState(true);
-  const [method, setMethod] = useState("bank_account"); // 'vpa' | 'bank_account'
+  const [method] = useState("bank_account");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +39,6 @@ export default function PayoutSetup() {
     legalName: "",
     email: "",
     mobile: "",
-    vpa: "",
     accountNumber: "",
     confirmAccountNumber: "",
     ifsc: "",
@@ -121,17 +120,12 @@ export default function PayoutSetup() {
     if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.pan.trim().toUpperCase()))
       return "Enter a valid PAN (e.g. ABCDE1234F).";
 
-    if (method === "vpa") {
-      if (!/^[\w.-]+@[\w.-]+$/.test(form.vpa.trim()))
-        return "Enter a valid UPI ID (e.g. name@bank).";
-    } else {
-      if (!/^\d{6,20}$/.test(form.accountNumber.trim()))
-        return "Enter a valid account number.";
-      if (form.accountNumber.trim() !== form.confirmAccountNumber.trim())
-        return "Account numbers do not match.";
-      if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.ifsc.trim().toUpperCase()))
-        return "Enter a valid IFSC code.";
-    }
+    if (!/^\d{6,20}$/.test(form.accountNumber.trim()))
+      return "Enter a valid account number.";
+    if (form.accountNumber.trim() !== form.confirmAccountNumber.trim())
+      return "Account numbers do not match.";
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.ifsc.trim().toUpperCase()))
+      return "Enter a valid IFSC code.";
 
     if (!form.confirmOwnership)
       return "Please confirm this account belongs to you.";
@@ -152,15 +146,11 @@ export default function PayoutSetup() {
       mobileNumber: form.mobile.trim(),
       ownershipConfirmed: form.confirmOwnership,
       method,
-      ...(method === "vpa"
-        ? { vpa: form.vpa.trim() }
-        : {
-            accountHolderName: form.legalName.trim(),
-            accountNumber: form.accountNumber.trim(),
-            confirmAccountNumber: form.confirmAccountNumber.trim(),
-            ifscCode: form.ifsc.trim().toUpperCase(),
-            bankName: form.bankName.trim(),
-          }),
+      accountHolderName: form.legalName.trim(),
+      accountNumber: form.accountNumber.trim(),
+      confirmAccountNumber: form.confirmAccountNumber.trim(),
+      ifscCode: form.ifsc.trim().toUpperCase(),
+      bankName: form.bankName.trim(),
     };
 
     setBusy(true);
@@ -300,35 +290,13 @@ export default function PayoutSetup() {
 
                 {/* ── Bank details ───────────────────────────────────── */}
                 <div>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="mb-3">
                     <h2 className="text-[#0D2137] text-sm lg:text-base font-bold">
                       Bank details
                     </h2>
-                    <div className="flex gap-1 bg-[#F0F6FF] p-0.5 rounded-lg">
-                      <MethodTab
-                        active={method === "bank_account"}
-                        onClick={() => setMethod("bank_account")}
-                        label="Bank"
-                      />
-                      <MethodTab
-                        active={method === "vpa"}
-                        onClick={() => setMethod("vpa")}
-                        label="UPI"
-                      />
-                    </div>
                   </div>
 
-                  {method === "vpa" ? (
-                    <Field label="UPI ID *">
-                      <input
-                        value={form.vpa}
-                        onChange={set("vpa")}
-                        placeholder="name@bank"
-                        className={inputCls}
-                      />
-                    </Field>
-                  ) : (
-                    <div className="space-y-3.5">
+                  <div className="space-y-3.5">
                       <Field label="Account holder name *">
                         <input
                           value={form.legalName}
@@ -377,8 +345,7 @@ export default function PayoutSetup() {
                           )}
                         </div>
                       </Field>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 <div className="border-t border-[#EEF1F6]" />
@@ -442,20 +409,6 @@ function Field({ label, children, className = "" }) {
       </span>
       {children}
     </label>
-  );
-}
-
-function MethodTab({ active, onClick, label }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
-        active ? "bg-white text-[#1565C0] shadow-sm" : "text-[#546E7A]"
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 
