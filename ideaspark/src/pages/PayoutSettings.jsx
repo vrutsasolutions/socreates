@@ -1,19 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getPayoutDetails } from '../api/paymentApi';
+import { isPayoutComplete } from '../utils/payoutStatus';
 import UpdateBankAccountModal from './UpdateBankAccountModal';
 
 /**
- * "Payout settings" — Figma screen 3. Shows the creator's current active
- * payout destination as a compact card:
+ * "Payout settings" — v2 redesign.
  *
- *   ✔ Creator Pro
- *   [bank icon] ICICI Bank            Verified
- *               XXXX XXXX 4589
- *   [ Change bank account ]
+ * The old single-card layout looked empty on desktop and gave the creator
+ * no confirmation of what they'd actually entered during setup. This
+ * version mirrors the three sections of PayoutSetup (Personal / Bank-or-UPI
+ * / Tax) so the creator can visually verify each field is what they
+ * expect, which also builds trust that we have the right info on file.
  *
- * "Change bank account" opens UpdateBankAccountModal as a card-style
- * pop-up over this page — no separate route/navigation anymore.
+ * All sensitive fields (PAN, mobile, account number) come pre-masked from
+ * the backend (PayoutDetailsResponse). Email is read from the logged-in
+ * user in localStorage — it isn't on the payout DTO because the account
+ * email is authoritative and doesn't need to be re-stored per payout.
+ *
+ * "Change bank account" opens UpdateBankAccountModal (unchanged).
  */
 export default function PayoutSettings() {
   const navigate = useNavigate();
@@ -25,6 +30,13 @@ export default function PayoutSettings() {
   const [error, setError]         = useState('');
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [justUpdated, setJustUpdated]         = useState(false);
+
+  // Read the account email once — payout DTO intentionally doesn't carry
+  // it, since the account-level email is the source of truth.
+  const userEmail = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}')?.email || ''; }
+    catch { return ''; }
+  })();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -49,7 +61,7 @@ export default function PayoutSettings() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-10">
-      {/* Header — smaller/compact, back button and heading on one line */}
+      {/* Header — compact, back button and heading on one line */}
       <header className="bg-[#1565C0] rounded-b-[20px] px-4 pt-3 pb-4 shadow-md">
         <div className="flex items-center gap-2.5">
           <button onClick={() => navigate(-1)} aria-label="Go back"
@@ -82,57 +94,60 @@ export default function PayoutSettings() {
         )}
 
         {loading ? (
-          <CardSkeleton />
-        ) : details?.configured ? (
+          <PageSkeleton />
+        ) : isPayoutComplete(details) ? (
           <>
-            {/* Creator Pro check row */}
-            <div className="flex items-center gap-2 px-1">
-              <span className="w-5 h-5 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0">
-                <svg className="w-3 h-3 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </span>
-              <span className="text-[#0D2137] text-sm font-semibold">Creator Pro</span>
+            {/* Status row — Creator Pro + Verified */}
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0">
+                  <svg className="w-3 h-3 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
+                <span className="text-[#0D2137] text-sm font-semibold">Creator Pro</span>
+              </div>
+              {details.verified && (
+                <span className="text-[#16A34A] text-[10px] font-bold bg-[#DCFCE7] rounded-full px-2 py-0.5">
+                  Verified
+                </span>
+              )}
             </div>
 
-            {/* Bank / UPI card */}
-            <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#F0F6FF] flex items-center justify-center shrink-0">
-                  {details.method === 'vpa' ? (
-                    <svg className="w-5 h-5 text-[#546E7A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5 text-[#546E7A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M4 10h16M6 10v11M10 10v11M14 10v11M18 10v11M12 3l9 5H3l9-5z" />
-                    </svg>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  {details.method === 'vpa' ? (
-                    <div className="text-[#0D2137] text-sm font-bold truncate">{details.vpa}</div>
-                  ) : (
-                    <>
-                      <div className="text-[#0D2137] text-sm font-bold truncate">{details.bankName || 'Bank'}</div>
-                      <div className="text-[#90A4AE] text-xs font-mono mt-0.5 tracking-wide">
-                        {spacedMask(details.maskedAccountNumber)}
-                      </div>
-                    </>
-                  )}
-                </div>
-                {details.verified && (
-                  <span className="text-[#16A34A] text-[11px] font-bold bg-[#DCFCE7] rounded-full px-2.5 py-1 shrink-0">
-                    Verified
-                  </span>
-                )}
-              </div>
-            </div>
+            {/* Personal details */}
+            <Section title="Personal details" icon={<PersonIcon />}>
+              <Field label="Full legal name" value={details.accountHolderName} />
+              <Field label="Email" value={userEmail} />
+              <Field label="Mobile number" value={details.maskedMobile} mono />
+            </Section>
+
+            {/* Bank / UPI */}
+            <Section
+              title={details.method === 'vpa' ? 'UPI ID' : 'Bank Account'}
+              icon={details.method === 'vpa' ? <UpiIcon /> : <BankIcon />}
+            >
+              {details.method === 'vpa' ? (
+                <Field label="UPI ID" value={details.vpa || details.destination} mono breakAll />
+              ) : (
+                <>
+                  <Field label="Bank" value={details.bankName || 'Bank'} />
+                  <Field
+                    label="Account number"
+                    value={`A/C ${maskAccount(details.maskedAccountNumber || details.destination)}`}
+                    mono
+                  />
+                </>
+              )}
+            </Section>
+
+            {/* Tax */}
+            <Section title="Tax details" icon={<TaxIcon />}>
+              <Field label="PAN number" value={details.maskedPan} mono />
+            </Section>
 
             <button
               onClick={() => { setJustUpdated(false); setShowUpdateModal(true); }}
-              className="w-full border border-[#E3F2FD] text-[#0D2137] hover:bg-[#F8FAFF] active:scale-95 font-bold rounded-xl py-3.5 transition-all"
+              className="w-full border border-[#E3F2FD] bg-white text-[#0D2137] hover:bg-[#F8FAFF] active:scale-95 font-bold rounded-xl py-3.5 transition-all shadow-sm"
             >
               Change bank account
             </button>
@@ -164,7 +179,6 @@ export default function PayoutSettings() {
         </p>
       </div>
 
-      {/* Card-style pop-up — replaces the old /update-bank-account route */}
       <UpdateBankAccountModal
         isOpen={showUpdateModal}
         current={details}
@@ -175,12 +189,93 @@ export default function PayoutSettings() {
   );
 }
 
-/** "XXXXXXXX4589" → "XXXX XXXX 4589" for readability. */
-function spacedMask(masked) {
-  if (!masked) return '';
-  return masked.replace(/(.{4})/g, '$1 ').trim();
+/* ── Section building blocks ────────────────────────────────────── */
+
+function Section({ title, icon, children }) {
+  return (
+    <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm p-4">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-8 h-8 rounded-lg bg-[#F0F6FF] flex items-center justify-center shrink-0">
+          {icon}
+        </div>
+        <h2 className="text-[#0D2137] text-sm font-bold">{title}</h2>
+      </div>
+      <div className="divide-y divide-[#F0F2F8]">
+        {children}
+      </div>
+    </div>
+  );
 }
 
-function CardSkeleton() {
-  return <div className="bg-[#F0F6FF] rounded-2xl h-40 animate-pulse" />;
+function Field({ label, value, mono = false, breakAll = false }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+      <span className="text-[#546E7A] text-xs">{label}</span>
+      <span
+        className={`text-[#0D2137] text-sm font-semibold text-right ${mono ? 'font-mono tracking-wide' : ''} ${breakAll ? 'break-all' : 'truncate'}`}
+      >
+        {value || '—'}
+      </span>
+    </div>
+  );
+}
+
+/* ── Helpers ────────────────────────────────────────────────────── */
+
+/**
+ * Normalises the destination string into a masked account of the form
+ * "XXXXXXXX4589" — first 8 chars as X, last 4 digits visible.
+ */
+function maskAccount(raw) {
+  if (!raw) return '—';
+  const digits = String(raw).replace(/[^0-9]/g, '');
+  if (!digits) return raw;
+  const last4 = digits.slice(-4);
+  return `XXXXXXXX${last4}`;
+}
+
+/* ── Icons ──────────────────────────────────────────────────────── */
+
+function PersonIcon() {
+  return (
+    <svg className="w-4 h-4 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  );
+}
+
+function BankIcon() {
+  return (
+    <svg className="w-4 h-4 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M4 10h16M6 10v11M10 10v11M14 10v11M18 10v11M12 3l9 5H3l9-5z" />
+    </svg>
+  );
+}
+
+function UpiIcon() {
+  return (
+    <svg className="w-4 h-4 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+    </svg>
+  );
+}
+
+function TaxIcon() {
+  return (
+    <svg className="w-4 h-4 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h4M8 3h8a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V5a2 2 0 012-2z" />
+    </svg>
+  );
+}
+
+function PageSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="h-5 bg-[#E3F2FD] rounded-full w-32" />
+      <div className="bg-[#F0F6FF] rounded-2xl h-32" />
+      <div className="bg-[#F0F6FF] rounded-2xl h-28" />
+      <div className="bg-[#F0F6FF] rounded-2xl h-24" />
+    </div>
+  );
 }
