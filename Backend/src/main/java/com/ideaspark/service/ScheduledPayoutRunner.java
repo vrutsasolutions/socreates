@@ -441,9 +441,7 @@ public class ScheduledPayoutRunner {
                 account.getPayoutMethod();
 
         if (method == null) {
-            return notBlank(account.getPayoutVpa())
-                    ? "UPI"
-                    : "IMPS";
+            return "IMPS";
         }
 
         String normalized =
