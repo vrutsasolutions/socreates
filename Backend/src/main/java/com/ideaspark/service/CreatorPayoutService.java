@@ -157,16 +157,6 @@ public class CreatorPayoutService {
     private ValidatedPayoutDetails validate(
             PayoutDetailsRequest request
     ) {
-        String method = normalize(request.getMethod());
-
-        if (!"vpa".equals(method)
-                && !"bank_account".equals(method)) {
-
-            throw new IllegalArgumentException(
-                    "method must be 'vpa' or 'bank_account'."
-            );
-        }
-
         String legalName = requireText(
                 request.getLegalName(),
                 "Legal name"
@@ -183,28 +173,6 @@ public class CreatorPayoutService {
         if (!request.isOwnershipConfirmed()) {
             throw new IllegalArgumentException(
                     "You must confirm that the payout account belongs to you."
-            );
-        }
-
-        if ("vpa".equals(method)) {
-            String vpa = normalize(request.getVpa());
-
-            if (!vpa.matches("[A-Za-z0-9._\\-]+@[A-Za-z0-9.\\-]+")) {
-                throw new IllegalArgumentException(
-                        "Enter a valid UPI ID, for example name@bank."
-                );
-            }
-
-            return new ValidatedPayoutDetails(
-                    method,
-                    legalName,
-                    mobileNumber,
-                    panNumber,
-                    null,
-                    null,
-                    null,
-                    null,
-                    vpa
             );
         }
 
@@ -249,18 +217,16 @@ public class CreatorPayoutService {
         }
 
         return new ValidatedPayoutDetails(
-                method,
+                "bank_account",
                 legalName,
                 mobileNumber,
                 panNumber,
                 accountHolderName,
                 accountNumber,
                 ifscCode,
-                bankName,
-                null
+                bankName
         );
     }
-
     private String normalizeMobile(String value) {
         String mobile = normalize(value)
                 .replaceAll("[^0-9]", "");
@@ -323,13 +289,6 @@ public class CreatorPayoutService {
             String contactId,
             ValidatedPayoutDetails details
     ) throws Exception {
-
-        if ("vpa".equals(details.method())) {
-            return razorpayX.createVpaFundAccount(
-                    contactId,
-                    details.vpa()
-            );
-        }
 
         return razorpayX.createBankFundAccount(
                 contactId,
@@ -402,15 +361,10 @@ public class CreatorPayoutService {
                 .panNumber(details.panNumber())
                 .mobileNumber(details.mobileNumber())
                 .bankName(details.bankName())
-                .payoutAccountName(
-                        "vpa".equals(details.method())
-                                ? details.legalName()
-                                : details.accountHolderName()
-                )
+                .payoutAccountName(details.accountHolderName())
                 .payoutAccountNumberLast4(lastFour)
                 .payoutIfsc(details.ifscCode())
-                .payoutMethod(details.method())
-                .payoutVpa(details.vpa())
+                .payoutMethod("bank_account")
                 .razorpayContactId(contactId)
                 .razorpayFundAccountId(fundAccountId)
                 .isActive(true)
@@ -521,12 +475,6 @@ public class CreatorPayoutService {
             return null;
         }
 
-        if ("vpa".equalsIgnoreCase(account.getPayoutMethod())
-                && notBlank(account.getPayoutVpa())) {
-
-            return maskVpa(account.getPayoutVpa());
-        }
-
         String lastFour =
                 account.getPayoutAccountNumberLast4();
 
@@ -545,27 +493,6 @@ public class CreatorPayoutService {
                 : "Bank";
 
         return bank + " ****" + lastFour;
-    }
-
-    private static String maskVpa(String vpa) {
-        int atIndex = vpa.indexOf('@');
-
-        if (atIndex <= 0) {
-            return vpa;
-        }
-
-        String prefix = vpa.substring(0, atIndex);
-        String provider = vpa.substring(atIndex);
-
-        if (prefix.length() <= 2) {
-            return prefix.substring(0, 1)
-                    + "***"
-                    + provider;
-        }
-
-        return prefix.substring(0, 2)
-                + "***"
-                + provider;
     }
 
     private static String maskPan(String pan) {
@@ -653,8 +580,7 @@ public class CreatorPayoutService {
             String accountHolderName,
             String accountNumber,
             String ifscCode,
-            String bankName,
-            String vpa
+            String bankName
     ) {
     }
 }
