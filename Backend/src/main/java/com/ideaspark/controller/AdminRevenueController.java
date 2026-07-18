@@ -367,32 +367,6 @@ public class AdminRevenueController {
             return null;
         }
 
-        if ("vpa".equalsIgnoreCase(account.getPayoutMethod())
-                || "upi".equalsIgnoreCase(account.getPayoutMethod())) {
-
-            String vpa = account.getPayoutVpa();
-
-            if (vpa == null || vpa.isBlank()) {
-                return "UPI account";
-            }
-
-            int separatorIndex = vpa.indexOf('@');
-
-            if (separatorIndex <= 1) {
-                return "UPI account";
-            }
-
-            String prefix = vpa.substring(0, separatorIndex);
-            String provider = vpa.substring(separatorIndex);
-
-            String visiblePrefix =
-                    prefix.length() <= 2
-                            ? prefix.substring(0, 1)
-                            : prefix.substring(0, 2);
-
-            return visiblePrefix + "***" + provider;
-        }
-
         String lastFour =
                 account.getPayoutAccountNumberLast4();
 
