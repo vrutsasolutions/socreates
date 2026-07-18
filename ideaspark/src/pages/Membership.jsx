@@ -22,6 +22,7 @@ const PLANS = [
       note: '₹99/mo billed monthly',
       features: [
         'Unlimited Premium Ideas',
+        'Unlimited Message Access',
         'Exclusive Creator Content',
         'Premium Reader Badge',
         'Save Unlimited Ideas',
@@ -35,6 +36,7 @@ const PLANS = [
       savingsNote: 'Save ₹389 compared to monthly billing',
       features: [
         'Unlimited Premium Ideas',
+        'Unlimited Message Access',
         'Premium Reader Badge',
         'Save Unlimited Ideas',
         'Exclusive Creator Content',
@@ -56,6 +58,7 @@ const PLANS = [
       note: '₹199/mo billed monthly',
       features: [
         'Everything in Premium',
+        'Unlimited Message Access',
         'Publish Premium Ideas',
         'Creator Analytics Dashboard',
         'Apply for Verification',
@@ -71,6 +74,7 @@ const PLANS = [
       savingsNote: 'Save ₹1,389 compared to monthly billing',
       features: [
         'Everything in Premium',
+        'Unlimited Message Access',
         'Publish Premium Ideas',
         'Creator Analytics Dashboard',
         'Creator Verification Eligibility',
