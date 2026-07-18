@@ -326,14 +326,10 @@ function TimelineDot({ done, failed }) {
 
 /**
  * Splits a `destination` string like "ICICI Bank XXXXXXXX4589" into a bank
- * name line + a spaced-out masked account line ("XXXX XXXX 4589"), or
- * treats it as a bare UPI id ("name@bank") when there's no space.
+ * name line + a spaced-out masked account line ("XXXX XXXX 4589").
  */
 function parseDestination(destination) {
   if (!destination) return { line1: '—', line2: null };
-  if (!destination.includes(' ')) {
-    return { line1: 'UPI', line2: destination };
-  }
   const match = destination.match(/^(.*)\s([A-Z0-9]+)$/);
   if (!match) return { line1: destination, line2: null };
   const [, bankName, masked] = match;
