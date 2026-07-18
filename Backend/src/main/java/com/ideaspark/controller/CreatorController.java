@@ -190,6 +190,7 @@ public class CreatorController {
                     ));
 
         } catch (Exception exception) {
+           
             return ResponseEntity
                     .internalServerError()
                     .body(Map.of(

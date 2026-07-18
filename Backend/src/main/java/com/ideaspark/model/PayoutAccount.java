@@ -1,5 +1,5 @@
 package com.ideaspark.model;
-
+import com.ideaspark.util.PanCryptoConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,7 +30,8 @@ public class PayoutAccount {
     @Column(name = "legal_name")
     private String legalName;
 
-    @Column(name = "pan_number")
+    @Convert(converter = PanCryptoConverter.class)
+    @Column(name = "pan_number", length = 255)
     private String panNumber;
 
     @Column(name = "mobile_number")
