@@ -46,18 +46,22 @@ export const TERMS_SECTIONS = [
     heading: 'Creator Monetization and Revenue Pool Sharing',
     bullets: [
       `Eligible creators (Creators Pro subscribers who are verified and meet engagement criteria) may earn a share of platform subscription revenue through the Revenue Pool Sharing (RPS) program.`,
-      `Each month, a portion of captured membership revenue is allocated to a creator pool and distributed among eligible creators based on engagement metrics determined by SoCreate; the split and eligibility criteria may be updated from time to time with notice.`,
+      `At the start of each month, a portion of the previous month's captured subscription revenue is set aside into a creator pool. The pool is currently funded by a share of Reader (Go Premium) revenue and a smaller share of Creators Pro revenue. The exact split and eligibility criteria may be updated from time to time with notice.`,
+      `Each eligible creator's share of the pool is calculated based on their activity and engagement metrics for that month, as determined by SoCreate.`,
       `Earnings are indicative until a monthly distribution is finalized; SoCreate may withhold or reverse earnings attributable to fraud, artificial engagement, chargebacks, or violations of these terms.`,
-      `You are solely responsible for any taxes (including income tax and GST, where applicable) on amounts you earn through the Platform.`,
+      `You are solely responsible for any taxes (including income tax, TDS, and GST, where applicable) on amounts you earn through the Platform.`,
     ],
   },
   {
     heading: 'Payouts',
     bullets: [
-      `To withdraw earnings, you must provide accurate payout details (UPI ID or bank account name, number, and IFSC); payouts are processed through RazorpayX to the destination you save.`,
-      `You confirm that the payout destination belongs to you; SoCreate is not liable for transfers to incorrectly entered details.`,
-      `We may require identity or KYC verification before releasing payouts and may delay or decline payouts where required by law, our payment partners, or fraud prevention.`,
-      `Minimum payout thresholds, processing timelines, and gateway charges (if any) will be shown in the Creator Dashboard.`,
+      `Payouts are automatic. You do not request individual withdrawals; instead, you save your payout details once and eligible earnings are sent to you on a recurring schedule.`,
+      `To receive payouts you must provide accurate payout details: your legal name, mobile number, and PAN, together with your bank account name, account number, and IFSC code. Payouts are processed through RazorpayX to the destination you save.`,
+      `You confirm that the payout destination and PAN belong to you; SoCreate is not liable for transfers to incorrectly entered details.`,
+      `Payout eligibility is assessed each month after the creator pool is finalized. A minimum payout threshold of ₹500 applies: if your available balance for a month is ₹500 or less, it is carried forward and added to the next month's balance until it exceeds the threshold. Balances above ₹500 are scheduled for payout.`,
+      `Scheduled payouts are sent to your saved bank destination by a recurring payout job. If a transfer fails, it is retried a limited number of times and, if it still does not succeed, flagged for manual review and follow-up.`,
+      `We may require identity or KYC verification before releasing payouts, and may delay or decline payouts where required by law, our payment partners, or fraud prevention.`,
+      `Payout thresholds, processing timelines, and any gateway charges are reflected in the Creator Dashboard.`,
     ],
   },
   {
