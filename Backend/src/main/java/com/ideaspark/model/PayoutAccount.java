@@ -50,9 +50,9 @@ public class PayoutAccount {
 
     @Column(name = "payout_method")
     private String payoutMethod;
-
-    @Column(name = "payout_vpa")
-    private String payoutVpa;
+// You can uncomment the following lines if you want to support UPI/VPA payouts in the future. For now, they are commented out as per the current requirements.
+    // @Column(name = "payout_vpa")
+    // private String payoutVpa;
 
     @Column(name = "razorpay_contact_id")
     private String razorpayContactId;
