@@ -121,23 +121,17 @@ export default function PayoutSettings() {
               <Field label="Mobile number" value={details.maskedMobile} mono />
             </Section>
 
-            {/* Bank / UPI */}
+            {/* Bank Account */}
             <Section
-              title={details.method === 'vpa' ? 'UPI ID' : 'Bank Account'}
-              icon={details.method === 'vpa' ? <UpiIcon /> : <BankIcon />}
+              title="Bank Account"
+              icon={<BankIcon />}
             >
-              {details.method === 'vpa' ? (
-                <Field label="UPI ID" value={details.vpa || details.destination} mono breakAll />
-              ) : (
-                <>
-                  <Field label="Bank" value={details.bankName || 'Bank'} />
-                  <Field
-                    label="Account number"
-                    value={`A/C ${maskAccount(details.maskedAccountNumber || details.destination)}`}
-                    mono
-                  />
-                </>
-              )}
+              <Field label="Bank" value={details.bankName || 'Bank'} />
+              <Field
+                label="Account number"
+                value={`A/C ${maskAccount(details.maskedAccountNumber || details.destination)}`}
+                mono
+              />
             </Section>
 
             {/* Tax */}
@@ -162,7 +156,7 @@ export default function PayoutSettings() {
             </div>
             <h3 className="text-[#0D2137] font-bold text-base mb-1">No payout account set up</h3>
             <p className="text-[#90A4AE] text-sm mb-4 leading-relaxed">
-              Add your bank or UPI details so we know where to send your monthly earnings.
+              Add your bank account details so we know where to send your monthly earnings.
             </p>
             <button
               onClick={() => navigate('/payout-setup')}
@@ -248,15 +242,6 @@ function BankIcon() {
   return (
     <svg className="w-4 h-4 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M4 10h16M6 10v11M10 10v11M14 10v11M18 10v11M12 3l9 5H3l9-5z" />
-    </svg>
-  );
-}
-
-function UpiIcon() {
-  return (
-    <svg className="w-4 h-4 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <path d="M2 10h20" />
     </svg>
   );
 }
