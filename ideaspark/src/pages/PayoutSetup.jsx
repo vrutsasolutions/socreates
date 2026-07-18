@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getPayoutDetails, savePayoutDetails } from "../api/paymentApi";
+import { isPayoutComplete } from "../utils/payoutStatus";
 
 /**
  * Full-page payout setup form — first-time only.
@@ -60,11 +61,16 @@ export default function PayoutSetup() {
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
       setForm((f) => ({ ...f, email: storedUser?.email ?? "" }));
 
-      // If details already exist, this creator arrived here by mistake
-      // (e.g. a stale bookmark) — bounce them to Settings instead of
-      // letting them re-run first-time setup over an active account.
+      // If details already exist AND are fully filled in, this creator
+      // arrived here by mistake (e.g. a stale bookmark) — bounce them to
+      // Settings. But if they're only partially set up (backend says
+      // configured because Razorpay is linked, but legal name / mobile /
+      // PAN are blank), we MUST let them in so they can finish. Using the
+      // raw `configured` flag here caused a redirect loop with the
+      // Settings page's "Set up payout details" button, since both sides
+      // thought the other should handle it.
       const { data } = await getPayoutDetails();
-      if (data?.configured && !fromPurchase) {
+      if (isPayoutComplete(data) && !fromPurchase) {
         navigate("/payout-settings", { replace: true });
         return;
       }
