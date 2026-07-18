@@ -30,6 +30,7 @@ export default function PayoutSetup() {
   const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState("bank_account"); // 'vpa' | 'bank_account'
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [ifscLookupBusy, setIfscLookupBusy] = useState(false);
 
@@ -159,6 +160,10 @@ export default function PayoutSetup() {
     setBusy(true);
     try {
       await savePayoutDetails(payload);
+      // Flip the header tick to green so the user gets a moment of
+      // "yes, saved" feedback before we route them away.
+      setSaved(true);
+      await new Promise((r) => setTimeout(r, 700));
       navigate(fromPurchase ? "/creator-dashboard" : "/payout-settings", {
         replace: true,
         state: { justSaved: true },
@@ -182,15 +187,15 @@ export default function PayoutSetup() {
       <div className="w-full min-h-screen bg-white flex flex-col">
         {/* ── Header ───────────────────────────────────────────────── */}
         <header className="bg-[#1565C0] px-5 sm:px-8 lg:px-10 pt-6 lg:pt-8 pb-7 lg:pb-9 shrink-0">
-          <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-3 sm:gap-4">
             {!fromPurchase && (
               <button
                 onClick={() => navigate(-1)}
                 aria-label="Go back"
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all -ml-1 mb-3"
+                className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all shrink-0"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="w-5 h-5 lg:w-6 lg:h-6"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -204,30 +209,35 @@ export default function PayoutSetup() {
                 </svg>
               </button>
             )}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                <svg
-                  className="w-5 h-5 lg:w-6 lg:h-6 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-white font-bold text-lg lg:text-2xl">
-                  Complete payout setup
-                </h1>
-                <p className="text-white/70 text-xs lg:text-sm mt-0.5">
-                  Creator Pro is active — add your details to start getting paid
-                </p>
-              </div>
+
+            <div className="min-w-0 flex-1">
+              <h1 className="text-white font-bold text-lg sm:text-xl lg:text-2xl xl:text-3xl leading-tight">
+                Complete payout setup
+              </h1>
+              <p className="text-white/70 text-xs sm:text-sm lg:text-base mt-0.5 sm:mt-1">
+                Creator Pro is active — add your details to start getting paid
+              </p>
+            </div>
+
+            <div
+              className={`w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 xl:w-14 xl:h-14 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${
+                saved ? "bg-[#22C55E]" : "bg-white/20"
+              }`}
+              aria-label={saved ? "Saved" : "Setup pending"}
+            >
+              <svg
+                className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
             </div>
           </div>
         </header>
