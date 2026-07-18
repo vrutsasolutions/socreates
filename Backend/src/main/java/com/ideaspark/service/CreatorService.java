@@ -488,10 +488,6 @@ public class CreatorService {
                 if (account == null) {
                         return null;
                 }
-                if ("vpa".equalsIgnoreCase(account.getPayoutMethod())
-                                && account.getPayoutVpa() != null && !account.getPayoutVpa().isBlank()) {
-                        return account.getPayoutVpa();
-                }
                 String acct = account.getPayoutAccountNumberLast4();
                 if (acct != null && !acct.isBlank()) {
                         String last4 = acct.length() > 4 ? acct.substring(acct.length() - 4) : acct;
