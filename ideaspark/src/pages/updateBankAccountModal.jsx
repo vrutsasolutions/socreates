@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { savePayoutDetails } from "../api/paymentApi";
+import { lookupBankName } from "../utils/ifscLookup";
 
 /**
  * Change-bank-account modal.
@@ -76,23 +77,14 @@ export default function UpdateBankAccountModal({
       setIfscLookupBusy(true);
 
       try {
-        const response = await fetch(
-          `https://ifsc.razorpay.com/${code}`
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-
-          if (result?.BANK) {
-            setForm((previous) => ({
-              ...previous,
-              bankName: result.BANK,
-            }));
-          }
+        // lookupBankName tries: Razorpay API → bankifsccode.com → local prefix map
+        // This covers PSBs, merged banks (e.g. UBI), co-ops, and all major private banks.
+        const name = await lookupBankName(code);
+        if (name) {
+          setForm((previous) => ({ ...previous, bankName: name }));
         }
-      } catch {
-        // IFSC lookup is optional. Manual bank-name entry remains available.
       } finally {
+        // IFSC lookup is best-effort. Manual bank-name entry remains available.
         setIfscLookupBusy(false);
       }
     }, 500);
