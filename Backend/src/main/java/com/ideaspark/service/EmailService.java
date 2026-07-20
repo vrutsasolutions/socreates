@@ -15,6 +15,7 @@ public class EmailService {
     private final JavaMailSender mailSender;
 
     // Send OTP email for registration
+    @Async
     public void sendOtpEmail(String toEmail, String otp) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -36,6 +37,7 @@ public class EmailService {
     }
 
     // Send OTP email for forgot password
+    @Async
     public void sendPasswordResetEmail(String toEmail, String otp) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
