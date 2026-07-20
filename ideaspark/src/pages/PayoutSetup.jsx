@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getPayoutDetails, savePayoutDetails } from "../api/paymentApi";
 import { isPayoutComplete } from "../utils/payoutStatus";
+import { lookupBankName } from "../utils/ifscLookup";
 
 /**
  * Full-page payout setup form — first-time only.
@@ -85,8 +86,12 @@ export default function PayoutSetup() {
     load();
   }, [load]);
 
-  // Best-effort IFSC → bank name lookup, debounced. Razorpay's public IFSC
-  // API is free/unauthenticated. Never blocks submission if it fails.
+  // Best-effort IFSC → bank name lookup, debounced.
+  // Uses lookupBankName() which tries three sources in sequence:
+  //   1. Razorpay IFSC API  (fast, covers most private banks)
+  //   2. bankifsccode.com   (RBI-sourced; covers PSBs, merged banks like UBI)
+  //   3. Local prefix map   (offline fallback for ~40 common banks)
+  // Never blocks form submission — bank name field stays manually editable.
   useEffect(() => {
     if (ifscDebounce.current) clearTimeout(ifscDebounce.current);
     const code = form.ifsc.trim().toUpperCase();
@@ -95,13 +100,8 @@ export default function PayoutSetup() {
     ifscDebounce.current = setTimeout(async () => {
       setIfscLookupBusy(true);
       try {
-        const res = await fetch(`https://ifsc.razorpay.com/${code}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json?.BANK) setForm((f) => ({ ...f, bankName: json.BANK }));
-        }
-      } catch {
-        // Silent — bank name stays whatever the creator typed, if anything.
+        const name = await lookupBankName(code);
+        if (name) setForm((f) => ({ ...f, bankName: name }));
       } finally {
         setIfscLookupBusy(false);
       }
