@@ -47,11 +47,14 @@ public class ScheduledPayoutRunner {
             return;
         }
 
+        LocalDateTime now =
+                LocalDateTime.now();
+
         List<CreatorEarning> scheduled =
-                earningRepository.findScheduledPayouts();
+                earningRepository.findScheduledPayouts(now);
 
         List<CreatorEarning> retries =
-                earningRepository.findDueForRetry();
+                earningRepository.findDueForRetry(now);
 
         Map<UUID, CreatorEarning> dueEarnings =
                 new LinkedHashMap<>();
@@ -406,22 +409,26 @@ public class ScheduledPayoutRunner {
             return lockedAccount;
         }
 
-        User creator =
-                earning.getCreator();
-
-        if (creator == null) {
-            return null;
-        }
-
-        PayoutAccount activeAccount =
-                creator.getActivePayoutAccount();
-
-        if (isValidPayoutAccount(activeAccount)) {
-            earning.setPayoutAccount(activeAccount);
-            earningRepository.save(earning);
-        }
-
-        return activeAccount;
+        /*
+         * The account this earning was locked to is gone (e.g. the creator
+         * updated their bank/UPI details, which deactivates the old
+         * PayoutAccount). Previously this method silently reassigned the
+         * earning to whichever account is CURRENTLY active and kept going —
+         * which meant a mid-retry attempt could send a different
+         * fund_account_id under the same fixed idempotency key as an
+         * earlier attempt, triggering Razorpay's
+         * "Different request body sent for the same Idempotency Header"
+         * error.
+         *
+         * Instead, treat this the same as "no account configured": return
+         * null so the caller marks the earning Setup_Missing. When the
+         * creator's payout details are next saved,
+         * CreatorPayoutService.reactivateSetupMissingEarnings() will pick
+         * this earning back up with retryCount/razorpayPayoutId reset to a
+         * clean state, and buildReferenceId() will mint a fresh
+         * attempt-scoped idempotency key for it.
+         */
+        return null;
     }
 
     private boolean isValidPayoutAccount(
@@ -457,9 +464,33 @@ public class ScheduledPayoutRunner {
             CreatorEarning earning
     ) {
         /*
-         * A UUID is stable across retries and contains exactly 36 characters.
+         * IMPORTANT: this value is also used as the Razorpay idempotency key
+         * (see RazorpayXService.createPayout -> post(..., stableReference)).
+         * Razorpay requires that the SAME idempotency key always be paired
+         * with the SAME request body. If anything in the body can change
+         * between attempts (e.g. the fund_account_id, if the creator swaps
+         * bank accounts between retries), reusing a single fixed key across
+         * every attempt causes Razorpay to reject the retry with
+         * "Different request body sent for the same Idempotency Header".
+         *
+         * To keep retries safe without hard-coding a single lifetime key,
+         * the attempt number is folded into the reference ID. Each attempt
+         * gets its own idempotency key, so a genuinely-changed body (e.g.
+         * new bank account) is treated as a new attempt rather than a
+         * conflicting duplicate. A single attempt is still protected against
+         * accidental double-submission (e.g. a network retry of the exact
+         * same HTTP call), since the key stays fixed within one attempt.
+         *
+         * UUID without dashes = 32 chars, "-r" + attempt number keeps the
+         * total within Razorpay's 4-36 character limit.
          */
-        return earning.getId().toString();
+        String base =
+                earning.getId().toString().replace("-", "");
+
+        int attempt =
+                safeRetryCount(earning) + 1;
+
+        return base + "-r" + attempt;
     }
 
     private void markPaid(

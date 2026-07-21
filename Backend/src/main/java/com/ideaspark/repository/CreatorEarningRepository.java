@@ -51,18 +51,30 @@ public interface CreatorEarningRepository
 
     /**
      * Returns scheduled payouts whose payout time has arrived.
+     *
+     * IMPORTANT: this compares against an explicit :now parameter supplied
+     * by the caller (the application's own clock) rather than the
+     * database's CURRENT_TIMESTAMP. If the app server and the database
+     * disagree on timezone, comparing a LocalDateTime written by the app
+     * (no timezone info) against the database's own current-time function
+     * can make a freshly-scheduled row look hours in the future (or past),
+     * silently excluding it from this query. Passing :now keeps both the
+     * write and the read on the same clock.
      */
     @Query("""
             SELECT e
             FROM CreatorEarning e
             WHERE e.status = 'Scheduled'
               AND e.scheduledFor IS NOT NULL
-              AND e.scheduledFor <= CURRENT_TIMESTAMP
+              AND e.scheduledFor <= :now
             """)
-    List<CreatorEarning> findScheduledPayouts();
+    List<CreatorEarning> findScheduledPayouts(@Param("now") java.time.LocalDateTime now);
 
     /**
      * Returns processing payouts that are ready for another attempt.
+     *
+     * Same reasoning as findScheduledPayouts above: compare against the
+     * caller's own clock, not the database's.
      */
     @Query("""
             SELECT e
@@ -70,9 +82,9 @@ public interface CreatorEarningRepository
             WHERE e.status = 'Processing'
               AND COALESCE(e.retryCount, 0) < 3
               AND e.nextRetryAt IS NOT NULL
-              AND e.nextRetryAt <= CURRENT_TIMESTAMP
+              AND e.nextRetryAt <= :now
             """)
-    List<CreatorEarning> findDueForRetry();
+    List<CreatorEarning> findDueForRetry(@Param("now") java.time.LocalDateTime now);
 
     /**
      * Atomically claims a scheduled earning.
