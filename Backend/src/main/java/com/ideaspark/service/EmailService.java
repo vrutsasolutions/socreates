@@ -3,6 +3,7 @@ package com.ideaspark.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -13,6 +14,9 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private final JavaMailSender mailSender;
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     // Send OTP email for registration
     @Async
@@ -184,7 +188,7 @@ public class EmailService {
                         </p>
 
                         <p>
-                            <a href="http://localhost:5173/ideas/%s"
+                            <a href="%s/ideas/%s"
                                style="background:#1565C0;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;display:inline-block;">
                                View Idea on SoCreate
                             </a>
@@ -203,6 +207,7 @@ public class EmailService {
                     category != null ? category : "General",
                     ideaTitle,
                     shortDescription != null ? shortDescription : "",
+                    frontendUrl,
                     ideaId,
                     creatorName
             );
@@ -219,6 +224,7 @@ public class EmailService {
 
     // ── Milestone: likes on an idea ──────────────────────────────────────────
 
+    @Async
     public void sendLikeMilestoneEmail(
             String toEmail,
             String creatorName,
@@ -270,6 +276,7 @@ public class EmailService {
 
     // ── Milestone: followers ─────────────────────────────────────────────────
 
+    @Async
     public void sendFollowerMilestoneEmail(
             String toEmail,
             String userName,
@@ -380,7 +387,7 @@ public class EmailService {
                     </p>
 
                     <div style="text-align: center;">
-                      <a href="http://localhost:5173/home"
+                      <a href="%s/home"
                          style="display: inline-block; background: #1565C0; color: #fff; text-decoration: none; padding: 14px 36px; border-radius: 8px; font-size: 15px; font-weight: 700;">
                         View Your Idea
                       </a>
@@ -396,7 +403,8 @@ public class EmailService {
                 """.formatted(
                 creatorName,
                 ideaTitle,
-                likeCount
+                likeCount,
+                frontendUrl
         );
     }
 
@@ -464,7 +472,7 @@ public class EmailService {
                     </p>
 
                     <div style="text-align: center;">
-                      <a href="http://localhost:5173/profile"
+                      <a href="%s/profile"
                          style="display: inline-block; background: #7B1FA2; color: #fff; text-decoration: none; padding: 14px 36px; border-radius: 8px; font-size: 15px; font-weight: 700;">
                         View Your Profile
                       </a>
@@ -479,7 +487,8 @@ public class EmailService {
                 </div>
                 """.formatted(
                 userName,
-                followerCount
+                followerCount,
+                frontendUrl
         );
     }
 
