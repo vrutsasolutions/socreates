@@ -164,7 +164,7 @@ function FullWaveform({ color = "#1565C0", faded = "#BBDEFB" }) {
     (_, i) => 4 + Math.round(Math.abs(Math.sin(i * 1.7)) * 18),
   );
   return (
-    <div className="flex-1 flex items-center justify-between gap-[2px] h-7 overflow-hidden">
+    <div className="flex-1 min-w-0 flex items-center justify-between gap-[2px] h-7 overflow-hidden">
       {bars.map((h, i) => (
         <span
           key={i}
@@ -1916,7 +1916,7 @@ export default function Chat() {
             onClick={cancelRecording}
             disabled={isUploading}
             aria-label="Cancel recording"
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95
+            className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95
               ${isUploading ? "bg-[#F0F6FF] text-[#90A4AE] cursor-not-allowed" : "bg-[#FEE2E2] text-[#EF4444]"}`}
           >
             <svg
@@ -1934,7 +1934,7 @@ export default function Chat() {
             </svg>
           </button>
 
-          <div className="flex-1 flex items-center gap-3 bg-[#F4F7FF] rounded-[20px] px-4 py-2">
+          <div className="flex-1 min-w-0 flex items-center gap-3 bg-[#F4F7FF] rounded-[20px] px-4 py-2">
             {isUploading ? (
               <>
                 <svg
@@ -1975,7 +1975,7 @@ export default function Chat() {
             onClick={sendRecording}
             disabled={isUploading}
             aria-label="Send voice"
-            className={`w-10 h-10 rounded-full text-white flex items-center justify-center transition-all active:scale-95
+            className={`shrink-0 w-10 h-10 rounded-full text-white flex items-center justify-center transition-all active:scale-95
               ${isUploading ? "bg-[#90A4AE] cursor-not-allowed" : "bg-[#1565C0]"}`}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
