@@ -670,20 +670,89 @@ export default function CreatorDashboard() {
                   </div>
                 )}
 
-                {/* Helper text — replaces the old estimated-earnings card and
-                    withdraw button with an explanation of the automatic cycle. */}
-                <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-[#0D2137] text-xs leading-relaxed space-y-1.5">
-                  <p>
-                    Earnings are calculated on the{" "}
-                    <strong>15th of every month</strong> for the previous
-                    month's earnings. Minimum payout: <strong>₹1500</strong>.
-                    Amounts below this roll over to the next month.
-                  </p>
-                  <p className="text-[#D97706] font-semibold">
-                    Payouts coming soon (will be calculated every month).
-                  </p>
+                {/* Payout service activation card — shown to all creators
+                    until the payout service goes live. The backend already
+                    handles the ₹1500 rollover threshold and scheduled payout
+                    logic properly; this card is purely a frontend placeholder
+                    while the service is being activated. */}
+                <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm overflow-hidden">
+                  {/* Card header with icon */}
+                  <div className="px-5 pt-6 pb-5 text-center">
+                    <div className="w-14 h-14 rounded-full bg-[#FFF7ED] border border-[#FED7AA] flex items-center justify-center mx-auto mb-4">
+                      <svg
+                        className="w-7 h-7 text-[#D97706]"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.8}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-[#0D2137] text-base font-bold leading-snug">
+                      Creator payouts will begin once the payout service is activated
+                    </h3>
+                    <p className="text-[#546E7A] text-xs mt-2 leading-relaxed max-w-xs mx-auto">
+                      We're setting things up so you can get paid automatically.
+                      Your earnings are being tracked and will be paid out as soon
+                      as the service goes live.
+                    </p>
+                  </div>
+
+                  {/* Info bullets */}
+                  <div className="border-t border-[#F0F2F8] px-5 py-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-[#ECFDF5] flex items-center justify-center shrink-0 mt-0.5">
+                        <svg className="w-4 h-4 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-[#0D2137] text-sm font-semibold">Minimum payout: ₹1,500</div>
+                        <div className="text-[#90A4AE] text-xs mt-0.5">Earnings below this amount roll over to the next month automatically</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0 mt-0.5">
+                        <svg className="w-4 h-4 text-[#1565C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-[#0D2137] text-sm font-semibold">Payouts on the 15th</div>
+                        <div className="text-[#90A4AE] text-xs mt-0.5">Earnings are calculated and paid out on the 15th of every month</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-[#F5F3FF] flex items-center justify-center shrink-0 mt-0.5">
+                        <svg className="w-4 h-4 text-[#7C3AED]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-[#0D2137] text-sm font-semibold">Your earnings are safe</div>
+                        <div className="text-[#90A4AE] text-xs mt-0.5">All your earnings are tracked and securely held until the service is activated</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status indicator footer */}
+                  <div className="border-t border-[#F0F2F8] bg-[#FFFBF5] px-5 py-3 flex items-center justify-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F59E0B] opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#F59E0B]" />
+                    </span>
+                    <span className="text-[#92400E] text-xs font-semibold">Payout service activation in progress</span>
+                  </div>
                 </div>
 
+                {/* ── Earnings table ─────────────────────────────── */}
                 <div
                   className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm overflow-x-auto"
                   style={{ WebkitOverflowScrolling: "touch" }}
@@ -710,9 +779,6 @@ export default function CreatorDashboard() {
                     </thead>
                     <tbody>
                       {rev.map((row, i) => {
-                        // Only rows with a real payout attempt have a receipt
-                        // to show — a live estimate or a rolled-over balance
-                        // has no transaction behind it yet.
                         const hasReceipt = [
                           "paid",
                           "processing",
