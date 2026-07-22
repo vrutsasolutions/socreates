@@ -34,7 +34,7 @@ public class RevenueDistributionService {
      * Rollover threshold — earnings <= this amount (in paise) roll into next month
      * instead of paying out.
      */
-    private static final long ROLLOVER_THRESHOLD_PAISE = 50_000L; // ₹500
+    private static final long ROLLOVER_THRESHOLD_PAISE = 150_000L; // ₹1500
 
     private final RevenuePoolRepository poolRepository;
     private final MembershipPaymentRepository paymentRepository;
@@ -98,13 +98,13 @@ public class RevenueDistributionService {
     // decides, per creator, whether that Pending row is actually ready to be
     // paid or needs to roll into next month:
     //
-    // revenuePaise <= ₹500 → folded into NEXT month's row (added to its
+    // revenuePaise <= ₹1500 → folded into NEXT month's row (added to its
     // revenue_paise, rolled_from set), this row is
     // marked "Rolled_Over". Rolled-over amounts
     // accumulate month over month until the combined
-    // total exceeds ₹500, at which point that (larger)
+    // total exceeds ₹1500, at which point that (larger)
     // row gets scheduled normally on its own 15th.
-    // revenuePaise > ₹500 → marked "Scheduled" with scheduledFor = now.
+    // revenuePaise > ₹1500 → marked "Scheduled" with scheduledFor = now.
     // ScheduledPayoutRunner picks these up and pays
     // them via RazorpayX.
     //

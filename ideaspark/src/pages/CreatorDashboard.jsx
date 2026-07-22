@@ -672,12 +672,16 @@ export default function CreatorDashboard() {
 
                 {/* Helper text — replaces the old estimated-earnings card and
                     withdraw button with an explanation of the automatic cycle. */}
-                <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-[#0D2137] text-xs leading-relaxed">
-                  Earnings are paid out on the{" "}
-                  <strong>15th of every month</strong> for the previous month's
-                  earnings, directly to your registered bank account. Minimum
-                  payout: <strong>₹500</strong>. Amounts below this roll over to
-                  the next month.
+                <div className="bg-[#F0F6FF] border border-[#BBDEFB] rounded-2xl px-4 py-3 text-[#0D2137] text-xs leading-relaxed space-y-1.5">
+                  <p>
+                    Earnings are calculated on the{" "}
+                    <strong>15th of every month</strong> for the previous
+                    month's earnings. Minimum payout: <strong>₹1500</strong>.
+                    Amounts below this roll over to the next month.
+                  </p>
+                  <p className="text-[#D97706] font-semibold">
+                    Payouts coming soon (will be calculated every month).
+                  </p>
                 </div>
 
                 <div

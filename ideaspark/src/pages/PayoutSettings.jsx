@@ -168,8 +168,11 @@ export default function PayoutSettings() {
         )}
 
         <p className="text-[#90A4AE] text-[11px] text-center leading-relaxed px-4">
-          Earnings are paid out on the 15th of every month for the previous month's earnings.
-          Minimum payout: ₹500 — smaller amounts roll over to the next month.
+          Earnings are calculated on the 15th of every month for the previous month's earnings.
+          Minimum payout: ₹1500 — smaller amounts roll over to the next month.
+        </p>
+        <p className="text-[#D97706] text-[11px] font-semibold text-center leading-relaxed px-4 mt-1">
+          Payouts coming soon (will be calculated every month).
         </p>
       </div>
 
