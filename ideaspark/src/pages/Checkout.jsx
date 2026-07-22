@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { USE_MOCK } from '../api/config';
 import { createOrder, subscribe } from '../api/paymentApi';
 import Icon from '../components/common/Icon';
-import scLogo from '../assets/sc-logo.png';
+import scLogo from '../assets/sc-logo-razorpay.png';
 
 // What each tier's order summary lists (matches the checkout design).
 const INCLUDES = {
