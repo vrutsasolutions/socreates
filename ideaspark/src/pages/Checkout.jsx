@@ -124,7 +124,7 @@ export default function Checkout() {
       setError(
         err?.response?.data?.message
         || (status ? `Request failed (HTTP ${status}).`
-                   : `${err?.message || 'Unknown error'} — the create-order request did not reach the backend. Check that the backend is running on http://localhost:8081 and that you are logged in.`)
+                   : `${err?.message || 'Unknown error'} — could not reach the server. Please check your connection and try again.`)
       );
       setLoading('');
     }
