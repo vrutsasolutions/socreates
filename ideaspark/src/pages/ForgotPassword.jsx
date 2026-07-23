@@ -121,7 +121,7 @@ export default function ForgotPassword() {
 
   const apiMessage = (err, fallback) =>
     !err.response
-      ? 'Cannot connect to server. Is the backend running on port 8081?'
+      ? 'Cannot connect to server. Please try again in a moment.'
       : err.response?.data?.message || fallback;
 
   // ── Step 1: send OTP ──────────────────────────────────────────────────
