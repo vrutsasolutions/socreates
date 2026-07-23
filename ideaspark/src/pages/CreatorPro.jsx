@@ -20,6 +20,7 @@ const PRO_FEATURES = [
   'Creator Insights',
   'Early Access to New Features',
   'Priority Creator Support',
+  'Unlimited Message Access',
 ];
 
 const fmtDate = (iso) => {
