@@ -86,7 +86,7 @@ export default function Login() {
       const status = err.response?.status;
       const msg = err.response?.data?.message || err.message || 'Login failed.';
 
-      if (!err.response) setError('Cannot connect to server. Is the backend running on port 8081?');
+      if (!err.response) setError('Cannot connect to server. Please try again in a moment.');
       else if (status === 401 || status === 400) setError('Wrong email or password. Please try again.');
       else if (status === 404) setError('No account found with that email.');
       else if (status === 429) setError('Too many attempts. Please wait a moment and try again.');
