@@ -100,6 +100,13 @@ const normalizeConversation = (dto) => {
       dto.otherUserVerifiedCreator ??
       dto.verifiedCreator ??
       !!((dto.otherUserVerified ?? false) && (dto.otherUserCreatorPro ?? false)),
+    // Message-request flow: "PENDING" while waiting on the other person to
+    // accept, "ACCEPTED" once you can both talk freely. Older/mocked
+    // payloads without this field default to ACCEPTED so nothing locks up.
+    status: dto.status ?? "ACCEPTED",
+    // True when I'm the one who started this conversation — tells apart
+    // "I sent a request, waiting" from "I received one, need to accept".
+    iInitiated: dto.iInitiated ?? true,
   };
 };
 
@@ -215,6 +222,27 @@ const normalizeContact = (dto) => ({
   // first) so "message yourself" is discoverable — flag it the same way
   // normalizeConversation does, so Suggested/search can label it "(You)".
   isSelf: getMyId() != null && dto.id != null && String(dto.id) === String(getMyId()),
+});
+
+/**
+ * Normalize a backend MessageRequestDTO → the shape Requests.jsx renders.
+ *
+ * Backend fields:  id (conversation id), fromUserId, name, avatar,
+ *                   preview, createdAt
+ * Frontend wants:  id, name, initial, avatarColor, preview, time, mutuals
+ */
+const normalizeRequest = (dto) => ({
+  id: String(dto.id),
+  fromUserId: dto.fromUserId != null ? String(dto.fromUserId) : undefined,
+  name: dto.name ?? "Unknown",
+  initial: dto.initial ?? initialFrom(dto.name ?? ""),
+  avatarColor: dto.avatarColor ?? dto.name ?? "#1565C0",
+  profileImage: dto.avatar ?? dto.profileImage ?? null,
+  preview: dto.preview ?? "",
+  time: dto.createdAt ? formatTime(dto.createdAt) : (dto.time ?? ""),
+  // Backend doesn't compute mutual connections yet — default to 0 rather
+  // than showing a made-up number.
+  mutuals: dto.mutuals ?? 0,
 });
 
 // ── Active-now rail ──────────────────────────────────────────────────────────
@@ -413,10 +441,18 @@ export const uploadImage = async (file, conversationId) => {
 };
 
 // ── Message requests ─────────────────────────────────────────────────────────
-export const fetchRequests = () =>
-  USE_MOCK.messaging
-    ? mockResponse(requests.map((r) => ({ ...r })))
-    : api.get("/messages/requests");
+export const fetchRequests = async () => {
+  if (USE_MOCK.messaging) return mockResponse(requests.map((r) => ({ ...r })));
+  const res = await api.get("/messages/requests");
+  return { data: (res.data ?? []).map(normalizeRequest) };
+};
+
+// Backend throws RuntimeException("REQUEST_PENDING: ...") when the
+// recipient of a still-pending message request tries to reply before
+// accepting it. Chat.jsx uses this to show the right banner instead of a
+// generic "message could not be sent" toast.
+export const isRequestPendingError = (err) =>
+  !!err?.response?.data?.message?.startsWith?.("REQUEST_PENDING");
 
 export const acceptRequest = (id) => {
   if (USE_MOCK.messaging) {
