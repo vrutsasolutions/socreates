@@ -17,10 +17,9 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Moderation actions on user accounts. Same ROLE_ADMIN pattern as
- * AdminRevenueController: SecurityConfig gates the URL prefix AND this
- * class carries @PreAuthorize as defense in depth. ROLE_ADMIN is granted
- * only to app.admin.email (see UserDetailsServiceImpl).
+ * Moderation actions on user accounts.
+ * Deletes a user's account and permanently blocks their email
+ * from creating another account.
  */
 @RestController
 @RequestMapping("/api/admin/users")
@@ -31,19 +30,6 @@ public class AdminUserController {
     private final UserRepository userRepository;
     private final UserAccountService userAccountService;
 
-    /**
-     * Deletes a user's account (all their data — ideas, comments, messages,
-     * earnings, etc.) AND permanently blocks their email from registering
-     * a new account.
-     *
-     * Use this — not the self-service DELETE /api/users/me path — for
-     * policy-violation removals (e.g. a creator uploaded restricted or
-     * prohibited content), since the self-service path only deletes the
-     * account and leaves the email free to sign up again.
-     *
-     * Example: DELETE /api/admin/users/{id}
-     * Body: { "reason": "Uploaded restricted content" }
-     */
     @Transactional
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> banAndDeleteUser(
@@ -51,26 +37,53 @@ public class AdminUserController {
             @RequestBody(required = false) BanUserRequest request,
             @AuthenticationPrincipal UserDetails adminDetails
     ) {
+
         User user = userRepository.findById(id).orElse(null);
 
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "User not found"));
+                    .body(Map.of(
+                            "message",
+                            "User not found."
+                    ));
         }
-
-        String reason = request != null && request.getReason() != null
-                ? request.getReason().trim()
-                : null;
 
         String bannedBy = adminDetails != null
                 ? adminDetails.getUsername()
                 : "unknown";
 
-        userAccountService.deleteAndBan(user, reason, bannedBy);
+        // Prevent admin from banning themselves
+        if (user.getEmail().equalsIgnoreCase(bannedBy)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "message",
+                            "You cannot ban your own account."
+                    ));
+        }
 
-        return ResponseEntity.ok(Map.of(
-                "message",
-                "Account deleted and email permanently blocked from re-registration"
-        ));
+        String reason = request != null && request.getReason() != null
+                ? request.getReason().trim()
+                : "";
+
+        if (reason.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "message",
+                            "Please provide a reason for banning this user."
+                    ));
+        }
+
+        userAccountService.deleteAndBan(
+                user,
+                reason,
+                bannedBy
+        );
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message",
+                        "User account has been permanently deleted and the email has been blocked from future registrations."
+                )
+        );
     }
 }

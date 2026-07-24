@@ -6,16 +6,21 @@
 //    • Follow / Unfollow button instead
 //    • only their published ideas (no Saved tab — that's private)
 // ════════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import BottomNav from '../components/common/BottomNav.premium';
-import IdeaCard from '../components/common/IdeaCard.premium';
-import Icon from '../components/common/Icon';
-import ProfileShareButton from '../components/common/ProfileShareButton';
-import BanUserModal from '../components/common/BanUserModal';
-import { useAuth } from '../context/AuthContext';
-import { fetchUserById, fetchFollowStats, followUser, unfollowUser } from '../api/userApi';
-import { fetchIdeasByUser } from '../api/ideaApi';
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import BottomNav from "../components/common/BottomNav.premium";
+import IdeaCard from "../components/common/IdeaCard.premium";
+import Icon from "../components/common/Icon";
+import ProfileShareButton from "../components/common/ProfileShareButton";
+import BanUserModal from "../components/common/BanUserModal";
+import { useAuth } from "../context/AuthContext";
+import {
+  fetchUserById,
+  fetchFollowStats,
+  followUser,
+  unfollowUser,
+} from "../api/userApi";
+import { fetchIdeasByUser } from "../api/ideaApi";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -24,7 +29,11 @@ export default function UserProfile() {
 
   const [profile, setProfile] = useState(null);
   const [ideas, setIdeas] = useState([]);
-  const [followStats, setFollowStats] = useState({ followersCount: 0, followingCount: 0, isFollowing: false });
+  const [followStats, setFollowStats] = useState({
+    followersCount: 0,
+    followingCount: 0,
+    isFollowing: false,
+  });
   const [loading, setLoading] = useState(true);
   const [followBusy, setFollowBusy] = useState(false);
   // null = ok | 'notfound' = user genuinely gone (404) | 'error' = load failed
@@ -34,7 +43,7 @@ export default function UserProfile() {
   // If you land on your own id, just show the real (editable) profile instead.
   useEffect(() => {
     if (me?.id && id && me.id === id) {
-      navigate('/profile', { replace: true });
+      navigate("/profile", { replace: true });
     }
   }, [me?.id, id, navigate]);
 
@@ -43,11 +52,14 @@ export default function UserProfile() {
     setLoading(true);
     setLoadError(null);
     try {
-      const [{ data: userData }, { data: ideaData }, { data: statsData }] = await Promise.all([
-        fetchUserById(id),
-        fetchIdeasByUser(id).catch(() => ({ data: [] })),
-        fetchFollowStats(id).catch(() => ({ data: { followersCount: 0, followingCount: 0, isFollowing: false } })),
-      ]);
+      const [{ data: userData }, { data: ideaData }, { data: statsData }] =
+        await Promise.all([
+          fetchUserById(id),
+          fetchIdeasByUser(id).catch(() => ({ data: [] })),
+          fetchFollowStats(id).catch(() => ({
+            data: { followersCount: 0, followingCount: 0, isFollowing: false },
+          })),
+        ]);
       setProfile(userData);
       setIdeas(ideaData);
       setFollowStats({
@@ -58,19 +70,21 @@ export default function UserProfile() {
         isFollowing: Boolean(statsData?.isFollowing ?? statsData?.following),
       });
     } catch (err) {
-      console.error('[UserProfile] failed to load', err);
+      console.error("[UserProfile] failed to load", err);
       setProfile(null);
       // A 401/403 from an expired session is handled globally by the axios
       // response interceptor (redirect to /login), so it won't normally reach
       // here. Only a real 404 means the user is gone; anything else is a
       // transient load failure worth retrying.
-      setLoadError(err?.response?.status === 404 ? 'notfound' : 'error');
+      setLoadError(err?.response?.status === 404 ? "notfound" : "error");
     } finally {
       setLoading(false);
     }
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const toggleFollow = async () => {
     if (followBusy) return;
@@ -92,29 +106,32 @@ export default function UserProfile() {
         isFollowing: wasFollowing,
         followersCount: prev.followersCount + (wasFollowing ? 1 : -1),
       }));
-      console.error('[UserProfile] follow toggle failed', err);
+      console.error("[UserProfile] follow toggle failed", err);
     } finally {
       setFollowBusy(false);
     }
   };
 
   if (!loading && !profile) {
-    const isNotFound = loadError === 'notfound';
+    const isNotFound = loadError === "notfound";
     return (
       <div className="min-h-screen bg-[#1565C0] flex flex-col">
         <div className="bg-white rounded-t-[32px] flex flex-col items-center justify-center flex-1 px-6 text-center py-20">
           <div className="mb-3 flex justify-center">
             <div className="w-16 h-16 rounded-2xl bg-[#EAF2FF] border border-[#DBEAFE] flex items-center justify-center">
-              <Icon name={isNotFound ? 'user' : 'alert-triangle'} className="w-8 h-8 text-[#1565C0]" />
+              <Icon
+                name={isNotFound ? "user" : "alert-triangle"}
+                className="w-8 h-8 text-[#1565C0]"
+              />
             </div>
           </div>
           <p className="text-[#0D2137] font-semibold text-base">
-            {isNotFound ? 'User not found' : "Couldn't load profile"}
+            {isNotFound ? "User not found" : "Couldn't load profile"}
           </p>
           <p className="text-[#90A4AE] text-sm mt-1">
             {isNotFound
               ? "This profile doesn't exist or was removed."
-              : 'Something went wrong. Please try again.'}
+              : "Something went wrong. Please try again."}
           </p>
           <div className="mt-5 flex items-center gap-2">
             {!isNotFound && (
@@ -129,8 +146,8 @@ export default function UserProfile() {
               onClick={() => navigate(-1)}
               className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm ${
                 isNotFound
-                  ? 'bg-[#1565C0] text-white hover:bg-[#0D47A1]'
-                  : 'bg-[#EAF2FF] text-[#1565C0] hover:bg-[#DBEAFE]'
+                  ? "bg-[#1565C0] text-white hover:bg-[#0D47A1]"
+                  : "bg-[#EAF2FF] text-[#1565C0] hover:bg-[#DBEAFE]"
               }`}
             >
               Go back
@@ -156,8 +173,18 @@ export default function UserProfile() {
             aria-label="Go back"
             className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
           <h1 className="text-white font-bold text-lg">Profile</h1>
@@ -176,7 +203,7 @@ export default function UserProfile() {
               ) : profile?.profileImage ? (
                 <img
                   src={profile.profileImage}
-                  alt={profile?.name || 'Profile photo'}
+                  alt={profile?.name || "Profile photo"}
                   className="w-16 h-16 rounded-2xl object-cover bg-white"
                 />
               ) : (
@@ -186,7 +213,9 @@ export default function UserProfile() {
               )}
             </div>
 
-            <h2 className="text-white font-bold text-lg mt-3">{loading ? '\u00A0' : profile?.name}</h2>
+            <h2 className="text-white font-bold text-lg mt-3">
+              {loading ? "\u00A0" : profile?.name}
+            </h2>
 
             {profile?.premium && (
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
@@ -199,12 +228,14 @@ export default function UserProfile() {
 
             {!loading && (
               <p className="text-blue-200 text-sm">
-                @{profile?.username || profile?.email?.split('@')[0]}
+                @{profile?.username || profile?.email?.split("@")[0]}
               </p>
             )}
 
             {profile?.bio && (
-              <p className="text-blue-200 text-xs mt-3 leading-relaxed">{profile.bio}</p>
+              <p className="text-blue-200 text-xs mt-3 leading-relaxed">
+                {profile.bio}
+              </p>
             )}
           </div>
         </div>
@@ -215,11 +246,15 @@ export default function UserProfile() {
           {/* STATS */}
           <div className="flex text-center py-4 border-b border-[#BBDEFB]">
             <div className="flex-1">
-              <div className="text-[#1565C0] font-bold">{followStats.followersCount}</div>
+              <div className="text-[#1565C0] font-bold">
+                {followStats.followersCount}
+              </div>
               <div className="text-xs text-[#90A4AE]">Followers</div>
             </div>
             <div className="flex-1">
-              <div className="text-[#1565C0] font-bold">{followStats.followingCount}</div>
+              <div className="text-[#1565C0] font-bold">
+                {followStats.followingCount}
+              </div>
               <div className="text-xs text-[#90A4AE]">Following</div>
             </div>
             <div className="flex-1">
@@ -236,13 +271,16 @@ export default function UserProfile() {
             disabled={followBusy || loading}
             className={`mt-4 w-full font-medium text-sm py-3 rounded-xl transition-colors disabled:opacity-60 ${
               followStats.isFollowing
-                ? 'bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0]'
-                : 'bg-[#1565C0] text-white'
+                ? "bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0]"
+                : "bg-[#1565C0] text-white"
             }`}
           >
             <span className="inline-flex items-center justify-center gap-1.5">
-              <Icon name={followStats.isFollowing ? 'check' : 'user-plus'} className="w-4 h-4" />
-              {followStats.isFollowing ? 'Following' : 'Follow'}
+              <Icon
+                name={followStats.isFollowing ? "check" : "user-plus"}
+                className="w-4 h-4"
+              />
+              {followStats.isFollowing ? "Following" : "Follow"}
             </span>
           </button>
 
@@ -250,16 +288,28 @@ export default function UserProfile() {
               the logged-in admin (me.isAdmin), never for regular users viewing
               someone else's profile. Server independently enforces ROLE_ADMIN
               on the actual delete call regardless of this client-side check. */}
+          {/* ADMIN-ONLY: Ban User */}
           {me?.isAdmin && !loading && profile && (
-            <button
-              onClick={() => setShowBanModal(true)}
-              className="mt-2.5 w-full font-medium text-sm py-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] hover:bg-[#FEE2E2] transition-colors"
-            >
-              <span className="inline-flex items-center justify-center gap-1.5">
+            <>
+              <div className="mt-4 rounded-xl bg-[#FFF8E1] border border-[#FFE082] p-3">
+                <p className="text-xs text-[#B26A00] font-semibold">
+                  Admin Action
+                </p>
+
+                <p className="text-xs text-[#795548] mt-1 leading-relaxed">
+                  Banning permanently deletes this account and blocks the user's
+                  email from creating a new account in the future.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowBanModal(true)}
+                className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#DC2626] hover:bg-[#FEE2E2] hover:shadow-md active:scale-[0.98] transition-all"
+              >
                 <Icon name="trash" className="w-4 h-4" />
-                Delete account &amp; block email
-              </span>
-            </button>
+                Delete Account &amp; Block Email
+              </button>
+            </>
           )}
 
           {/* IDEAS */}
@@ -269,26 +319,35 @@ export default function UserProfile() {
 
           {loading ? (
             <div className="grid grid-cols-2 gap-3">
-              {Array(4).fill(0).map((_, i) => (
-                <div key={i} className="bg-[#F0F6FF] rounded-2xl overflow-hidden animate-pulse">
-                  <div className="h-32 bg-[#BBDEFB]" />
-                  <div className="p-3 space-y-2">
-                    <div className="h-3 bg-[#BBDEFB] rounded w-3/4" />
-                    <div className="h-2.5 bg-[#BBDEFB] rounded" />
+              {Array(4)
+                .fill(0)
+                .map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-[#F0F6FF] rounded-2xl overflow-hidden animate-pulse"
+                  >
+                    <div className="h-32 bg-[#BBDEFB]" />
+                    <div className="p-3 space-y-2">
+                      <div className="h-3 bg-[#BBDEFB] rounded w-3/4" />
+                      <div className="h-2.5 bg-[#BBDEFB] rounded" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           ) : ideas.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
-              {ideas.map((i) => <IdeaCard key={i.id} idea={i} />)}
+              {ideas.map((i) => (
+                <IdeaCard key={i.id} idea={i} />
+              ))}
             </div>
           ) : (
             <div className="text-center py-16">
               <div className="mb-3 flex justify-center text-[#BBDEFB]">
                 <Icon name="lightbulb" className="w-12 h-12" />
               </div>
-              <p className="text-[#1565C0] font-medium text-sm">No ideas published yet</p>
+              <p className="text-[#1565C0] font-medium text-sm">
+                No ideas published yet
+              </p>
             </div>
           )}
         </div>
@@ -302,8 +361,9 @@ export default function UserProfile() {
           onClose={() => setShowBanModal(false)}
           onBanned={() => {
             setShowBanModal(false);
-            // The account no longer exists — send the admin somewhere sane
-            // rather than leaving them on a now-dead profile page.
+
+            alert("User has been permanently banned.");
+
             navigate(-1);
           }}
         />
