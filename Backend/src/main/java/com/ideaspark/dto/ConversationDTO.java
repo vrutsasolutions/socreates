@@ -30,4 +30,15 @@ public class ConversationDTO {
     private String lastMessageType;  // "TEXT", "IMAGE", "VOICE"
     private LocalDateTime lastMessageAt;
     private long unreadCount;
+
+    // "PENDING" or "ACCEPTED" — drives the message-request UI. PENDING
+    // conversations only appear in the initiator's inbox; the other
+    // participant only sees them under Message Requests until they accept.
+    private String status;
+
+    // True when the logged-in user is the one who started this
+    // conversation. Lets the frontend tell "you sent a request, waiting"
+    // apart from "you received a request, accept to reply" for the same
+    // PENDING status.
+    private boolean iInitiated;
 }
