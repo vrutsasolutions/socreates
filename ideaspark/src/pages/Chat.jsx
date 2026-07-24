@@ -38,6 +38,9 @@ import {
   unblockUser,
   reportUser,
   isLimitReachedError,
+  isRequestPendingError,
+  acceptRequest,
+  declineRequest,
 } from "../api/messagingApi";
 import { isVerifiedCreatorPartner } from "../config/messagingLimits";
 
@@ -716,6 +719,42 @@ export default function Chat() {
     navigate("/membership");
   };
 
+  // ── Message-request gating ────────────────────────────────────────────
+  // PENDING + I started it   → I can keep typing; they haven't accepted yet.
+  // PENDING + I did NOT start it → I need to Accept before I can reply.
+  const isPendingRequest = convo?.status === "PENDING";
+  const iInitiatedRequest = convo?.iInitiated ?? true;
+  const awaitingMyAccept = isPendingRequest && !iInitiatedRequest;
+
+  const [requestBusy, setRequestBusy] = useState(false);
+
+  const handleAcceptRequest = async () => {
+    if (!convo) return;
+    setRequestBusy(true);
+    try {
+      await acceptRequest(convo.id);
+      setConvo((prev) => (prev ? { ...prev, status: "ACCEPTED" } : prev));
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Could not accept request");
+    } finally {
+      setRequestBusy(false);
+    }
+  };
+
+  const handleDeclineRequest = async () => {
+    if (!convo) return;
+    setRequestBusy(true);
+    try {
+      await declineRequest(convo.id);
+      navigate("/messages");
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Could not decline request");
+      setRequestBusy(false);
+    }
+  };
+
   const handleBlockUser = async () => {
     try {
       await blockUser(convo.otherUserId);
@@ -875,6 +914,8 @@ export default function Chat() {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       if (isLimitReachedError(err)) {
         setShowLimitModal(true);
+      } else if (isRequestPendingError(err)) {
+        showToast("Accept the message request first to reply.");
       } else {
         showToast("Message could not be sent.");
       }
@@ -1848,6 +1889,53 @@ export default function Chat() {
         </div>
       )}
 
+      {/* ── Message-request banner ── */}
+      {isPendingRequest && iInitiatedRequest ? (
+        <div className="shrink-0 bg-[#EAF2FF] border-t border-[#BBDEFB] px-4 py-2.5 flex items-center gap-3">
+          <svg
+            className="w-5 h-5 text-[#1565C0] shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.8}
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+          </svg>
+          <p className="flex-1 text-[13px] text-[#1565C0] font-medium">
+            Message request sent — {convo?.name ?? "they"} will see it once
+            they check their requests.
+          </p>
+        </div>
+      ) : awaitingMyAccept ? (
+        <div className="shrink-0 bg-[#F0F6FF] border-t border-[#BBDEFB] px-4 py-3">
+          <p className="text-[13px] text-[#0D2137] mb-2.5">
+            <span className="font-semibold">{convo?.name ?? "This person"}</span>{" "}
+            wants to message you. Accept to start chatting.
+          </p>
+          <div className="flex gap-2">
+            <button
+              disabled={requestBusy}
+              onClick={handleAcceptRequest}
+              className="flex-1 h-10 rounded-xl bg-[#1565C0] text-white text-[14px] font-semibold hover:bg-[#0D47A1] active:scale-[0.97] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {requestBusy ? (
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                "Accept"
+              )}
+            </button>
+            <button
+              disabled={requestBusy}
+              onClick={handleDeclineRequest}
+              className="flex-1 h-10 rounded-xl bg-white border border-[#BBDEFB] text-[#546E7A] text-[14px] font-semibold hover:bg-[#E3F2FD] active:scale-[0.97] transition-all disabled:opacity-60"
+            >
+              Decline
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* ── Messaging-limit banner (verified-creator free tier) ── */}
       {limited && textLimitReached ? (
         <div className="shrink-0 bg-[#FEF2F2] border-t border-[#FECACA] px-4 py-2.5 flex items-center gap-3">
@@ -1982,6 +2070,38 @@ export default function Chat() {
               <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
             </svg>
           </button>
+        </div>
+      ) : awaitingMyAccept ? (
+        /* ── LOCKED COMPOSER (unaccepted message request) ─────────────────── */
+        <div className="shrink-0 bg-white border-t border-[#DBEAFE] px-3 pt-2 pb-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-[#F0F6FF] text-[#90A4AE] flex items-center justify-center shrink-0">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.8}
+              >
+                <rect x="5" y="11" width="14" height="9" rx="2" />
+                <path d="M8 11V8a4 4 0 018 0v3" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0 flex items-center gap-2 bg-[#F0F6FF] border border-[#BBDEFB] rounded-full px-4 py-2.5">
+              <span className="flex-1 min-w-0 truncate text-[14px] text-[#90A4AE]">
+                Accept the request to reply
+              </span>
+            </div>
+            <button
+              disabled
+              aria-label="Send disabled"
+              className="w-10 h-10 rounded-full bg-[#90A4AE] text-white flex items-center justify-center shrink-0 opacity-70 cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
+              </svg>
+            </button>
+          </div>
         </div>
       ) : limitLocked ? (
         /* ── LOCKED COMPOSER (free-tier limit reached) ───────────────────── */
