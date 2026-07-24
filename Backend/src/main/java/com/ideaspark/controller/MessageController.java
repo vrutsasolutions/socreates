@@ -171,7 +171,7 @@ public class MessageController {
     }
 
     @GetMapping("/requests")
-    public ResponseEntity<List<Object>> getRequests(Authentication auth) {
+    public ResponseEntity<List<com.ideaspark.dto.MessageRequestDTO>> getRequests(Authentication auth) {
         return ResponseEntity.ok(messageService.getMessageRequests(auth.getName()));
     }
 
