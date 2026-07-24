@@ -1,10 +1,10 @@
 {
-	"appId": "com.ideaspark.app",
+	"appId": "in.socreate.app",
 	"appName": "IdeaSpark",
 	"webDir": "dist",
 	"server": {
-		"androidScheme": "http",
-		"cleartext": true
+		"androidScheme": "https",
+		"cleartext": false
 	},
 	"plugins": {
 		"CapacitorHttp": {

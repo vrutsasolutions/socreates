@@ -23,3 +23,15 @@ dist-ssr
 *.sln
 *.sw?
 
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+
+# Android Studio
+android/.idea/
+*.iml
+
+# Capacitor generated
+android/app/src/main/assets/public/
