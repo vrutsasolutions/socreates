@@ -4,6 +4,7 @@ import com.ideaspark.dto.ConversationDTO;
 import com.ideaspark.dto.ConversationMediaDTO;
 import com.ideaspark.dto.LinkDTO;
 import com.ideaspark.dto.MessageDTO;
+import com.ideaspark.dto.MessageRequestDTO;
 import com.ideaspark.dto.UserDTO;
 import com.ideaspark.model.Conversation;
 import com.ideaspark.model.Message;
@@ -56,11 +57,17 @@ public class MessageService {
     public List<ConversationDTO> listConversations(String email) {
         User me = getUser(email);
         return conversationRepository.findAllByUser(me).stream()
+                // A PENDING request only belongs in the inbox of the person who
+                // sent it — the other participant sees it under Message
+                // Requests instead, not mixed into their regular chat list.
+                .filter(c -> c.getStatus() != Conversation.Status.PENDING
+                        || isInitiator(c, me))
                 .map(c -> toConversationDTO(c, me))
                 .filter(dto -> dto.getLastMessageAt() != null)
                 .sorted((a, b) -> b.getLastMessageAt().compareTo(a.getLastMessageAt()))
                 .toList();
     }
+
 
     public ConversationDTO getConversation(UUID conversationId, String email) {
         User me = getUser(email);
@@ -75,11 +82,16 @@ public class MessageService {
         User other = userRepository.findById(otherUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Brand-new conversations start life as a message request: PENDING,
+        // owned by whoever opened it first. Talking only becomes possible
+        // once the other participant accepts — see sendMessage/acceptRequest.
         Conversation conv = conversationRepository.findBetween(me, other)
                 .orElseGet(() -> conversationRepository.save(
                         Conversation.builder()
                                 .participant1(me)
                                 .participant2(other)
+                                .initiatedBy(me)
+                                .status(Conversation.Status.PENDING)
                                 .build()));
 
         return toConversationDTO(conv, me);
@@ -180,6 +192,11 @@ public class MessageService {
 
         assertParticipant(conv, me);
 
+        if (conv.getStatus() == Conversation.Status.PENDING && !isInitiator(conv, me)) {
+            throw new RuntimeException(
+                    "REQUEST_PENDING: Accept this message request before you can reply.");
+        }
+
         MessageType type = MessageType.valueOf(typeStr.toUpperCase());
 
         checkFreeLimit(conv, me, type);
@@ -263,17 +280,101 @@ public class MessageService {
                 .toList();
     }
 
-    public List<Object> getMessageRequests(String email) {
-        getUser(email);
-        return List.of();
+    public List<MessageRequestDTO> getMessageRequests(String email) {
+        User me = getUser(email);
+
+        return conversationRepository.findAllByUser(me).stream()
+                // Only requests sent TO me — the ones I sent stay in my own
+                // inbox (as a normal, if still-unaccepted, conversation).
+                .filter(c -> c.getStatus() == Conversation.Status.PENDING
+                        && !isInitiator(c, me))
+                .map(c -> toRequestDTO(c, me))
+                // A conversation someone opened but never actually sent
+                // anything in isn't a real request yet.
+                .filter(dto -> dto != null)
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .toList();
     }
 
-    public void acceptRequest(UUID requestId, String email) {
-        getUser(email);
+    public void acceptRequest(UUID conversationId, String email) {
+        User me = getUser(email);
+        Conversation conv = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        assertParticipant(conv, me);
+
+        if (conv.getStatus() != Conversation.Status.PENDING) {
+            throw new RuntimeException("This request has already been handled");
+        }
+        if (isInitiator(conv, me)) {
+            throw new RuntimeException("You can't accept your own message request");
+        }
+
+        conv.setStatus(Conversation.Status.ACCEPTED);
+        conversationRepository.save(conv);
     }
 
-    public void declineRequest(UUID requestId, String email) {
-        getUser(email);
+    @Transactional
+    public void declineRequest(UUID conversationId, String email) {
+        User me = getUser(email);
+        Conversation conv = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        assertParticipant(conv, me);
+
+        if (conv.getStatus() != Conversation.Status.PENDING) {
+            throw new RuntimeException("This request has already been handled");
+        }
+        if (isInitiator(conv, me)) {
+            throw new RuntimeException("You can't decline your own message request");
+        }
+
+        // Declining wipes the request entirely rather than leaving a
+        // DECLINED husk around — the sender is free to try again later,
+        // same as they could before ever messaging this person.
+        messageRepository.deleteByConversationId(conversationId);
+        conversationRepository.delete(conv);
+    }
+
+    private boolean isInitiator(Conversation c, User me) {
+        // Rows from before this feature (or any edge case) have no
+        // initiatedBy recorded — treat those as already-accepted/open
+        // rather than silently locking someone out of their own chat.
+        return c.getInitiatedBy() == null
+                || c.getInitiatedBy().getId().equals(me.getId());
+    }
+
+    private MessageRequestDTO toRequestDTO(Conversation c, User me) {
+        User from = c.getParticipant1().getId().equals(me.getId())
+                ? c.getParticipant2()
+                : c.getParticipant1();
+
+        Message last = messageRepository
+                .findTopByConversationOrderByCreatedAtDesc(c)
+                .orElse(null);
+
+        if (last == null) {
+            return null;
+        }
+
+        String preview = switch (last.getType()) {
+            case IMAGE -> "Sent a photo";
+            case VOICE -> "Voice note";
+            case FILE -> "Sent a file";
+            case IDEA -> "Shared an idea";
+            case PROFILE -> "Shared a profile";
+            default -> last.getContent();
+        };
+
+        MessageRequestDTO dto = new MessageRequestDTO();
+        dto.setId(c.getId());
+        dto.setFromUserId(from.getId());
+        dto.setName(from.getName());
+        dto.setAvatar(from.getProfileImage());
+        dto.setPreview(preview);
+        dto.setCreatedAt(last.getCreatedAt());
+
+        return dto;
     }
 
     @Transactional
@@ -484,6 +585,8 @@ public class MessageService {
         dto.setLastMessageType(lastType);
         dto.setLastMessageAt(lastAt);
         dto.setUnreadCount(unread);
+        dto.setStatus(c.getStatus() == null ? "ACCEPTED" : c.getStatus().name());
+        dto.setIInitiated(isInitiator(c, me));
 
         return dto;
     }
