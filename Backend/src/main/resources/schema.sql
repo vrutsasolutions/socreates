@@ -80,3 +80,19 @@ ALTER TABLE membership ADD COLUMN IF NOT EXISTS billing    VARCHAR(20);
 ALTER TABLE membership ADD COLUMN IF NOT EXISTS gateway    VARCHAR(20);
 ALTER TABLE membership ADD COLUMN IF NOT EXISTS plan_label VARCHAR(255);
 ALTER TABLE membership ADD COLUMN IF NOT EXISTS price      VARCHAR(20);
+
+
+-- BANNED EMAILS — admin moderation (ban + delete a user for a policy
+-- violation, e.g. uploading restricted content) permanently blocks that
+-- email from registering again. Deliberately NOT a foreign key to users(id):
+-- the row must outlive the user row it was created from. See
+-- BannedEmail.java / UserAccountService.deleteAndBan / AdminUserController.
+CREATE TABLE IF NOT EXISTS banned_emails (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email      VARCHAR(150) UNIQUE NOT NULL,
+  reason     TEXT,
+  banned_by  VARCHAR(150),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_banned_emails_email ON banned_emails(email);

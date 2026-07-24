@@ -60,6 +60,9 @@ public class SecurityConfig {
     // grants to app.admin.email. AdminRevenueController also carries
     // @PreAuthorize("hasRole('ADMIN')") as defense in depth.
     .requestMatchers("/api/admin/pools/**").hasRole("ADMIN")
+    // Moderation actions (ban + delete a user's account) — same reasoning
+    // as /api/admin/pools/** above: gated at both the URL and method level.
+    .requestMatchers("/api/admin/users/**").hasRole("ADMIN")
     // Public endpoints — no token needed
     .requestMatchers("/api/auth/**").permitAll()
     // AI endpoints burn Groq quota per call — must be logged in to use them,

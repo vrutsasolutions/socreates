@@ -9,6 +9,7 @@ import com.ideaspark.dto.LoginRequest;
 import com.ideaspark.dto.RegisterRequest;
 import com.ideaspark.dto.UserDTO;
 import com.ideaspark.model.User;
+import com.ideaspark.repository.BannedEmailRepository;
 import com.ideaspark.repository.UserRepository;
 import com.ideaspark.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.Collections;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final BannedEmailRepository bannedEmailRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final MembershipService membershipService;
@@ -46,6 +48,12 @@ public class AuthService {
         String email = req.getEmail().trim().toLowerCase();
         if (userRepository.existsByEmail(email))
             throw new RuntimeException("An account with this email already exists");
+
+        // Deliberately vague message — don't reveal to the person at the
+        // keyboard that this specific address was moderated off the
+        // platform, just that they can't register with it.
+        if (bannedEmailRepository.existsByEmail(email))
+            throw new RuntimeException("This email address cannot be used to register an account");
 
         if (userRepository.existsByUsername(username))
             throw new RuntimeException("Username '" + username + "' is already taken");
@@ -96,6 +104,17 @@ public class AuthService {
 
             User user = userRepository.findByEmail(normalizedEmail)
                     .orElseGet(() -> {
+                        // Only reached when no existing account has this
+                        // email — i.e. this would create a brand-new
+                        // account. Block it the same way local registration
+                        // is blocked; an existing Google user who was
+                        // banned would already have been deleted, so they
+                        // hit this same branch on their next sign-in.
+                        if (bannedEmailRepository.existsByEmail(normalizedEmail)) {
+                            throw new RuntimeException(
+                                    "This email address cannot be used to register an account");
+                        }
+
                         String username = createGoogleUsername(normalizedEmail);
 
                         User newUser = User.builder()

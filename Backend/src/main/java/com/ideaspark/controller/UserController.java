@@ -35,20 +35,8 @@ public class UserController {
     private final IdeaRepository ideaRepository;
     private final SavedIdeaRepository savedIdeaRepository;
     private final FollowRepository followRepository;
-    private final CommentRepository commentRepository;
-    private final IdeaLikeRepository ideaLikeRepository;
-    private final NotificationRepository notificationRepository;
-    private final ConversationRepository conversationRepository;
-    private final MessageRepository messageRepository;
     private final com.ideaspark.service.PresenceService presenceService;
-    private final CreatorMonthlyMetricsRepository creatorMonthlyMetricsRepository;
-    private final BlockedUserRepository blockedUserRepository;
-    private final IdeaReadRepository ideaReadRepository;
-    private final ReportRepository reportRepository;
-    private final MembershipRepository membershipRepository;
-    private final MembershipPaymentRepository membershipPaymentRepository;
-    private final CreatorEarningRepository creatorEarningRepository;
-    private final FeedbackRepository feedbackRepository;
+    private final com.ideaspark.service.UserAccountService userAccountService;
 
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(
@@ -277,74 +265,9 @@ public class UserController {
                 }
             }
 
-            UUID userId = user.getId();
-
-            notificationRepository.deleteAll(
-                    notificationRepository.findByUserOrderByCreatedAtDesc(user));
-
-            savedIdeaRepository.deleteAll(
-                    savedIdeaRepository.findByUserIdOrderBySavedAtDesc(userId));
-
-            followRepository.findByFollower(user).forEach(followRepository::delete);
-            followRepository.findByFollowing(user).forEach(followRepository::delete);
-
-            ideaLikeRepository.deleteAll(
-                    ideaLikeRepository.findAll().stream()
-                            .filter(like -> like.getUser() != null && userId.equals(like.getUser().getId()))
-                            .toList());
-
-            commentRepository.deleteAll(
-                    commentRepository.findAll().stream()
-                            .filter(c -> c.getUser() != null && userId.equals(c.getUser().getId()))
-                            .toList());
-
-            ideaRepository.findByCreatorIdOrderByCreatedAtDesc(userId).forEach(idea -> {
-                commentRepository.deleteAll(
-                        commentRepository.findByIdeaIdOrderByCreatedAtDesc(idea.getId()));
-                ideaLikeRepository.deleteByIdeaId(idea.getId());
-                ideaRepository.delete(idea);
-            });
-
-            List<Conversation> conversations = conversationRepository.findByUser(user);
-            conversations
-                    .forEach(conv -> messageRepository.deleteAll(messageRepository.findByConversationId(conv.getId())));
-            conversationRepository.deleteAll(conversations);
-
-            // ── Tables that were missing from this method — each has a NOT NULL
-            // FK to users.id with no DB-level cascade (ddl-auto=validate never
-            // wrote one), so leaving any of them un-cleared trips the same
-            // "violates foreign key constraint" error on userRepository.delete().
-
-            creatorMonthlyMetricsRepository.deleteAll(
-                    creatorMonthlyMetricsRepository.findByCreatorId(userId));
-
-            ideaReadRepository.deleteAll(
-                    ideaReadRepository.findByUserId(userId));
-
-            // blocked_users has two FKs (blocker_id, blocked_id) — clear both
-            // directions, since a row where someone else blocked this user
-            // still references users.id.
-            blockedUserRepository.deleteAll(blockedUserRepository.findByBlocker(user));
-            blockedUserRepository.deleteAll(blockedUserRepository.findByBlocked(user));
-
-            // reports has two FKs (reporter_id, reported_user_id) — same reasoning.
-            reportRepository.deleteAll(reportRepository.findByReporter(user));
-            reportRepository.deleteAll(reportRepository.findByReportedUser(user));
-
-            membershipRepository.deleteAll(membershipRepository.findByUserId(userId));
-
-            // Financial history — hard-deleted per product decision (no
-            // anonymize/retain requirement for this app).
-            membershipPaymentRepository.deleteAll(
-                    membershipPaymentRepository.findByUserIdOrderByCreatedAtDesc(userId));
-            creatorEarningRepository.deleteAll(
-                    creatorEarningRepository.findByCreatorIdOrderByMonthDesc(userId));
-
-            // feedback (new since the account-deletion fix above) — same FK
-            // shape as the rest: NOT NULL user_id, no DB cascade.
-            feedbackRepository.findByUserId(userId).ifPresent(feedbackRepository::delete);
-
-            userRepository.delete(user);
+            // Cleanup order/FK handling lives in UserAccountService now, shared
+            // with the admin moderation "ban and delete" endpoint.
+            userAccountService.deleteAllUserData(user);
 
             return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
 
