@@ -11,7 +11,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
-import { fetchConversations, fetchActiveUsers } from '../api/messagingApi';
+import { fetchConversations, fetchActiveUsers, fetchRequests } from '../api/messagingApi';
 import Icon from '../components/common/Icon';
 
 const PREVIEW_ICON = { voice: 'mic', image: 'camera', idea: 'lightbulb' };
@@ -45,11 +45,25 @@ function ConversationRow({ c, onClick }) {
   );
 }
 
-function EmptyState({ navigate }) {
+function EmptyState({ navigate, requestCount }) {
   return (
     <div className="bg-[#1565C0]">
-      <div className="bg-white rounded-t-[32px] flex flex-col items-center text-center px-8 pt-16 pb-10">
-        <div className="relative w-[200px] h-[200px] flex items-center justify-center mb-6">
+      <div className="bg-white rounded-t-[32px] flex flex-col items-center text-center px-8 pt-5 pb-10">
+        {/* Requests are reachable even with zero regular conversations —
+            otherwise an incoming request has nowhere to be seen. */}
+        <button
+          onClick={() => navigate('/messages/requests')}
+          className="self-end flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full bg-[#EAF2FF] text-[12px] font-bold tracking-wider text-[#1565C0] hover:bg-[#DBEAFE] active:opacity-70 transition-colors"
+        >
+          REQUEST
+          {requestCount > 0 && (
+            <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-[#EF4444] text-white text-[10px] font-bold">
+              {requestCount}
+            </span>
+          )}
+        </button>
+
+        <div className="relative w-[200px] h-[200px] flex items-center justify-center mb-6 mt-6">
           <span className="absolute inset-0 rounded-full bg-[#DBEAFE]" />
           <span className="absolute inset-5 rounded-full bg-[#BBDEFB]" />
           <span className="absolute inset-10 rounded-full bg-[#1565C0] flex items-center justify-center" />
@@ -96,6 +110,7 @@ export default function Inbox() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [requestCount, setRequestCount] = useState(0);
 
   useEffect(() => {
     // Messaging is free for everyone — always load the inbox.
@@ -129,8 +144,20 @@ export default function Inbox() {
       }
     };
 
+    // Request count is purely cosmetic (a badge) — failure here must NOT
+    // affect the rest of the inbox either.
+    const loadRequests = async () => {
+      try {
+        const { data: reqs } = await fetchRequests();
+        if (alive) setRequestCount(Array.isArray(reqs) ? reqs.length : 0);
+      } catch {
+        if (alive) setRequestCount(0);
+      }
+    };
+
     loadConversations();
     loadActive();
+    loadRequests();
 
     return () => { alive = false; };
   }, []);
@@ -211,15 +238,16 @@ export default function Inbox() {
       )}
 
       {/* EMPTY STATE */}
-      {isEmpty && !error && <EmptyState navigate={navigate} />}
+      {isEmpty && !error && <EmptyState navigate={navigate} requestCount={requestCount} />}
 
       {/* CONVERSATION LIST */}
       {!error && (isEmpty === false || loading) && (
-        <>
-          {/* Active now rail */}
-          {active.length > 0 && (
-            <div className="bg-[#1565C0]">
-              <div className="bg-white rounded-t-[32px] px-4 pt-4">
+        <div className="bg-[#1565C0]">
+          <div className="bg-white rounded-t-[32px] pt-4">
+
+            {/* Active now rail */}
+            {active.length > 0 && (
+              <div className="px-4">
                 <p className="text-[11px] font-bold tracking-wider text-[#90A4AE] mb-3">ACTIVE NOW</p>
                 <div className="flex gap-4 overflow-x-auto pb-1">
                   {active.map((u) => (
@@ -234,19 +262,25 @@ export default function Inbox() {
                   ))}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Recent header */}
-          <div className={`px-4 pt-4 pb-1 flex items-center justify-between ${active.length === 0 ? 'bg-[#1565C0]' : 'bg-white'}`}>
-            {active.length === 0 && <div className="absolute left-0 right-0 top-0 h-full bg-white rounded-t-[32px] -z-10" />}
-            <p className="text-[11px] font-bold tracking-wider text-[#90A4AE]">RECENT</p>
-            <button
-              onClick={() => navigate('/messages/requests')}
-              className="text-[11px] font-bold tracking-wider text-[#90A4AE] active:opacity-70 transition-colors"
-            >
-              REQUEST
-            </button>
+            {/* Recent header — always on the white card, so RECENT/REQUEST
+                render the same clearly-legible way for every user whether
+                or not they have an Active Now rail above them. */}
+            <div className={`px-4 ${active.length > 0 ? 'pt-4' : ''} pb-2 flex items-center justify-between`}>
+              <p className="text-[12px] font-bold tracking-wider text-[#0D2137]">RECENT</p>
+              <button
+                onClick={() => navigate('/messages/requests')}
+                className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full bg-[#EAF2FF] text-[12px] font-bold tracking-wider text-[#1565C0] hover:bg-[#DBEAFE] active:opacity-70 transition-colors"
+              >
+                REQUEST
+                {requestCount > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-[#EF4444] text-white text-[10px] font-bold">
+                    {requestCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Rows */}
@@ -261,7 +295,7 @@ export default function Inbox() {
               ))
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
