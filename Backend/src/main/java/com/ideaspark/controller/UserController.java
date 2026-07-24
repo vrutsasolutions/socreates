@@ -38,6 +38,11 @@ public class UserController {
     private final com.ideaspark.service.PresenceService presenceService;
     private final com.ideaspark.service.UserAccountService userAccountService;
 
+    // Same admin email UserDetailsServiceImpl uses to grant ROLE_ADMIN.
+    // Used here only to set the UserDTO.isAdmin UI hint.
+    @org.springframework.beans.factory.annotation.Value("${app.admin.email}")
+    private String adminEmail;
+
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -287,6 +292,7 @@ public class UserController {
         dto.setBio(user.getBio());
         dto.setAuthProvider(user.getAuthProvider());
         dto.setPremium(user.isPremium());
+        dto.setAdmin(adminEmail != null && adminEmail.equalsIgnoreCase(user.getEmail()));
         dto.setIdeasCount(ideaRepository.countByCreatorId(user.getId()));
         dto.setLikesCount(ideaRepository.sumLikeCountByCreatorId(user.getId()));
         dto.setSavedCount((int) savedIdeaRepository.countByUserId(user.getId()));

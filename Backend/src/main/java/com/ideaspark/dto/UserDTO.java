@@ -21,6 +21,13 @@ public class UserDTO {
     // Same gotcha and fix as FollowStatsResponse.isFollowing.
     @JsonProperty("isPremium")
     private boolean isPremium;
+    // Same Jackson-boolean-naming gotcha as isPremium above. Purely a UI hint
+    // so the frontend can show/hide the admin-only "ban and delete" button —
+    // the server still independently checks ROLE_ADMIN on the actual delete
+    // call, so this being stale or spoofed client-side changes nothing
+    // security-wise.
+    @JsonProperty("isAdmin")
+    private boolean isAdmin;
     private int ideasCount;
     private int likesCount;
     private int savedCount;

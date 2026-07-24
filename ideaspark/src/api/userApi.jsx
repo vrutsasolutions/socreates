@@ -99,6 +99,20 @@ export const deleteAccount = (password) =>
       });
 
 // ──────────────────────────────────────────────────────────────────────────
+//  Admin moderation. Backend: ✅ ready (AdminUserController, ROLE_ADMIN-gated,
+//  granted only to the account matching app.admin.email). Deletes the target
+//  user's account AND permanently bans their email from re-registering —
+//  distinct from the self-service deleteAccount() above, which only removes
+//  the account and leaves the email free.
+// ──────────────────────────────────────────────────────────────────────────
+
+// DELETE /api/admin/users/{userId}  { reason } → ban + delete
+export const banAndDeleteUser = (userId, reason) =>
+  USE_MOCK.users
+    ? mockResponse({ message: 'Account deleted and email permanently blocked' })
+    : api.delete(`/admin/users/${userId}`, { data: { reason } });
+
+// ──────────────────────────────────────────────────────────────────────────
 //  Notification preferences (Settings → Notifications toggles).
 //  Controls whether the recipient gets in-app (bell) notifications for
 //  New Idea Alerts / Likes / Comments — gated server-side in

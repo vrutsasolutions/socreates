@@ -32,6 +32,11 @@ public class AuthService {
     @Value("${google.client.id}")
     private String googleClientId;
 
+    // Same admin email UserDetailsServiceImpl uses to grant ROLE_ADMIN.
+    // Used here only to set the UserDTO.isAdmin UI hint on login/register/Google.
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
     private static final java.util.regex.Pattern USERNAME_PATTERN = java.util.regex.Pattern
             .compile("^[a-z0-9._]{3,30}$");
 
@@ -208,6 +213,7 @@ public class AuthService {
         dto.setProfileImage(user.getProfileImage());
         dto.setBio(user.getBio());
         dto.setPremium(user.isPremium());
+        dto.setAdmin(adminEmail != null && adminEmail.equalsIgnoreCase(user.getEmail()));
         dto.setAuthProvider(user.getAuthProvider());
         dto.setMembership(membershipService.activeMembershipShape(user));
 

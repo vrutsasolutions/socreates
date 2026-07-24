@@ -12,6 +12,7 @@ import BottomNav from '../components/common/BottomNav.premium';
 import IdeaCard from '../components/common/IdeaCard.premium';
 import Icon from '../components/common/Icon';
 import ProfileShareButton from '../components/common/ProfileShareButton';
+import BanUserModal from '../components/common/BanUserModal';
 import { useAuth } from '../context/AuthContext';
 import { fetchUserById, fetchFollowStats, followUser, unfollowUser } from '../api/userApi';
 import { fetchIdeasByUser } from '../api/ideaApi';
@@ -28,6 +29,7 @@ export default function UserProfile() {
   const [followBusy, setFollowBusy] = useState(false);
   // null = ok | 'notfound' = user genuinely gone (404) | 'error' = load failed
   const [loadError, setLoadError] = useState(null);
+  const [showBanModal, setShowBanModal] = useState(false);
 
   // If you land on your own id, just show the real (editable) profile instead.
   useEffect(() => {
@@ -244,6 +246,22 @@ export default function UserProfile() {
             </span>
           </button>
 
+          {/* ADMIN-ONLY: ban + delete this user's account. Only rendered for
+              the logged-in admin (me.isAdmin), never for regular users viewing
+              someone else's profile. Server independently enforces ROLE_ADMIN
+              on the actual delete call regardless of this client-side check. */}
+          {me?.isAdmin && !loading && profile && (
+            <button
+              onClick={() => setShowBanModal(true)}
+              className="mt-2.5 w-full font-medium text-sm py-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] hover:bg-[#FEE2E2] transition-colors"
+            >
+              <span className="inline-flex items-center justify-center gap-1.5">
+                <Icon name="trash" className="w-4 h-4" />
+                Delete account &amp; block email
+              </span>
+            </button>
+          )}
+
           {/* IDEAS */}
           <p className="mt-6 mb-3 text-xs font-bold tracking-wider text-[#90A4AE] uppercase">
             Ideas
@@ -276,6 +294,20 @@ export default function UserProfile() {
         </div>
       </div>
       <BottomNav />
+
+      {showBanModal && (
+        <BanUserModal
+          userId={id}
+          userName={profile?.name}
+          onClose={() => setShowBanModal(false)}
+          onBanned={() => {
+            setShowBanModal(false);
+            // The account no longer exists — send the admin somewhere sane
+            // rather than leaving them on a now-dead profile page.
+            navigate(-1);
+          }}
+        />
+      )}
     </div>
   );
 }
