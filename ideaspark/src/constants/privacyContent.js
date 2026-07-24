@@ -49,7 +49,7 @@ export const PRIVACY_SECTIONS = [
     bullets: [
       `We do not sell your personal data or your ideas.`,
       `Ideas you post publicly, along with your username, profile photo, and follower counts, are visible to other members by design; direct messages are visible to their participants.`,
-      `Payment processing: Razorpay processes subscription payments. We do not currently share creator payout details with any payout partner. When the payout service is activated, we will use a licensed payout provider (currently expected to be RazorpayX or Cashfree Payouts) to disburse earnings; each such provider acts under its own privacy policy.`,
+      `Payment processing: Razorpay processes subscription payments. We do not currently share creator payout details with any payout partner. When the payout service is activated, we will use a licensed payout provider (currently expected to be RazorpayX, Cashfree Payouts, or Easebuzz) to disburse earnings; each such provider acts under its own privacy policy.`,
       `Service providers: we use trusted infrastructure providers to host the Platform and database and to store and deliver uploaded images and media; they process data only on our instructions.`,
       `AI processing: prompts and content you submit to AI features are shared with Groq to generate the response.`,
       `Legal reasons: we may disclose information where required by law, court order, or a lawful request from government authorities, or to protect the rights, safety, and security of SoCreate and its members.`,
@@ -83,6 +83,15 @@ export const PRIVACY_SECTIONS = [
       `No system is completely secure; if we become aware of a personal data breach affecting you, we will notify you and the relevant authorities as required by law.`,
     ],
   },
+  {
+    heading: 'Child Safety',
+    paragraph:
+      `SoCreate is committed to providing a safe environment for all users and maintains a zero-tolerance policy against child sexual abuse and exploitation (CSAE), child sexual abuse material (CSAM), grooming, or any content or behavior that endangers minors. We actively investigate reports, remove violating content, suspend or terminate offending accounts, and cooperate with law enforcement authorities where required by applicable law. Our platform also provides reporting mechanisms that allow users to report content or accounts that may involve child safety concerns. For detailed information about our child safety policies, reporting process, enforcement actions, and designated contact point, please visit our Child Safety Standards page below.`,
+    link: { to: '/child-safety', label: 'View Child Safety Standards' },
+  },
+  // NOTE: Child Safety is intentionally its own section directly beneath
+  // Security (not a new top-level nav tab) — Settings still only links to
+  // Privacy Policy / Terms / Refund; this section is how users reach it.
   {
     heading: 'Your Rights',
     bullets: [

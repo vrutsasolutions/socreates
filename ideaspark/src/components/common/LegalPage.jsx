@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 /**
  * Shared layout for static legal documents (Terms of Service, Privacy Policy,
@@ -7,7 +7,10 @@ import { useNavigate } from 'react-router-dom';
  * divided by thin rules — matching the figma legal-page export.
  *
  * @param {string}  title        Header title (e.g. "Terms of Service")
- * @param {Array<{ heading: string, paragraph?: string, bullets?: string[] }>} sections
+ * @param {Array<{ heading: string, paragraph?: string, bullets?: string[], link?: { to: string, label: string } }>} sections
+ *   `link` renders a small internal navigation link under the section body —
+ *   used e.g. by Privacy Policy's Child Safety blurb to point to the full
+ *   /child-safety standards page.
  */
 export default function LegalPage({ title, sections = [] }) {
   const navigate = useNavigate();
@@ -48,6 +51,15 @@ export default function LegalPage({ title, sections = [] }) {
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {s.link && (
+                <Link
+                  to={s.link.to}
+                  className="mt-2.5 inline-block text-[#1565C0] text-sm font-semibold underline underline-offset-2"
+                >
+                  {s.link.label}
+                </Link>
               )}
             </section>
           ))}

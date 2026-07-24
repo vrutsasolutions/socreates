@@ -49,6 +49,7 @@ import Settings from "../pages/Settings";
 import TermsOfService from "../pages/TermsOfService";
 import PrivacyPolicy from "../pages/PrivacyPolicy";
 import RefundPolicy from "../pages/RefundPolicy";
+import ChildSafety from "../pages/ChildSafety";
 import AIAssistant from "../pages/AIAssistant";
 import ImageEditor from "../pages/ImageEditor";
 import BlockedUsers from "../pages/BlockedUsers";
@@ -122,6 +123,7 @@ export default function AppRouter() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/refund" element={<RefundPolicy />} />
+        <Route path="/child-safety" element={<ChildSafety />} />
         <Route path="/create-premium" element={<PrivateRoute><CreatePremiumIdea /></PrivateRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />

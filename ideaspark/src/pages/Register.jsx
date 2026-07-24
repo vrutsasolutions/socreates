@@ -9,6 +9,7 @@ import {
 import Icon from "../components/common/Icon";
 import scLogo from "../assets/sc-logo.png";
 import { TERMS_SECTIONS } from "../constants/termsContent";
+import { PRIVACY_SECTIONS } from "../constants/privacyContent";
 
 const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 const DRAFT_KEY = "registerFormDraft";
@@ -48,6 +49,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [uname, setUname] = useState({ state: "idle", message: "" });
   const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const reqId = useRef(0);
 
   const inputCls =
@@ -337,13 +339,21 @@ export default function Register() {
                 {/* Clicking this opens the Terms modal — it does NOT navigate away,
       so the form state above is never lost */}
                 <span className="text-[#546E7A] text-sm leading-tight">
-                  I agree to all{" "}
+                  I agree to the{" "}
                   <button
                     type="button"
                     onClick={() => setShowTerms(true)}
                     className="text-[#1565C0] font-semibold hover:underline cursor-pointer"
                   >
                     terms &amp; conditions
+                  </button>{" "}
+                  and{" "}
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivacy(true)}
+                    className="text-[#1565C0] font-semibold hover:underline cursor-pointer"
+                  >
+                    privacy policy
                   </button>
                 </span>
               </div>
@@ -450,6 +460,73 @@ export default function Register() {
               <button
                 onClick={() => setShowTerms(false)}
                 className="w-full text-[#546E7A] font-semibold py-2 text-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Policy modal — same non-navigating pattern as the Terms
+          modal above, so the form state is preserved while it's open. */}
+      {showPrivacy && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4"
+          onClick={() => setShowPrivacy(false)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E3F2FD]">
+              <h2 className="text-[#0D2137] font-bold text-lg">
+                Privacy Policy
+              </h2>
+              <button
+                onClick={() => setShowPrivacy(false)}
+                className="text-[#90A4AE] hover:text-[#1565C0] p-1"
+                aria-label="Close"
+              >
+                <Icon name="x" className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 overflow-y-auto text-sm text-[#546E7A] space-y-5">
+              {PRIVACY_SECTIONS.map((section, i) => (
+                <div key={i}>
+                  <h3 className="text-[#0D2137] font-bold text-sm mb-1.5">
+                    {section.heading}
+                  </h3>
+                  {section.paragraph && (
+                    <p className="leading-relaxed">{section.paragraph}</p>
+                  )}
+                  {section.link && (
+                    <Link
+                      to={section.link.to}
+                      onClick={() => setShowPrivacy(false)}
+                      className="mt-2 inline-block text-[#1565C0] text-sm font-semibold underline underline-offset-2"
+                    >
+                      {section.link.label}
+                    </Link>
+                  )}
+                  {section.bullets && (
+                    <ul className="list-disc pl-4 space-y-1.5">
+                      {section.bullets.map((b, j) => (
+                        <li key={j} className="leading-relaxed">
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="px-5 py-4 border-t border-[#E3F2FD]">
+              <button
+                onClick={() => setShowPrivacy(false)}
+                className="w-full bg-[#1565C0] text-white font-bold py-3 rounded-2xl"
               >
                 Close
               </button>

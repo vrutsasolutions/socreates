@@ -56,7 +56,7 @@ export const TERMS_SECTIONS = [
     heading: 'Payouts',
     bullets: [
       `Payouts are automatic. You do not request individual withdrawals; instead, you save your payout details once and eligible earnings are sent to you on a recurring schedule.`,
-      `To receive payouts you must provide accurate payout details: your legal name, mobile number, and PAN, together with your bank account name, account number, and IFSC code. Payouts are processed through RazorpayX to the destination you save.`,
+      `To receive payouts you must provide accurate payout details: your legal name, mobile number, and PAN, together with your bank account name, account number, and IFSC code. Payouts are processed through a licensed payout provider (RazorpayX, Cashfree Payouts, or Easebuzz) to the destination you save.`,
       `You confirm that the payout destination and PAN belong to you; SoCreate is not liable for transfers to incorrectly entered details.`,
       `Payout eligibility is assessed each month after the creator pool is finalized. A minimum payout threshold of ₹1500 applies: if your available balance for a month is ₹1500 or less, it is carried forward and added to the next month's balance until it exceeds the threshold. Balances above ₹1500 are scheduled for payout.`,
       `Scheduled payouts are sent to your saved bank destination by a recurring payout job. If a transfer fails, it is retried a limited number of times and, if it still does not succeed, flagged for manual review and follow-up.`,
@@ -95,7 +95,7 @@ export const TERMS_SECTIONS = [
   {
     heading: 'Third-Party Services',
     paragraph:
-      `The Platform relies on third-party services, including Razorpay for payments, RazorpayX for payouts, Google for sign-in and Groq for AI Assistance, and cloud infrastructure providers for hosting and Cloudflare for media storage. Your use of those services may also be subject to their own terms, and we are not responsible for their acts or omissions.`,
+      `The Platform relies on third-party services, including Razorpay for payments, RazorpayX, Cashfree Payouts, or Easebuzz for payouts, Google for sign-in and Groq for AI Assistance, and cloud infrastructure providers for hosting and Cloudflare for media storage. Your use of those services may also be subject to their own terms, and we are not responsible for their acts or omissions.`,
   },
   {
     heading: 'Termination',
