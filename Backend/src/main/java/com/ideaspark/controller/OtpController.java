@@ -7,6 +7,7 @@ import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.ideaspark.repository.BannedEmailRepository;
 
 import java.util.Map;
 
@@ -20,6 +21,7 @@ public class OtpController {
     private final EmailService emailService;
     private final UserRepository userRepository;
     private final RateLimiterService rateLimiterService;
+    private final BannedEmailRepository bannedEmailRepository;
 
     @PostMapping("/send-otp")
     public ResponseEntity<Map<String, String>> sendOtp(
@@ -34,10 +36,17 @@ public class OtpController {
 
         email = email.trim().toLowerCase();
 
+        if (bannedEmailRepository.existsByEmail(email)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "message",
+                            "This email address cannot be used to register an account."));
+        }
+
         if (!rateLimiterService.allowSend(email)) {
-        return ResponseEntity.status(429)
-                .body(Map.of("message", "Too many OTP requests. Please try again later."));
-    }
+            return ResponseEntity.status(429)
+                    .body(Map.of("message", "Too many OTP requests. Please try again later."));
+        }
 
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest()
@@ -64,11 +73,11 @@ public class OtpController {
 
         email = email.trim().toLowerCase();
         if (!rateLimiterService.allowVerify(email)) {
-        return ResponseEntity.status(429)
-                .body(Map.of("message", "Too many attempts. Please try again later."));
-    }
+            return ResponseEntity.status(429)
+                    .body(Map.of("message", "Too many attempts. Please try again later."));
+        }
 
-       boolean valid = otpService.validateOtp(email, otp, "REGISTER");
+        boolean valid = otpService.validateOtp(email, otp, "REGISTER");
 
         if (!valid) {
             return ResponseEntity.badRequest()
