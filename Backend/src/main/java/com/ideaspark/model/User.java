@@ -88,6 +88,29 @@ public class User {
     @Builder.Default
     private boolean showActivityStatus = true;
 
+    // ── Privacy: Public Profile toggle ──────────────────────────────────────
+    // true  (default) = public account, current behaviour: anyone can follow
+    //                   instantly, ideas surface in every feed and on the
+    //                   profile page.
+    // false           = private account:
+    //                     • following requires an approved FollowRequest
+    //                     • ideas are hidden from non-followers' feeds and
+    //                       from the profile page (see ProfilePrivacyService)
+    //
+    // Flipping this true → false converts every existing follower into a
+    // PENDING FollowRequest the owner can approve or reject, and notifies
+    // them. Flipping back false → true auto-accepts anything still pending,
+    // so a round-trip is lossless. That conversion lives in
+    // ProfilePrivacyService.setPublicProfile() — do NOT set this field
+    // directly on a managed User and save it, or the follower graph and the
+    // flag will silently disagree.
+    //
+    // Same NOT NULL DEFAULT true pattern as the notify_* columns above, so
+    // existing rows and new signups both start public.
+    @Column(name = "is_public_profile", nullable = false)
+    @Builder.Default
+    private boolean publicProfile = true;
+
     @Column(name = "is_online")
     private Boolean online = false;
 
