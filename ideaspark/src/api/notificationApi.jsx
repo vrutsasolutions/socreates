@@ -63,6 +63,8 @@ export const normalizeNotification = (n = {}) => {
     "message",
     "system",
     "new_idea",
+    "follow_request",
+    "privacy_change",
   ]);
 
   let type = KNOWN_TYPES.has(backendType) ? backendType : null;
@@ -74,6 +76,8 @@ export const normalizeNotification = (n = {}) => {
     else if (lower.includes("like")) type = "like";
     else if (lower.includes("bookmark") || lower.includes("saved"))
       type = "bookmark";
+    else if (lower.includes("wants to follow")) type = "follow_request";
+    else if (lower.includes("private profile")) type = "privacy_change";
     else if (lower.includes("follow")) type = "follow";
     else if (lower.includes("comment")) type = "comment";
     else type = "system";
@@ -86,6 +90,8 @@ export const normalizeNotification = (n = {}) => {
     follow: "New follower",
     comment: "New comment",
     new_idea: "New idea posted",
+    follow_request: "Follow request",
+    privacy_change: "Privacy update",
     system: "Notification",
   };
 
@@ -98,9 +104,11 @@ export const normalizeNotification = (n = {}) => {
         : "/messages"
       : IDEA_LINK_TYPES.has(type) && n.referenceId
         ? `/ideas/${n.referenceId}`
-        : type === "follow" && n.referenceId
-          ? `/users/${n.referenceId}`
-          : "/home";
+        : type === "follow_request"
+          ? "/follow-requests"
+          : (type === "follow" || type === "privacy_change") && n.referenceId
+            ? `/users/${n.referenceId}`
+            : "/home";
 
   return {
     id:
