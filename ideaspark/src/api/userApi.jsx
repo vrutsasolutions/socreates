@@ -71,16 +71,27 @@ export const fetchFollowers = (userId) =>
 export const fetchFollowing = (userId) =>
   USE_MOCK.users ? mockResponse([]) : api.get(`/follow/${userId}/following`);
 
-// POST /api/follow/{targetUserId} → follow
+// POST /api/follow/{targetUserId} → { status, message }
+//
+// Returns an object now, not a bare string, because the outcome depends on the
+// target's privacy setting:
+//   'FOLLOWING'         public account — follow took effect immediately
+//   'REQUESTED'         private account — pending request created instead
+//   'ALREADY_FOLLOWING' / 'ALREADY_REQUESTED'  no-op
+//
+// Callers must branch on data.status rather than assuming the follow landed.
 export const followUser = (targetUserId) =>
   USE_MOCK.users
-    ? mockResponse('Followed successfully')
+    ? mockResponse({ status: 'FOLLOWING', message: 'Followed successfully' })
     : api.post(`/follow/${targetUserId}`);
 
-// DELETE /api/follow/{targetUserId} → unfollow
+// DELETE /api/follow/{targetUserId} → { status, message }
+//
+// Undoes whichever applies — unfollows, or withdraws a still-pending request:
+//   'UNFOLLOWED' | 'REQUEST_CANCELLED' | 'NOT_FOLLOWING'
 export const unfollowUser = (targetUserId) =>
   USE_MOCK.users
-    ? mockResponse('Unfollowed successfully')
+    ? mockResponse({ status: 'UNFOLLOWED', message: 'Unfollowed successfully' })
     : api.delete(`/follow/${targetUserId}`);
 
 // DELETE /api/follow/followers/{followerUserId} → remove someone from your
@@ -133,18 +144,59 @@ export const updateNotificationPreferences = (prefs) =>
 
 // ──────────────────────────────────────────────────────────────────────────
 //  Privacy preferences (Settings → Privacy).
-//  Only Activity Status is backend-controlled for now — Public Profile is
-//  intentionally locked ON in the UI and has no API call.
+//  Both toggles are backend-controlled. Public Profile used to be locked ON
+//  in the UI with no API call; it is now a real persisted setting.
+//
+//  IMPORTANT: the PUT is not a plain field write. Sending publicProfile:false
+//  converts every existing follower into a PENDING follow request and
+//  notifies them; sending true again auto-accepts anything still pending.
+//  Always send BOTH keys — an omitted boolean deserializes to false on the
+//  Java side, so a partial body would silently flip the other toggle.
+//
+//  The PUT echoes back the SAVED state, so callers should trust the response
+//  over what they sent.
 // ──────────────────────────────────────────────────────────────────────────
 
-// GET /api/users/me/privacy-preferences → { showActivityStatus }
+// GET /api/users/me/privacy-preferences → { showActivityStatus, publicProfile }
 export const fetchPrivacyPreferences = () =>
   USE_MOCK.users
-    ? mockResponse({ showActivityStatus: true })
+    ? mockResponse({ showActivityStatus: true, publicProfile: true })
     : api.get('/users/me/privacy-preferences');
 
-// PUT /api/users/me/privacy-preferences  { showActivityStatus }
+// PUT /api/users/me/privacy-preferences  { showActivityStatus, publicProfile }
 export const updatePrivacyPreferences = (prefs) =>
   USE_MOCK.users
     ? mockResponse(prefs)
     : api.put('/users/me/privacy-preferences', prefs);
+
+// ──────────────────────────────────────────────────────────────────────────
+//  Follow requests (private accounts).  Backend: FollowController.
+//
+//  Only private accounts generate these. Tapping Follow on a private profile
+//  returns { status: 'REQUESTED' } instead of creating a follow, and the
+//  target approves or rejects from the /follow-requests page.
+// ──────────────────────────────────────────────────────────────────────────
+
+// GET /api/follow/requests → FollowRequestDTO[]
+// [{ id, userId, name, username, profileImage, bio, createdAt }]
+// `id` is the REQUEST id (for accept/decline); `userId` is the requester.
+export const fetchFollowRequests = () =>
+  USE_MOCK.users ? mockResponse([]) : api.get('/follow/requests');
+
+// GET /api/follow/requests/count → { count }
+export const fetchFollowRequestCount = () =>
+  USE_MOCK.users
+    ? mockResponse({ count: 0 })
+    : api.get('/follow/requests/count');
+
+// POST /api/follow/requests/{requestId}/accept → { status, message }
+export const acceptFollowRequest = (requestId) =>
+  USE_MOCK.users
+    ? mockResponse({ status: 'FOLLOWING', message: 'Follow request accepted' })
+    : api.post(`/follow/requests/${requestId}/accept`);
+
+// POST /api/follow/requests/{requestId}/decline → { status, message }
+export const declineFollowRequest = (requestId) =>
+  USE_MOCK.users
+    ? mockResponse({ status: 'NOT_FOLLOWING', message: 'Follow request declined' })
+    : api.post(`/follow/requests/${requestId}/decline`);
