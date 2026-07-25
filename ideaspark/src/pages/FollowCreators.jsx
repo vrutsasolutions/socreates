@@ -88,8 +88,24 @@ export default function FollowCreators() {
     setBusyIds((prev) => new Set(prev).add(id));
 
     try {
-      if (wasFollowing) await unfollowUser(id);
-      else await followUser(id);
+      const { data } = wasFollowing
+        ? await unfollowUser(id)
+        : await followUser(id);
+
+      // A private creator returns REQUESTED, not FOLLOWING — the optimistic
+      // tick above was wrong in that case, so roll it back. Onboarding
+      // deliberately doesn't grow a third "Requested" pill: the request IS
+      // sent and lives on the creator's approval queue, and adding a new
+      // state to the signup flow to explain it would cost more than it's
+      // worth. The user sees the real state on that creator's profile.
+      if (!wasFollowing && data?.status !== 'FOLLOWING'
+          && data?.status !== 'ALREADY_FOLLOWING') {
+        setFollowed((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
     } catch {
       // Revert on failure
       setFollowed((prev) => {
