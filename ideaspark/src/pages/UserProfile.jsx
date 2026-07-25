@@ -33,6 +33,13 @@ export default function UserProfile() {
     followersCount: 0,
     followingCount: 0,
     isFollowing: false,
+    // Private-profile fields, all server-computed (see FollowStatsResponse):
+    //   requestPending — I've asked to follow and they haven't answered
+    //   isPublicProfile — false means private account
+    //   canViewIdeas   — whether the idea grid should render at all
+    requestPending: false,
+    isPublicProfile: true,
+    canViewIdeas: true,
   });
   const [loading, setLoading] = useState(true);
   const [followBusy, setFollowBusy] = useState(false);
@@ -57,7 +64,18 @@ export default function UserProfile() {
           fetchUserById(id),
           fetchIdeasByUser(id).catch(() => ({ data: [] })),
           fetchFollowStats(id).catch(() => ({
-            data: { followersCount: 0, followingCount: 0, isFollowing: false },
+            data: {
+              followersCount: 0,
+              followingCount: 0,
+              isFollowing: false,
+              requestPending: false,
+              // Fail CLOSED on a stats error: assume private and hide the
+              // grid rather than flashing a private account's ideas because
+              // one request happened to fail. The ideas call is gated
+              // server-side regardless, so this only affects what's drawn.
+              isPublicProfile: false,
+              canViewIdeas: false,
+            },
           })),
         ]);
       setProfile(userData);
@@ -68,6 +86,11 @@ export default function UserProfile() {
         // Defensive fallback to `following` — some API responses/older
         // caches may serialize the boolean under that key instead.
         isFollowing: Boolean(statsData?.isFollowing ?? statsData?.following),
+        requestPending: Boolean(statsData?.requestPending),
+        // ?? not || : an explicit false must survive, and only a genuinely
+        // absent key should fall back to the permissive default.
+        isPublicProfile: statsData?.isPublicProfile ?? true,
+        canViewIdeas: statsData?.canViewIdeas ?? true,
       });
     } catch (err) {
       console.error("[UserProfile] failed to load", err);
@@ -86,31 +109,73 @@ export default function UserProfile() {
     load();
   }, [load]);
 
+  // One handler covers all three button states — Follow / Requested /
+  // Following — because the backend folds them into two endpoints: POST
+  // follows or raises a request depending on the target's privacy, and
+  // DELETE unfollows or withdraws a pending request, whichever applies.
+  //
+  // Not optimistic any more. Tapping Follow on a private account produces
+  // "Requested", not "Following", and guessing wrong would flash the wrong
+  // label plus a phantom +1 on the follower count. Instead the response's
+  // `status` decides, and only then does the UI move.
   const toggleFollow = async () => {
-    if (followBusy) return;
+    if (followBusy || loading) return;
     setFollowBusy(true);
-    const wasFollowing = followStats.isFollowing;
-    // Optimistic update
-    setFollowStats((prev) => ({
-      ...prev,
-      isFollowing: !wasFollowing,
-      followersCount: prev.followersCount + (wasFollowing ? -1 : 1),
-    }));
+
+    const { isFollowing, requestPending } = followStats;
+    const undoing = isFollowing || requestPending;
+
     try {
-      if (wasFollowing) await unfollowUser(id);
-      else await followUser(id);
+      const { data } = undoing ? await unfollowUser(id) : await followUser(id);
+      const status = data?.status;
+
+      setFollowStats((prev) => {
+        switch (status) {
+          case "FOLLOWING":
+            return {
+              ...prev,
+              isFollowing: true,
+              requestPending: false,
+              followersCount: prev.followersCount + (prev.isFollowing ? 0 : 1),
+            };
+          case "REQUESTED":
+          case "ALREADY_REQUESTED":
+            return { ...prev, isFollowing: false, requestPending: true };
+          case "UNFOLLOWED":
+            return {
+              ...prev,
+              isFollowing: false,
+              requestPending: false,
+              followersCount: Math.max(0, prev.followersCount - 1),
+            };
+          case "REQUEST_CANCELLED":
+          case "NOT_FOLLOWING":
+            return { ...prev, isFollowing: false, requestPending: false };
+          case "ALREADY_FOLLOWING":
+            return { ...prev, isFollowing: true, requestPending: false };
+          default:
+            return prev;
+        }
+      });
+
+      // Going from not-following to following on a private account unlocks
+      // the grid (when PRIVATE_PROFILE_SHOWS_IDEAS_TO_FOLLOWERS is on) — and
+      // an approved follow changes what /api/ideas/by-user returns either
+      // way, so re-fetch rather than trying to predict it client-side.
+      if (status === "FOLLOWING") load();
     } catch (err) {
-      // Revert on failure
-      setFollowStats((prev) => ({
-        ...prev,
-        isFollowing: wasFollowing,
-        followersCount: prev.followersCount + (wasFollowing ? 1 : -1),
-      }));
       console.error("[UserProfile] follow toggle failed", err);
     } finally {
       setFollowBusy(false);
     }
   };
+
+  // Label + styling for the tri-state follow button.
+  const followButton = followStats.isFollowing
+    ? { label: "Following", icon: "check", subdued: true }
+    : followStats.requestPending
+      ? { label: "Requested", icon: "user", subdued: true }
+      : { label: "Follow", icon: "user-plus", subdued: false };
 
   if (!loading && !profile) {
     const isNotFound = loadError === "notfound";
@@ -270,19 +335,33 @@ export default function UserProfile() {
             onClick={toggleFollow}
             disabled={followBusy || loading}
             className={`mt-4 w-full font-medium text-sm py-3 rounded-xl transition-colors disabled:opacity-60 ${
-              followStats.isFollowing
+              followButton.subdued
                 ? "bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0]"
                 : "bg-[#1565C0] text-white"
             }`}
           >
             <span className="inline-flex items-center justify-center gap-1.5">
-              <Icon
-                name={followStats.isFollowing ? "check" : "user-plus"}
-                className="w-4 h-4"
-              />
-              {followStats.isFollowing ? "Following" : "Follow"}
+              <Icon name={followButton.icon} className="w-4 h-4" />
+              {followButton.label}
             </span>
           </button>
+
+          {/* Only shown pre-request, so it reads as an explanation of what the
+              button will do rather than a status message about what it did. */}
+          {!loading &&
+            !followStats.isPublicProfile &&
+            !followStats.isFollowing &&
+            !followStats.requestPending && (
+              <p className="mt-2 text-xs text-[#90A4AE] text-center">
+                This account is private. They'll need to approve your request.
+              </p>
+            )}
+
+          {!loading && followStats.requestPending && (
+            <p className="mt-2 text-xs text-[#90A4AE] text-center">
+              Request sent — waiting for approval. Tap again to withdraw it.
+            </p>
+          )}
 
           {/* ADMIN-ONLY: ban + delete this user's account. Only rendered for
               the logged-in admin (me.isAdmin), never for regular users viewing
@@ -333,6 +412,32 @@ export default function UserProfile() {
                     </div>
                   </div>
                 ))}
+            </div>
+          ) : !followStats.canViewIdeas ? (
+            /* Private account, viewer isn't an approved follower. The grid is
+               empty because the server withheld it, not because there's
+               nothing to show — say so explicitly, or the profile just looks
+               like an inactive account. Follower/following counts above stay
+               visible by design.
+
+               isFollowing shouldn't be true here in normal operation — an
+               approved follower's canViewIdeas comes back true (see
+               ProfilePrivacyService.canViewProfileIdeas), so they render the
+               real grid below instead of hitting this branch. The fallback
+               text stays only in case stats and the ideas list momentarily
+               disagree (e.g. right after an accept, before a re-fetch). */
+            <div className="text-center py-14 px-6">
+              <div className="w-16 h-16 rounded-full bg-[#E3F2FD] flex items-center justify-center mx-auto">
+                <Icon name="lock" className="w-7 h-7 text-[#1565C0]" />
+              </div>
+              <p className="mt-4 text-[#0D2137] font-bold text-[15px]">
+                This account is private
+              </p>
+              <p className="mt-1.5 text-sm text-[#90A4AE] leading-relaxed">
+                {followStats.isFollowing
+                  ? "Their ideas will appear here shortly."
+                  : "Follow this account to see their ideas."}
+              </p>
             </div>
           ) : ideas.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
