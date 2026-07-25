@@ -37,6 +37,7 @@ public class UserController {
     private final FollowRepository followRepository;
     private final com.ideaspark.service.PresenceService presenceService;
     private final com.ideaspark.service.UserAccountService userAccountService;
+    private final com.ideaspark.service.ProfilePrivacyService profilePrivacyService;
 
     // Same admin email UserDetailsServiceImpl uses to grant ROLE_ADMIN.
     // Used here only to set the UserDTO.isAdmin UI hint.
@@ -138,21 +139,41 @@ public class UserController {
     public ResponseEntity<PrivacyPreferencesDTO> getPrivacyPreferences(
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-        return ResponseEntity.ok(new PrivacyPreferencesDTO(user.isShowActivityStatus()));
+        return ResponseEntity.ok(new PrivacyPreferencesDTO(
+                user.isShowActivityStatus(),
+                user.isPublicProfile()));
     }
 
     // PUT /api/users/me/privacy-preferences
-    // Persists the toggle and immediately re-broadcasts presence so any open
+    // Persists both toggles and immediately re-broadcasts presence so any open
     // chat reflects the change right away (see PresenceService.refreshPresence).
+    //
+    // Public Profile is NOT a plain field write. Turning it OFF converts every
+    // existing follower into a pending follow request and notifies them;
+    // turning it back ON auto-accepts anything still pending. That whole
+    // transaction lives in ProfilePrivacyService — this handler must delegate
+    // rather than calling user.setPublicProfile() itself, or the follower
+    // graph and the flag end up disagreeing.
+    //
+    // The response echoes the SAVED state rather than the request body, so a
+    // no-op or partially-applied change can't leave the UI showing something
+    // the server didn't actually persist.
     @PutMapping("/me/privacy-preferences")
     public ResponseEntity<PrivacyPreferencesDTO> updatePrivacyPreferences(
             @RequestBody PrivacyPreferencesDTO req,
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+
         user.setShowActivityStatus(req.isShowActivityStatus());
         User saved = userRepository.save(user);
+
+        saved = profilePrivacyService.setPublicProfile(saved, req.isPublicProfile());
+
         presenceService.refreshPresence(saved);
-        return ResponseEntity.ok(req);
+
+        return ResponseEntity.ok(new PrivacyPreferencesDTO(
+                saved.isShowActivityStatus(),
+                saved.isPublicProfile()));
     }
 
     // GET /api/users/me/notification-preferences
