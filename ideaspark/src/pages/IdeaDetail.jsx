@@ -198,16 +198,35 @@ export default function IdeaDetail() {
     }
   };
 
+  // Not optimistic: tapping Follow on a PRIVATE creator raises a pending
+  // request rather than a follow, so the outcome has to come from the
+  // response's `status` instead of being assumed. Flipping the label to
+  // "Following" on a request that's still awaiting approval would be a
+  // straight lie about the account's state.
+  //
+  // Reachable here even though a private creator's ideas are gated: an
+  // approved follower can open the idea, unfollow from this screen, and then
+  // tap Follow again — at which point they're back to requesting.
   const handleFollow = async () => {
     if (followBusy || !canFollow) return;
     setFollowBusy(true);
     const wasFollowing = following;
-    setFollowing(!wasFollowing); // optimistic
     try {
-      wasFollowing
+      const { data } = wasFollowing
         ? await unfollowUser(creatorId)
         : await followUser(creatorId);
-      showToast(wasFollowing ? 'Unfollowed' : `Following ${idea?.creatorName || ''}`.trim());
+      const status = data?.status;
+
+      if (status === 'FOLLOWING' || status === 'ALREADY_FOLLOWING') {
+        setFollowing(true);
+        showToast(`Following ${idea?.creatorName || ''}`.trim());
+      } else if (status === 'REQUESTED' || status === 'ALREADY_REQUESTED') {
+        setFollowing(false);
+        showToast('Follow request sent');
+      } else {
+        setFollowing(false);
+        showToast('Unfollowed');
+      }
     } catch (_) {
       setFollowing(wasFollowing); // revert on failure
       showToast('Could not update follow');
