@@ -60,7 +60,20 @@ public class Notification {
         }
     }
 
+    // FOLLOW_REQUEST — someone asked to follow a private account. referenceId
+    //                  is the requester's user id; the bell deep-links to the
+    //                  /follow-requests inbox so the owner can approve/reject.
+    // PRIVACY_CHANGE — an account you followed switched to Private, so your
+    //                  follow was converted into a pending request.
+    //                  referenceId is that account's user id.
+    //
+    // Both names fit the existing VARCHAR(20) `type` column, so neither needs
+    // a migration. Any type not listed in NotificationService's preference
+    // gate always goes through — these two are deliberately not opt-out,
+    // since silently swallowing them would leave the user with no idea their
+    // follower relationship changed.
     public enum NotificationType {
-        LIKE, FOLLOW, COMMENT, BOOKMARK, MESSAGE, SYSTEM, NEW_IDEA
+        LIKE, FOLLOW, COMMENT, BOOKMARK, MESSAGE, SYSTEM, NEW_IDEA,
+        FOLLOW_REQUEST, PRIVACY_CHANGE
     }
 }
