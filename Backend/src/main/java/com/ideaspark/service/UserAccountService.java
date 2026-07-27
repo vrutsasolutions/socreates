@@ -30,6 +30,7 @@ public class UserAccountService {
     private final IdeaRepository ideaRepository;
     private final SavedIdeaRepository savedIdeaRepository;
     private final FollowRepository followRepository;
+    private final FollowRequestRepository followRequestRepository;
     private final CommentRepository commentRepository;
     private final IdeaLikeRepository ideaLikeRepository;
     private final NotificationRepository notificationRepository;
@@ -62,6 +63,15 @@ public class UserAccountService {
 
         followRepository.findByFollower(user).forEach(followRepository::delete);
         followRepository.findByFollowing(user).forEach(followRepository::delete);
+
+        // Follow requests in both directions — ones this user sent, and ones
+        // sent to them. The FK carries ON DELETE CASCADE so Postgres would
+        // clear these anyway, but deleting them explicitly keeps this method
+        // the single readable inventory of what a deletion touches, and stops
+        // Hibernate's first-level cache holding stale references within the
+        // same transaction.
+        followRequestRepository.deleteAll(followRequestRepository.findByRequester(user));
+        followRequestRepository.deleteAll(followRequestRepository.findByTarget(user));
 
         ideaLikeRepository.deleteAll(
                 ideaLikeRepository.findAll().stream()

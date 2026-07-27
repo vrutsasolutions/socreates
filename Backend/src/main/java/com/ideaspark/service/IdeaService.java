@@ -51,6 +51,58 @@ public class IdeaService {
     private static final int DESC_MIN_LENGTH = 100;
     private static final int DESC_MAX_LENGTH = 5000;
 
+    // ── Private-profile visibility ──────────────────────────────────────────
+    // A private creator's ideas are hidden from anyone who doesn't follow
+    // them. The rule itself lives in ProfilePrivacyService (static, so both
+    // this service and FollowService share one definition); everything below
+    // is just plumbing to apply it without an N+1.
+    //
+    // Every list endpoint resolves the viewer's following-set ONCE and filters
+    // in memory. Calling followRepository.existsByFollowerAndFollowing() per
+    // idea would be one query per row on the home feed.
+
+    /**
+     * The ids of every account {@code viewer} follows. Empty for signed-out
+     * viewers, which correctly hides all private creators from them.
+     *
+     * <p>{@code f.getFollowing().getId()} does not trigger a lazy load —
+     * reading the identifier off a Hibernate proxy is served from the proxy
+     * itself, so this stays a single query.
+     */
+    private Set<UUID> followingIdsOf(User viewer) {
+        if (viewer == null) {
+            return Set.of();
+        }
+        return followRepository.findByFollower(viewer).stream()
+                .map(f -> f.getFollowing().getId())
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    /** Feed-context visibility check (Home, Explore, search, saved). */
+    private boolean visibleInFeed(Idea idea, User viewer, Set<UUID> followingIds) {
+        User creator = idea.getCreator();
+        boolean follows = creator != null && followingIds.contains(creator.getId());
+        return ProfilePrivacyService.canViewFeedIdeas(creator, viewer, follows);
+    }
+
+    /**
+     * Applies {@link #visibleInFeed} to a list, resolving the viewer and their
+     * following-set once. Used by every list endpoint that takes an email.
+     */
+    private List<Idea> filterVisible(List<Idea> ideas, String viewerEmail) {
+        User viewer = viewerEmail != null
+                ? userRepository.findByEmail(viewerEmail).orElse(null)
+                : null;
+        return filterVisible(ideas, viewer);
+    }
+
+    private List<Idea> filterVisible(List<Idea> ideas, User viewer) {
+        Set<UUID> followingIds = followingIdsOf(viewer);
+        return ideas.stream()
+                .filter(i -> visibleInFeed(i, viewer, followingIds))
+                .toList();
+    }
+
     // ── Like milestones: fire at each of these counts ────────────────────────
     private static final Set<Integer> LIKE_MILESTONES = Set.of(25, 100, 500, 1000, 5000, 10000);
 
@@ -185,13 +237,21 @@ public class IdeaService {
                         .collect(java.util.stream.Collectors.toSet())
                 : Set.of();
 
+        // Private creators' ideas reach only their approved followers. This is
+        // the "shown in the homepage of the user who follow them" half of the
+        // spec — the profile page is gated separately in getIdeasByUser().
+        Set<UUID> followingIds = followingIdsOf(currentUser);
+
         return ideas.stream()
+                .filter(i -> visibleInFeed(i, currentUser, followingIds))
                 .map(i -> toDTOFast(i, currentUser, savedIdeaIds, likedIdeaIds))
                 .toList();
     }
 
     public List<IdeaDTO> getPremiumIdeas(String currentUserEmail) {
-        return ideaRepository.findByIsPremiumOrderByCreatedAtDesc(true)
+        return filterVisible(
+                ideaRepository.findByIsPremiumOrderByCreatedAtDesc(true),
+                currentUserEmail)
                 .stream()
                 .map(i -> toDTO(i, currentUserEmail))
                 .toList();
@@ -202,11 +262,28 @@ public class IdeaService {
         Idea idea = ideaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Idea not found"));
 
-        IdeaDTO dto = toDTO(idea, currentUserEmail);
-
         User currentUser = currentUserEmail != null
                 ? userRepository.findByEmail(currentUserEmail).orElse(null)
                 : null;
+
+        // Gate BEFORE building the DTO. Filtering the lists but leaving this
+        // open would make the whole feature cosmetic — anyone holding or
+        // guessing an idea id could still read a private creator's work, and
+        // opening it would bump their readCount too.
+        //
+        // Uses the FEED rule, not the profile rule: approved followers legitimately
+        // reach these ideas from their Home feed, so they must be able to open them.
+        // Deliberately reported as "Idea not found" rather than "access denied",
+        // so a private creator's idea ids can't be enumerated by response text.
+        User ideaCreator = idea.getCreator();
+        boolean followsCreator = currentUser != null && ideaCreator != null
+                && followRepository.existsByFollowerAndFollowing(currentUser, ideaCreator);
+
+        if (!ProfilePrivacyService.canViewFeedIdeas(ideaCreator, currentUser, followsCreator)) {
+            throw new RuntimeException("Idea not found");
+        }
+
+        IdeaDTO dto = toDTO(idea, currentUserEmail);
 
         boolean isOwner = currentUser != null && idea.getCreator() != null
                 && idea.getCreator().getId().equals(currentUser.getId());
@@ -480,9 +557,16 @@ public class IdeaService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // An idea saved while its creator was public must stop rendering if
+        // that creator later goes private and the saver isn't an approved
+        // follower — otherwise Saved becomes a permanent bypass.
+        Set<UUID> followingIds = followingIdsOf(user);
+
         return savedIdeaRepository.findByUserIdOrderBySavedAtDesc(user.getId())
                 .stream()
-                .map(s -> toDTO(s.getIdea(), userEmail))
+                .map(SavedIdea::getIdea)
+                .filter(i -> i != null && visibleInFeed(i, user, followingIds))
+                .map(i -> toDTO(i, userEmail))
                 .toList();
     }
 
@@ -499,7 +583,11 @@ public class IdeaService {
             ideas = ideaRepository.findAllByOrderByCreatedAtDesc();
         }
 
-        return ideas.stream().map(i -> toDTO(i, userEmail)).toList();
+        // Without this, search is a hole straight through the privacy rule —
+        // a private creator's ideas would still surface to anyone who typed
+        // the right keyword.
+        return filterVisible(ideas, userEmail)
+                .stream().map(i -> toDTO(i, userEmail)).toList();
     }
 
     // "Ideas of the Day" for the Explore page — top idea(s) ranked by combined
@@ -508,9 +596,22 @@ public class IdeaService {
     // a fresh page load can surface a different idea day to day.
     public List<IdeaDTO> getIdeasOfTheDay(int limit, String userEmail) {
         int safeLimit = Math.max(1, Math.min(limit, 10));
+
+        // Over-fetch, then filter, then trim. Filtering a page of exactly
+        // `safeLimit` rows would silently return fewer than asked whenever a
+        // private creator ranked highly — the Explore page would show one
+        // card instead of two for no visible reason. The 5x multiplier is
+        // capped so a feed dominated by private creators can't turn this into
+        // an unbounded scan.
+        int fetchSize = Math.min(safeLimit * 5, 50);
         List<Idea> ideas = ideaRepository.findTopByEngagement(
-                org.springframework.data.domain.PageRequest.of(0, safeLimit));
-        return ideas.stream().map(i -> toDTO(i, userEmail)).toList();
+                org.springframework.data.domain.PageRequest.of(0, fetchSize));
+
+        return filterVisible(ideas, userEmail)
+                .stream()
+                .limit(safeLimit)
+                .map(i -> toDTO(i, userEmail))
+                .toList();
     }
 
     public List<IdeaDTO> getMyIdeas(String userEmail) {
@@ -528,8 +629,35 @@ public class IdeaService {
     // flags),
     // not the profile owner.
     public List<IdeaDTO> getIdeasByUser(UUID profileUserId, String currentUserEmail) {
-        userRepository.findById(profileUserId)
+        User profileUser = userRepository.findById(profileUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        User viewer = currentUserEmail != null
+                ? userRepository.findByEmail(currentUserEmail).orElse(null)
+                : null;
+
+        // Profile-page rule (ProfilePrivacyService.canViewProfileIdeas): a
+        // private account's grid is visible to the owner and to approved
+        // followers; everyone else sees the header and follower/following
+        // counts but no ideas.
+        //
+        // Returning an empty list rather than throwing is deliberate: the rest
+        // of the profile (name, avatar, bio, follower/following counts) stays
+        // visible per the agreed spec, so this is a normal 200 with no ideas,
+        // and UserProfile.jsx draws the lock panel off the canViewIdeas flag
+        // from /api/follow/{id}/stats.
+        //
+        // To go back to the stricter original spec — profile-page ideas
+        // visible only to the owner, approved followers see them in Home
+        // only — flip PRIVATE_PROFILE_SHOWS_IDEAS_TO_FOLLOWERS in
+        // ProfilePrivacyService back to false. This block reads that same
+        // constant, so nothing else here needs to change.
+        boolean viewerFollows = viewer != null
+                && followRepository.existsByFollowerAndFollowing(viewer, profileUser);
+
+        if (!ProfilePrivacyService.canViewProfileIdeas(profileUser, viewer, viewerFollows)) {
+            return List.of();
+        }
 
         return ideaRepository.findByCreatorIdOrderByCreatedAtDesc(profileUserId)
                 .stream()

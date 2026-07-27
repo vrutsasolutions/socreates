@@ -125,14 +125,17 @@ function UnfollowBtn({ onClick }) {
   );
 }
 
-function FollowBtn({ followed, onClick }) {
-  if (followed) {
+// `requested` is the private-account middle state: the follow has been asked
+// for but not yet approved, so it must read differently from both "Follow"
+// and "Following".
+function FollowBtn({ followed, requested, onClick }) {
+  if (followed || requested) {
     return (
       <button
         disabled
         className="shrink-0 px-4 py-2 rounded-xl bg-[#F0F6FF] border border-[#BBDEFB] text-[#90A4AE] text-sm font-semibold"
       >
-        Following
+        {followed ? "Following" : "Requested"}
       </button>
     );
   }
@@ -159,6 +162,8 @@ export default function FollowList() {
   const [following, setFollowing] = useState([]);
   const [suggested, setSuggested] = useState([]);
   const [followedIds, setFollowedIds] = useState(() => new Set());
+  // Suggested creators whose follow is pending approval (private accounts).
+  const [requestedIds, setRequestedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -214,16 +219,26 @@ export default function FollowList() {
     );
   };
 
-  // Follow a suggested creator — optimistic, reverted if the call fails.
-  const handleFollow = (creator) => {
-    setFollowedIds((prev) => new Set(prev).add(creator.id));
-    followUser(creator.id).catch(() =>
-      setFollowedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(creator.id);
-        return next;
-      }),
-    );
+  // Follow a suggested creator.
+  //
+  // Deliberately NOT optimistic: a private creator returns REQUESTED rather
+  // than FOLLOWING, and marking them followed on the strength of a 200 would
+  // show a "Following" pill for a request nobody has approved yet. The
+  // response's `status` decides. `requestedIds` renders as a distinct
+  // "Requested" state.
+  const handleFollow = async (creator) => {
+    try {
+      const { data } = await followUser(creator.id);
+      const status = data?.status;
+
+      if (status === 'FOLLOWING' || status === 'ALREADY_FOLLOWING') {
+        setFollowedIds((prev) => new Set(prev).add(creator.id));
+      } else if (status === 'REQUESTED' || status === 'ALREADY_REQUESTED') {
+        setRequestedIds((prev) => new Set(prev).add(creator.id));
+      }
+    } catch (err) {
+      console.error('[FollowList] follow failed', err);
+    }
   };
 
   const people = tab === "followers" ? followers : following;
@@ -408,6 +423,7 @@ export default function FollowList() {
                       action={
                         <FollowBtn
                           followed={followedIds.has(c.id)}
+                          requested={requestedIds.has(c.id)}
                           onClick={() => handleFollow(c)}
                         />
                       }

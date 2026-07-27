@@ -84,7 +84,18 @@ export default function Settings() {
   });
   const [privacy, setPrivacy] = useState({
     showActivity: true,
+    publicProfile: true,
   });
+  // Confirmation gate for switching Public -> Private. Not just a nicety:
+  // the switch converts every existing follower into a pending request they
+  // have to be re-approved from, so it needs an explicit yes.
+  const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
+  const [privacyBusy, setPrivacyBusy] = useState(false);
+  // Surfaced in the Privacy section when the toggle can't be saved. Silently
+  // swallowing this was the original sin here: a backend that doesn't know
+  // the field returns 200 with it absent, the optimistic fallback filled in
+  // the requested value, and the switch looked like it worked until reload.
+  const [privacyError, setPrivacyError] = useState("");
   const [deleting, setDeleting] = useState(false);
 
   // Load the user's saved notification preferences (defaults above are just
@@ -133,6 +144,7 @@ export default function Settings() {
           setPrivacy((p) => ({
             ...p,
             showActivity: data.showActivityStatus ?? true,
+            publicProfile: data.publicProfile ?? true,
           }));
         }
       } catch (err) {
@@ -145,16 +157,79 @@ export default function Settings() {
   }, []);
 
   // Optimistically flip Activity Status, persist it, and roll back on failure.
+  //
+  // Both privacy keys go in every request: an omitted boolean deserializes to
+  // false server-side, so sending only one would silently flip the other.
   const toggleActivityStatus = (value) => {
     const previous = privacy;
     setPrivacy({ ...privacy, showActivity: value });
-    updatePrivacyPreferences({ showActivityStatus: value }).catch((err) => {
+    updatePrivacyPreferences({
+      showActivityStatus: value,
+      publicProfile: privacy.publicProfile,
+    }).catch((err) => {
       console.error(
         "[settings] failed to save activity status preference",
         err,
       );
       setPrivacy(previous);
     });
+  };
+
+  // Public Profile.
+  //
+  // Turning it OFF goes through a confirmation modal first, because the switch
+  // has side effects beyond this screen: every current follower is converted
+  // into a pending follow request and notified. Turning it back ON is
+  // harmless (pending requests are auto-accepted), so that path is direct.
+  //
+  // This one is NOT optimistic. The server does real follower-graph work here
+  // and echoes back the saved state, so the UI waits and then trusts the
+  // response rather than guessing.
+  const persistPublicProfile = async (value) => {
+    const previous = privacy;
+    setPrivacyBusy(true);
+    setPrivacyError("");
+    try {
+      const { data } = await updatePrivacyPreferences({
+        showActivityStatus: privacy.showActivity,
+        publicProfile: value,
+      });
+
+      // The server MUST echo publicProfile back as a boolean. If it doesn't,
+      // it's running a build that predates this field: Spring's ObjectMapper
+      // ignores unknown request properties by default, so the call returns a
+      // cheerful 200 having saved nothing. Trusting it here would show the
+      // switch as flipped while the database still says public — which is
+      // exactly the state that makes follows keep going straight through.
+      if (typeof data?.publicProfile !== "boolean") {
+        throw new Error("STALE_BACKEND");
+      }
+
+      setPrivacy({
+        showActivity: data.showActivityStatus ?? privacy.showActivity,
+        publicProfile: data.publicProfile,
+      });
+    } catch (err) {
+      console.error("[settings] failed to save public profile preference", err);
+      setPrivacy(previous);
+      setPrivacyError(
+        err?.message === "STALE_BACKEND"
+          ? "Couldn't save. The server doesn't support this setting yet \u2014 it needs redeploying."
+          : "Couldn't save that. Check your connection and try again.",
+      );
+    } finally {
+      setPrivacyBusy(false);
+      setShowPrivateConfirm(false);
+    }
+  };
+
+  const togglePublicProfile = (value) => {
+    if (privacyBusy) return;
+    if (value === false) {
+      setShowPrivateConfirm(true); // going private — confirm first
+      return;
+    }
+    persistPublicProfile(true);
   };
 
   // Delete-account confirmation modal state.
@@ -481,6 +556,40 @@ export default function Settings() {
 
           <Section title="Privacy">
             <Row
+              icon={<Icon name="globe" className="w-5 h-5 text-[#1565C0]" />}
+              label="Public Profile"
+              sublabel={
+                privacy.publicProfile
+                  ? "Anyone can follow you and see your ideas"
+                  : "Private \u2014 followers need your approval"
+              }
+              right={
+                <Toggle
+                  value={privacy.publicProfile}
+                  onChange={togglePublicProfile}
+                />
+              }
+            />
+            {privacyError && (
+              <div className="mx-4 mb-2 rounded-xl bg-[#FEF2F2] border border-[#FECACA] px-3 py-2.5">
+                <p className="text-xs text-[#DC2626] leading-relaxed">
+                  {privacyError}
+                </p>
+              </div>
+            )}
+
+            {/* Always rendered, not gated on privacy.publicProfile. Hiding it
+                while public stranded any queue left over from a previous
+                private stint behind an entry point that no longer existed —
+                and made the feature undiscoverable if the toggle itself
+                misbehaved. The page handles the empty case on its own. */}
+            <Row
+              icon={<Icon name="user-plus" className="w-5 h-5 text-[#1565C0]" />}
+              label="Follow Requests"
+              sublabel="People waiting for your approval"
+              onClick={() => navigate("/follow-requests")}
+            />
+            <Row
               icon={<Icon name="activity" className="w-5 h-5 text-[#3347E8]" />}
               label="Activity Status"
               sublabel="Show when you're active"
@@ -562,6 +671,96 @@ export default function Settings() {
           </p>
         </div>
       </div>
+
+      {/* Going-private confirmation. Spells out the follower conversion up
+          front — this is the one privacy toggle with a side effect the user
+          can't undo by just flipping it back (flipping back auto-accepts
+          whatever is still pending, but anything they rejected meanwhile is
+          gone). */}
+      {showPrivateConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
+          onClick={() => !privacyBusy && setShowPrivateConfirm(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="private-profile-title"
+        >
+          <div
+            className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-[#E3F2FD] flex items-center justify-center mx-auto">
+              <Icon name="lock" className="w-6 h-6 text-[#1565C0]" />
+            </div>
+
+            <h3
+              id="private-profile-title"
+              className="mt-4 text-center text-lg font-bold text-[#0D2137]"
+            >
+              Switch to a private profile?
+            </h3>
+
+            <ul className="mt-4 space-y-2.5 text-sm text-[#546E7A] leading-relaxed">
+              <li className="flex gap-2">
+                <span className="text-[#1565C0] font-bold">&bull;</span>
+                <span>
+                  Your current followers will be moved to{" "}
+                  <span className="font-semibold text-[#0D2137]">
+                    pending requests
+                  </span>{" "}
+                  for you to approve or reject.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#1565C0] font-bold">&bull;</span>
+                <span>They'll be notified that you've gone private.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#1565C0] font-bold">&bull;</span>
+                <span>
+                  New followers will need your approval before they can follow
+                  you.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#1565C0] font-bold">&bull;</span>
+                <span>
+                  Your ideas will be hidden from your profile page and from
+                  people who don't follow you.
+                </span>
+              </li>
+            </ul>
+
+            <p className="mt-4 text-xs text-[#90A4AE] leading-relaxed">
+              Switching back to public later will automatically approve anyone
+              still waiting.
+            </p>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                disabled={privacyBusy}
+                onClick={() => setShowPrivateConfirm(false)}
+                className="flex-1 h-11 rounded-2xl bg-white border border-[#BBDEFB] text-[#546E7A] text-[15px] font-semibold hover:bg-[#E3F2FD] active:scale-[0.97] transition-all disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={privacyBusy}
+                onClick={() => persistPublicProfile(false)}
+                className="flex-1 h-11 rounded-2xl bg-[#1565C0] text-white text-[15px] font-semibold hover:bg-[#0D47A1] active:scale-[0.97] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {privacyBusy ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  "Go Private"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDelete && (
         <div

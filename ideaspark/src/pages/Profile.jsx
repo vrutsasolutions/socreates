@@ -4,7 +4,7 @@ import BottomNav from "../components/common/BottomNav.premium";
 import IdeaCard from "../components/common/IdeaCard.premium";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosInstance";
-import { fetchFollowStats } from "../api/userApi";
+import { fetchFollowStats, fetchFollowRequestCount } from "../api/userApi";
 import { hasCreatorPro, isVerified } from "../api/paymentApi";
 import Icon from "../components/common/Icon";
 import ProfileShareButton from "../components/common/ProfileShareButton";
@@ -16,6 +16,27 @@ export default function Profile() {
   const { user } = useAuth();
 
   const [tab, setTab] = useState("My Ideas");
+  // Pending follow requests waiting on this user (private accounts only —
+  // a public account always returns 0, since follows land immediately).
+  const [followRequestCount, setFollowRequestCount] = useState(0);
+
+  // Count-driven, not privacy-driven: the banner appears whenever there is
+  // something to act on and stays out of the way otherwise. Deliberately not
+  // gated on "am I private?" — switching back to public auto-accepts anything
+  // pending, so a stale queue can't be stranded behind a hidden entry point.
+  useEffect(() => {
+    let alive = true;
+    fetchFollowRequestCount()
+      .then(({ data }) => {
+        if (alive) setFollowRequestCount(data?.count ?? 0);
+      })
+      .catch(() => {
+        // Non-fatal: the banner just stays hidden.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [myIdeas, setMyIdeas] = useState([]);
   const [saved, setSaved] = useState([]);
   const [followStats, setFollowStats] = useState({
@@ -237,6 +258,22 @@ export default function Profile() {
               <div className="text-xs text-[#90A4AE]">Likes</div>
             </div>
           </div>
+
+          {/* FOLLOW REQUESTS — only rendered when there's a queue to clear. */}
+          {followRequestCount > 0 && (
+            <button
+              onClick={() => navigate("/follow-requests")}
+              className="mt-4 w-full bg-[#E3F2FD] border border-[#BBDEFB] text-[#1565C0] font-medium text-sm py-3 rounded-xl active:scale-[0.98] transition-transform"
+            >
+              <span className="inline-flex items-center justify-center gap-2">
+                <Icon name="user-plus" className="w-4 h-4" />
+                Follow Requests
+                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#1565C0] text-white text-xs font-bold inline-flex items-center justify-center">
+                  {followRequestCount > 99 ? "99+" : followRequestCount}
+                </span>
+              </span>
+            </button>
+          )}
 
           {/* EDIT BUTTON */}
           <button

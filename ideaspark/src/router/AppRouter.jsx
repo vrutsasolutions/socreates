@@ -53,6 +53,7 @@ import ChildSafety from "../pages/ChildSafety";
 import AIAssistant from "../pages/AIAssistant";
 import ImageEditor from "../pages/ImageEditor";
 import BlockedUsers from "../pages/BlockedUsers";
+import FollowRequests from "../pages/FollowRequests";
 
 
 function PrivateRoute({ children }) {
@@ -119,6 +120,11 @@ export default function AppRouter() {
 
         <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
         <Route path="/settings/blocked-users" element={<PrivateRoute><BlockedUsers /></PrivateRoute>} />
+
+        {/* Follow requests against a private account. Top-level rather than
+            under /settings because the "wants to follow you" bell
+            notification deep-links straight here. */}
+        <Route path="/follow-requests" element={<PrivateRoute><FollowRequests /></PrivateRoute>} />
 
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />

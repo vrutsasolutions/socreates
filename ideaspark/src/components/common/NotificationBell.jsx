@@ -19,6 +19,10 @@ const TYPE_ICON = {
   like: 'heart', bookmark: 'bookmark',
   follow: 'user', comment: 'message-square', system: 'bell',
   new_idea: 'lightbulb',
+  // Private-profile flow. follow_request deep-links to /follow-requests;
+  // privacy_change tells an existing follower that an account they followed
+  // went private and their follow is now awaiting approval.
+  follow_request: 'user-plus', privacy_change: 'lock',
 };
 
 function timeAgo(iso) {
