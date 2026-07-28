@@ -36,16 +36,18 @@ pnpm-debug.log*
 Thumbs.db
 
 # ───────── Custom ─────────
-
 Backend/target/
 Backend/uploads/
-*.classtest-cashfree.ps1
+*.class
+test-cashfree.ps1
 
 # Android
 android/.gradle/
 android/build/
 android/app/build/
 android/local.properties
+android/upload-keystore.jks
+android/keystore.properties
 
 # Android Studio
 android/.idea/
