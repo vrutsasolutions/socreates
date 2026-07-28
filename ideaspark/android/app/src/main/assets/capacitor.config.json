@@ -1,6 +1,6 @@
 {
 	"appId": "in.socreate.app",
-	"appName": "IdeaSpark",
+	"appName": "SoCreate",
 	"webDir": "dist",
 	"server": {
 		"androidScheme": "https",

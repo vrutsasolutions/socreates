@@ -1,13 +1,14 @@
 // ════════════════════════════════════════════════════════════════════════
 //  ProfileShareButton
-//  Share icon for a user profile (own or someone else's). On mobile,
-//  prefers the OS-native share sheet (navigator.share) — this already
-//  includes WhatsApp as one of the apps the OS offers, plus every other
-//  app the user has installed, for free. Falls back to an explicit
-//  WhatsApp + Copy link popover on browsers without navigator.share
-//  (mainly desktop).
+//  Share icon for a user profile (own or someone else's).
+//  - Native Android/iOS app: uses Capacitor's Share plugin (real native
+//    share sheet — WhatsApp, copy, etc. all available for free).
+//  - Real mobile browser (not the app): uses navigator.share (Web Share API).
+//  - Desktop / unsupported browsers: explicit WhatsApp + Copy link popover.
 // ════════════════════════════════════════════════════════════════════════
 import { useState, useRef, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
 
 export default function ProfileShareButton({ userId, name }) {
   const [open, setOpen] = useState(false);
@@ -31,8 +32,25 @@ export default function ProfileShareButton({ userId, name }) {
   }, [open]);
 
   const handleClick = async () => {
-    // Native share sheet (mobile Chrome/Safari) already lists WhatsApp
-    // alongside every other installed app — no need to special-case it.
+    // Native Android/iOS app — use Capacitor's Share plugin.
+    // navigator.share is unreliable inside a Capacitor WebView: it can
+    // exist as a function but fail silently, so we never rely on it here.
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Share.share({
+          title: shareText,
+          text: shareText,
+          url: shareUrl,
+          dialogTitle: "Share via",
+        });
+      } catch {
+        // User cancelled the native sheet — not an error, do nothing.
+      }
+      return;
+    }
+
+    // Real mobile browser (site opened directly in Chrome/Safari, not
+    // the app) — use the Web Share API if available.
     if (navigator.share) {
       try {
         await navigator.share({
@@ -41,10 +59,11 @@ export default function ProfileShareButton({ userId, name }) {
           url: shareUrl,
         });
       } catch {
-        // User cancelled the native sheet — not an error, do nothing.
+        // User cancelled — not an error, do nothing.
       }
       return;
     }
+
     // Desktop / unsupported browsers: show the explicit fallback popover.
     setOpen((o) => !o);
   };
