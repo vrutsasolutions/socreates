@@ -45,13 +45,25 @@ export default function usePushNotifications() {
       // system prompt. If the user denies it, register() below simply never
       // fires a token — we fail silently and the app carries on using
       // WebSocket-only (open-app) notifications, same as today.
-      const perm = await PushNotifications.checkPermissions();
-      if (perm.receive !== 'granted') {
-        const req = await PushNotifications.requestPermissions();
-        if (req.receive !== 'granted') return; // user said no — nothing more to do
+      console.log('[push] setup() starting, isNativePlatform=', Capacitor.isNativePlatform());
+      try {
+        const perm = await PushNotifications.checkPermissions();
+        console.log('[push] checkPermissions result:', JSON.stringify(perm));
+        if (perm.receive !== 'granted') {
+          const req = await PushNotifications.requestPermissions();
+          console.log('[push] requestPermissions result:', JSON.stringify(req));
+          if (req.receive !== 'granted') {
+            console.log('[push] permission NOT granted — stopping here');
+            return; // user said no — nothing more to do
+          }
+        }
+        if (cancelled) return;
+        console.log('[push] calling register()');
+        await PushNotifications.register();
+        console.log('[push] register() call completed (token arrives via listener)');
+      } catch (err) {
+        console.error('[push] setup() threw an error:', err);
       }
-      if (cancelled) return;
-      await PushNotifications.register();
     };
 
     // Step 2 — the device token arrives here, asynchronously, once
