@@ -122,6 +122,15 @@
     <version>1.36.0</version>
 </dependency>
 
+<!-- Firebase Admin SDK — used only for Cloud Messaging (push notifications
+     to closed/backgrounded devices). Not using any other Firebase product
+     (no Firestore, no Firebase Auth, no Firebase Hosting). -->
+<dependency>
+    <groupId>com.google.firebase</groupId>
+    <artifactId>firebase-admin</artifactId>
+    <version>9.4.1</version>
+</dependency>
+
 <dependency>
     <groupId>me.paulschwarz</groupId>
     <artifactId>spring-dotenv</artifactId>

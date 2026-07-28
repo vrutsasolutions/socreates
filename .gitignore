@@ -56,3 +56,6 @@ android/app/src/main/assets/public/
 
 upload-keystore.jks
 upload_certificate.pem
+
+# Firebase
+Backend/secrets/

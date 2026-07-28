@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "783151813830",
+    "project_id": "socreate-5c20e",
+    "storage_bucket": "socreate-5c20e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:783151813830:android:5cd7644e8a1c62213573c7",
+        "android_client_info": {
+          "package_name": "in.socreate.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRdpS9Uno4qJEyvKFC-dFm6d-sQgKqpAM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

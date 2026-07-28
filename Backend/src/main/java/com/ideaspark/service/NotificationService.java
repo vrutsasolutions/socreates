@@ -18,13 +18,16 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PushNotificationService pushNotificationService;
 
     public NotificationService(NotificationRepository notificationRepository,
             UserRepository userRepository,
-            SimpMessagingTemplate messagingTemplate) {
+            SimpMessagingTemplate messagingTemplate,
+            PushNotificationService pushNotificationService) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
+        this.pushNotificationService = pushNotificationService;
     }
 
     // Gate for the three toggles on Settings → Notifications. LIKE/COMMENT/
@@ -63,6 +66,12 @@ public class NotificationService {
                     "/queue/notifications",
                     saved);
         }
+
+        // Background/closed-app delivery — additive to the WebSocket push
+        // above, not a replacement. No-ops safely if Firebase isn't
+        // configured yet or the recipient has no registered devices.
+        pushNotificationService.sendPush(saved);
+
         return saved;
     }
 
