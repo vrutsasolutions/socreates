@@ -16,7 +16,9 @@ export default function ProfileShareButton({ userId, name }) {
   const [copied, setCopied] = useState(false);
   const wrapRef = useRef(null);
 
-  const shareUrl = `${window.location.origin}/users/${userId}`;
+  // Hardcoded public domain — window.location.origin inside Capacitor
+  // returns "https://localhost" (not the real site), producing broken links.
+  const shareUrl = `https://www.socreate.in/users/${userId}`;
   const shareText = name
     ? `👤 Check out ${name}'s profile on SoCreate!`
     : "👤 Check out this profile on SoCreate!";

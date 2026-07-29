@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { loginUser } from '../api/authApi';
@@ -7,8 +8,28 @@ import api from '../api/axiosInstance';
 import Icon from '../components/common/Icon';
 import scLogo from '../assets/sc-logo.png';
 
+// ── Google logo SVG (for the native-platform button) ────────────────────
+// Matches the official branding guidelines — white pill with the
+// multi-color "G" icon, identical to what @react-oauth/google renders
+// on the web. We need our own button because the web GIS iframe doesn't
+// load inside a Capacitor WebView (origin is https://localhost, which
+// isn't a registered JavaScript origin for the OAuth client).
+function GoogleLogo({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.03 24.03 0 000 21.56l7.98-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+  );
+}
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const REMEMBER_KEY = 'ideaspark_remember_email';
+
+// True when running inside the Capacitor Android/iOS shell.
+const IS_NATIVE = Capacitor.isNativePlatform();
 
 export default function Login() {
   const navigate = useNavigate();
@@ -30,6 +51,11 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // ── Native Google Auth plugin (lazy-loaded) ─────────────────────────
+  // Only imported on native platforms. On the web the @react-oauth/google
+  // <GoogleLogin> component handles everything via Google Identity Services.
+  const googleAuthRef = useRef(null);
+
   useEffect(() => {
     const saved = localStorage.getItem(REMEMBER_KEY);
     if (saved) {
@@ -37,6 +63,26 @@ export default function Login() {
       setRemember(true);
     }
     emailRef.current?.focus();
+
+    // Initialize the native Google Auth plugin on Android/iOS.
+    if (IS_NATIVE) {
+      import('@southdevs/capacitor-google-auth').then(({ GoogleAuth }) => {
+        googleAuthRef.current = GoogleAuth;
+        GoogleAuth.initialize({
+          // This MUST be the WEB client ID (same one used in main.jsx and
+          // on the backend as GOOGLE_CLIENT_ID). Google's native SDK uses
+          // google-services.json for the Android client identity, but needs
+          // the web/server client ID here to produce an ID token whose
+          // audience matches what the backend validates with
+          // GoogleIdTokenVerifier.setAudience().
+          clientId: '143175221285-r60bduti3khrb7570b7a254i7vk45198.apps.googleusercontent.com',
+          scopes: ['email', 'profile'],
+          grantOfflineAccess: false,
+        });
+      }).catch((err) => {
+        console.error('[google-auth] Failed to load native plugin:', err);
+      });
+    }
   }, []);
 
   const emailEmpty = touched.email && !form.email.trim();
@@ -97,15 +143,16 @@ export default function Login() {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  // ── Shared post-Google-auth handler ─────────────────────────────────
+  // Both the web GIS flow and the native plugin end up here with a Google
+  // ID Token (JWT). The backend verifies it the same way regardless of
+  // which path produced it.
+  const sendGoogleTokenToBackend = async (idToken) => {
     try {
       setError('');
       setLoading(true);
 
-      const res = await api.post('/auth/google', {
-        token: credentialResponse.credential,
-      });
-
+      const res = await api.post('/auth/google', { token: idToken });
       login(res.data.user, res.data.token);
 
       const redirectTo = redirectParam || location.state?.from?.pathname || '/home';
@@ -114,6 +161,44 @@ export default function Login() {
       setError(err.response?.data?.message || 'Google login failed. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Web flow — @react-oauth/google's <GoogleLogin> calls this on success.
+  const handleGoogleSuccess = (credentialResponse) => {
+    sendGoogleTokenToBackend(credentialResponse.credential);
+  };
+
+  // Native flow — our custom button calls this.
+  const handleNativeGoogleSignIn = async () => {
+    if (loading) return;
+    const GoogleAuth = googleAuthRef.current;
+    if (!GoogleAuth) {
+      setError('Google Sign-In is still loading. Please try again.');
+      return;
+    }
+
+    try {
+      const result = await GoogleAuth.signIn();
+
+      // The native plugin returns { authentication: { idToken, accessToken } }.
+      // We only need the idToken — same JWT the web GIS flow produces.
+      const idToken = result?.authentication?.idToken;
+      if (!idToken) {
+        setError('Could not get credentials from Google. Please try again.');
+        return;
+      }
+
+      await sendGoogleTokenToBackend(idToken);
+    } catch (err) {
+      // User cancelled the native Google sheet — not an error.
+      if (err?.message?.toLowerCase().includes('cancel') ||
+          err?.message?.toLowerCase().includes('popup_closed') ||
+          err?.type === 'userCanceled') {
+        return;
+      }
+      console.error('[google-auth] native sign-in error:', err);
+      setError('Google login failed. Please try again.');
     }
   };
 
@@ -267,12 +352,39 @@ export default function Login() {
               <div className="flex-1 h-px bg-[#E3F2FD]" />
             </div>
 
+            {/* ── Google Sign-In ──────────────────────────────────────
+                 Two rendering paths:
+                 • Web browser  → @react-oauth/google's <GoogleLogin>,
+                   which loads the Google Identity Services iframe. This
+                   works on any registered JavaScript origin (localhost,
+                   socreate.in) but NOT inside a Capacitor WebView.
+                 • Native app   → custom button that invokes
+                   @southdevs/capacitor-google-auth's native SDK. This
+                   uses google-services.json + the device's Google account
+                   picker, bypassing the iframe entirely.
+                 Both paths produce the same Google ID Token and send it
+                 to POST /auth/google on the backend.
+            ──────────────────────────────────────────────────────── */}
             <div className="w-full flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setError('Google login failed. Please try again.')}
-                useOneTap={false}
-              />
+              {IS_NATIVE ? (
+                <button
+                  type="button"
+                  onClick={handleNativeGoogleSignIn}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-3 w-full bg-white border border-[#DADCE0] rounded-2xl px-4 py-3.5 shadow-sm hover:shadow transition-shadow active:scale-[0.98] disabled:opacity-50"
+                >
+                  <GoogleLogo size={20} />
+                  <span className="text-[#3c4043] text-sm font-medium">
+                    Sign in with Google
+                  </span>
+                </button>
+              ) : (
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError('Google login failed. Please try again.')}
+                  useOneTap={false}
+                />
+              )}
             </div>
 
             <p className="text-center text-[#546E7A] text-sm mt-6 mb-2">
