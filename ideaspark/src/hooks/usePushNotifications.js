@@ -69,6 +69,11 @@ export default function usePushNotifications() {
     // Step 2 — the device token arrives here, asynchronously, once
     // register() succeeds.
     const registrationListener = PushNotifications.addListener('registration', (token) => {
+      // Stashed locally so AuthContext.logout() can unregister this exact
+      // token from the backend on sign-out — otherwise a logged-out device
+      // keeps receiving pushes meant for the account that just left it.
+      localStorage.setItem('fcm_device_token', token.value);
+
       // Step 3 — hand it to the backend so it knows where to deliver
       // future pushes for this user. Fire-and-forget: a failure here just
       // means this device won't get background pushes until the next
