@@ -10,15 +10,18 @@
 //  Priority, checked in order, first match wins:
 //    1. An overlay is open (modal/sheet/popover registered via
 //       backOverlayStack) → close it. Nothing else happens.
-//    2. We're already on Home → require a second press within 2s,
-//       showing a small "Press back again to exit" toast on the first
-//       press. Second press within the window calls App.exitApp().
-//    3. Anywhere else (bottom-tab screens like Explore/Premium/Profile/
-//       Messages, or any deeper page like Settings, Creator Dashboard,
-//       etc.) → go straight to Home. This is intentionally NOT
-//       navigate(-1)/history-based — the product requirement is that
-//       back always lands on Home from anywhere, not "one step up
-//       wherever you came from."
+//    2. We're on an individual chat screen (/messages/:id) → go to Inbox
+//       (/messages), regardless of how the chat was opened.
+//    3. We're anywhere else EXCEPT Home → go straight to Home. This is a
+//       fixed destination, not "one step back through history" — e.g.
+//       Search, Profile, Settings, and Inbox itself all go directly to
+//       Home on a single back press.
+//    4. We're already on Home → require a second press within 2s, showing
+//       a small "Press back again to exit" toast on the first press.
+//       Second press within the window calls App.exitApp().
+//
+//  Net effect: Chat → Inbox → Home → (confirm) → exit. Every other screen
+//  is just → Home → (confirm) → exit.
 //
 //  Only runs on native Android/iOS via Capacitor — no-op in a regular
 //  browser tab, same guard pattern as usePushNotifications.
@@ -29,11 +32,16 @@ import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { consumeBack } from "../utils/backOverlayStack";
 
-// Only Home requires the "press back again to exit" confirmation.
-// Every other screen's back gesture goes straight to Home.
-const EXIT_ROOTS = ["/home"];
+// The only screen where back requires a confirming second press before
+// actually exiting the app. Every other screen redirects here first.
+const HOME_PATH = "/home";
 
 const EXIT_CONFIRM_WINDOW_MS = 2000;
+
+// Matches an individual chat screen, e.g. "/messages/abc123" — but NOT
+// "/messages", "/messages/new", or "/messages/requests" (those fall
+// through to the "go to Home" rule below like any other screen).
+const CHAT_DETAIL_PATTERN = /^\/messages\/(?!new$|requests$)[^/]+$/;
 
 export default function useAppBackButton() {
   const navigate = useNavigate();
@@ -67,15 +75,24 @@ export default function useAppBackButton() {
       if (consumeBack()) return;
 
       const path = locationRef.current.pathname;
-      const isHome = EXIT_ROOTS.includes(path);
 
-      // 2. Not on Home — go straight to Home, from anywhere.
-      if (!isHome) {
-        navigate("/home");
+      // 2. On an individual chat screen — always land on Inbox, regardless
+      // of how the chat was opened (Inbox row, a profile's "Message"
+      // button, a notification tap, etc.).
+      if (CHAT_DETAIL_PATTERN.test(path)) {
+        navigate("/messages");
         return;
       }
 
-      // 3. Already on Home — require a confirming second press to exit.
+      // 3. Anywhere except Home — go straight to Home. Fixed destination,
+      // not a step back through history (so Inbox, Search, Profile,
+      // Settings, etc. all land on Home in one press).
+      if (path !== HOME_PATH) {
+        navigate(HOME_PATH);
+        return;
+      }
+
+      // 4. Already on Home — require a confirming second press.
       if (exitArmedRef.current) {
         clearTimeout(exitTimerRef.current);
         CapacitorApp.exitApp();
