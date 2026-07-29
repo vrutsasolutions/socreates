@@ -11,6 +11,7 @@ import SockJS from "sockjs-client";
 import api from "./axiosInstance";
 import { USE_MOCK, mockResponse } from "./config";
 import { MOCK_NOTIFICATIONS } from "./mockData";
+import { broadcastInboxUpdate } from "./messagingApi";
 
 const WS_URL = import.meta.env.VITE_WS_URL || "http://localhost:8081/ws";
 
@@ -192,7 +193,19 @@ export const subscribeToNotifications = (onMessage) => {
           }
         })();
 
-        if (myId && String(msgDto.senderId) === String(myId)) return;
+        const fromMe = !!(myId && String(msgDto.senderId) === String(myId));
+
+        // Any mounted Inbox re-sorts/refreshes its preview off this,
+        // regardless of who sent it — e.g. a message sent from another
+        // device should still bump this device's inbox to the top.
+        broadcastInboxUpdate({
+          conversationId: msgDto.conversationId,
+          dto: msgDto,
+          lastMessageAt: new Date(msgDto.createdAt ?? Date.now()).getTime(),
+          fromMe,
+        });
+
+        if (fromMe) return;
 
         onMessage?.(messageToNotification(msgDto));
       } catch (err) {
