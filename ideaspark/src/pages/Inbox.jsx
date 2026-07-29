@@ -8,10 +8,10 @@
 //  FIX: fetchConversations and fetchActiveUsers are now called independently.
 //  A failed /active endpoint no longer prevents conversations from loading.
 // ════════════════════════════════════════════════════════════════════════
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
-import { fetchConversations, fetchActiveUsers, fetchRequests } from '../api/messagingApi';
+import { fetchConversations, fetchActiveUsers, fetchRequests, fetchConversation, formatInboxTime } from '../api/messagingApi';
 import Icon from '../components/common/Icon';
 
 const PREVIEW_ICON = { voice: 'mic', image: 'camera', idea: 'lightbulb' };
@@ -191,7 +191,97 @@ export default function Inbox() {
     };
   }, []);
 
-  const filtered = conversations.filter((c) =>
+  // Live re-ordering: a message sent or received on ANY conversation (this
+  // device or, for "sent", another one of the user's own devices) fires
+  // "inbox-conversation-update" — see broadcastInboxUpdate() in
+  // messagingApi.jsx and the STOMP handler in notificationApi.jsx. We patch
+  // that one row's preview/time/unread in place; the `sorted` derivation
+  // below then naturally floats it to the top on the next render, so the
+  // "most recent chat first" ordering stays live without a refetch.
+  //
+  // If the conversationId isn't in the list yet (first-ever message from
+  // someone new), there's no row to patch — fetch that one conversation's
+  // full details (name/avatar/etc.) and prepend it, so a brand-new chat
+  // shows up live too, not just on the next reload.
+  const pendingNewConvoFetch = useRef(new Set());
+
+  useEffect(() => {
+    const handleInboxUpdate = (event) => {
+      const { conversationId, lastType, lastMessage, lastMessageAt, fromMe } = event.detail;
+      const isOpenRightNow = window.location.pathname === `/messages/${conversationId}`;
+
+      setConversations((prev) => {
+        const exists = prev.some((c) => String(c.id) === String(conversationId));
+
+        if (exists) {
+          return prev.map((c) =>
+            String(c.id) === String(conversationId)
+              ? {
+                  ...c,
+                  lastType,
+                  lastMessage,
+                  lastMessageAt,
+                  time: formatInboxTime(lastMessageAt),
+                  unread: fromMe || isOpenRightNow ? 0 : (c.unread || 0) + 1,
+                }
+              : c,
+          );
+        }
+
+        // Brand-new conversation — kick off a fetch (once) and prepend the
+        // row when it resolves; leave the list untouched for now.
+        if (!pendingNewConvoFetch.current.has(conversationId)) {
+          pendingNewConvoFetch.current.add(conversationId);
+          fetchConversation(conversationId)
+            .then(({ data }) => {
+              setConversations((cur) => {
+                if (cur.some((c) => String(c.id) === String(conversationId))) return cur; // arrived some other way meanwhile
+                return [
+                  {
+                    ...data,
+                    lastType,
+                    lastMessage,
+                    lastMessageAt,
+                    time: formatInboxTime(lastMessageAt),
+                    unread: fromMe || isOpenRightNow ? 0 : 1,
+                  },
+                  ...cur,
+                ];
+              });
+            })
+            .catch((err) => console.error('[Inbox] failed to load new conversation', err))
+            .finally(() => pendingNewConvoFetch.current.delete(conversationId));
+        }
+
+        return prev;
+      });
+    };
+
+    window.addEventListener('inbox-conversation-update', handleInboxUpdate);
+
+    return () => {
+      window.removeEventListener('inbox-conversation-update', handleInboxUpdate);
+    };
+  }, []);
+
+  // Most-recently-active conversation first. conversations[] already arrives
+  // in a reasonable order from the API, but that order can go stale (e.g. an
+  // older chat gets a new reply). `.map((c, i) => ...)` tags each row with its
+  // original index so rows without a real lastMessageAt (older/mocked
+  // payloads) keep their existing relative order instead of jumping around.
+  const sorted = conversations
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => {
+      const at = a.c.lastMessageAt;
+      const bt = b.c.lastMessageAt;
+      if (at != null && bt != null) return bt - at;
+      if (at != null) return -1;
+      if (bt != null) return 1;
+      return a.i - b.i;
+    })
+    .map(({ c }) => c);
+
+  const filtered = sorted.filter((c) =>
     c.name.toLowerCase().includes(query.trim().toLowerCase()),
   );
   const isEmpty = !loading && !error && conversations.length === 0;
