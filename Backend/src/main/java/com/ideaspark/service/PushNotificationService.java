@@ -7,6 +7,7 @@ import com.ideaspark.model.Notification;
 import com.ideaspark.repository.DeviceTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -71,6 +72,15 @@ public class PushNotificationService {
     // Fire-and-forget from NotificationService — a push failure should never
     // break the (already-persisted, already-WebSocket-pushed) in-app
     // notification, so every failure path here only logs, never throws.
+    //
+    // @Async so the calling request thread (e.g. someone liking an idea)
+    // doesn't block on FCM's HTTP round-trip(s) — this now runs on a
+    // separate thread via Spring's @EnableAsync (IdeasparkApplication).
+    // Safe to detach from the caller's transaction: `notification` was
+    // already saved before this is called, and its `user` association is
+    // already initialized (not a lazy proxy), so no further DB access is
+    // needed from the original transaction.
+    @Async
     public void sendPush(Notification notification) {
         if (FirebaseApp.getApps().isEmpty()) {
             return; // not configured yet — see FirebaseConfig
