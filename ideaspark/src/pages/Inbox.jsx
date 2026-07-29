@@ -162,6 +162,35 @@ export default function Inbox() {
     return () => { alive = false; };
   }, []);
 
+  // The conversation list is otherwise only ever set once, at load time —
+  // without this, a contact's online dot here goes stale the moment they
+  // connect/disconnect after this screen has already rendered. Chat.jsx
+  // already listens for this same "presence-update" event for the single
+  // open conversation; this mirrors that for every row in the list.
+  useEffect(() => {
+    const handlePresence = (event) => {
+      const presence = event.detail;
+
+      setConversations((prev) =>
+        prev.map((c) =>
+          String(c.otherUserId) === String(presence.userId)
+            ? {
+                ...c,
+                online: presence.online,
+                activityVisible: presence.visible ?? true,
+              }
+            : c
+        )
+      );
+    };
+
+    window.addEventListener('presence-update', handlePresence);
+
+    return () => {
+      window.removeEventListener('presence-update', handlePresence);
+    };
+  }, []);
+
   const filtered = conversations.filter((c) =>
     c.name.toLowerCase().includes(query.trim().toLowerCase()),
   );

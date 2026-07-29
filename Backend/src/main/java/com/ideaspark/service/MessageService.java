@@ -41,6 +41,7 @@ public class MessageService {
     private final NotificationRepository notificationRepository;
     private final BlockedUserRepository blockedUserRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PushNotificationService pushNotificationService;
 
     private static final int FREE_TEXT_LIMIT = 5;
     private static final int FREE_FILE_LIMIT = 1;
@@ -258,6 +259,14 @@ public class MessageService {
                 recipient.getEmail(),
                 "/queue/notifications",
                 notification);
+
+        // Background/closed-app delivery via FCM — additive to the
+        // WebSocket send above, not a replacement. Mirrors
+        // NotificationService.sendNotification(); this call was missing
+        // here, which is why messages never reached a recipient whose app
+        // was closed or backgrounded, even though the WebSocket path
+        // (open-app) worked fine.
+        pushNotificationService.sendPush(notification);
 
         return dto;
     }
