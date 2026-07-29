@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react'
+import { unregisterDeviceToken } from '../api/pushNotificationApi'
 
 const AuthContext = createContext(null)
 
@@ -14,6 +15,17 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = () => {
+    // Best-effort: stop this device from receiving push notifications for
+    // the account that's signing out. Fire-and-forget — a failure here
+    // (e.g. offline) shouldn't block logout; the token will just linger
+    // until FCM reports it invalid or the next device re-registers.
+    const deviceToken = localStorage.getItem('fcm_device_token')
+    if (deviceToken) {
+      unregisterDeviceToken(deviceToken).catch((err) =>
+        console.error('[logout] failed to unregister device token', err)
+      )
+    }
+
     localStorage.clear()
     setUser(null)
   }
