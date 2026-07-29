@@ -12,7 +12,20 @@
           "package_name": "in.socreate.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "783151813830-r8an6e48hjoald2dcq22mhas29bc36j5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.socreate.app",
+            "certificate_hash": "f806b653fff7a2840ce5ee545ce4b0399a684036"
+          }
+        },
+        {
+          "client_id": "783151813830-8dhn46v1dtefsna6r3r1gjqrfarflfjg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCRdpS9Uno4qJEyvKFC-dFm6d-sQgKqpAM"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "783151813830-8dhn46v1dtefsna6r3r1gjqrfarflfjg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

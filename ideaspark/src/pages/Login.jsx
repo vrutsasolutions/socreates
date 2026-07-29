@@ -75,7 +75,7 @@ export default function Login() {
           // the web/server client ID here to produce an ID token whose
           // audience matches what the backend validates with
           // GoogleIdTokenVerifier.setAudience().
-          clientId: '143175221285-r60bduti3khrb7570b7a254i7vk45198.apps.googleusercontent.com',
+          clientId: '783151813830-8dhn46v1dtefsna6r3r1gjqrfarflfjg.apps.googleusercontent.com',
           scopes: ['email', 'profile'],
           grantOfflineAccess: false,
         });
