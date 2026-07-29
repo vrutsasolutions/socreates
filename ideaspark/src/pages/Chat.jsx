@@ -274,10 +274,31 @@ function Bubble({
   const mine = m.fromMe;
   const rowCls = `flex items-end gap-1.5 group ${mine ? "justify-end" : "justify-start"}`;
 
+  // ── Inline time+ticks (appears inside every bubble type) ──
+  const timeLabel = m.time || formatMessageTime(m.createdAt);
+  const TimeMeta = ({ light }) => (
+    timeLabel ? (
+      <span className={`inline-flex items-center gap-1 text-[10px] font-normal whitespace-nowrap ${
+        light ? "text-white/70" : "text-[#90A4AE]"
+      }`}>
+        <span>{timeLabel}</span>
+        {mine && (
+          <span className={`inline-flex ${
+            (m.isRead || m.read)
+              ? (light ? "text-sky-300" : "text-[#1565C0]")
+              : (light ? "text-white/70" : "text-[#90A4AE]")
+          }`}>
+            <span>✓</span>
+            {(m.isRead || m.read) && <span className="-ml-0.5">✓</span>}
+          </span>
+        )}
+      </span>
+    ) : null
+  );
+
   let content;
 
   if (m.type === "image") {
-    // imageUrl set by normalizeMessage() from backend content field
     const src = m.imageUrl || m.content || "";
     const media = m.isVideo ? (
       <video
@@ -293,7 +314,7 @@ function Bubble({
       />
     );
     content = (
-      <div className="block">
+      <div className="block relative">
         {m.replyTo && <QuotedInBubble replyTo={m.replyTo} light={false} />}
         {m.isVideo ? (
           media
@@ -302,9 +323,12 @@ function Bubble({
             onClick={() => {
               if (!selectMode) onImageClick(src);
             }}
-            className="block"
+            className="block relative"
           >
             {media}
+            <span className="absolute bottom-1.5 right-1.5 bg-black/50 rounded-full px-1.5 py-0.5">
+              <TimeMeta light />
+            </span>
           </button>
         )}
         {m.text && (
@@ -321,30 +345,34 @@ function Bubble({
           if (!selectMode && m.content)
             window.open(m.content, "_blank", "noopener");
         }}
-        className={`flex items-center gap-3 rounded-[18px] px-4 py-3 max-w-[240px] ${m.content && !selectMode ? "cursor-pointer" : ""} ${mine ? "bg-[#1565C0] text-white" : "bg-white text-[#0D2137] shadow-sm"}`}
+        className={`rounded-[18px] px-4 py-3 max-w-[240px] ${m.content && !selectMode ? "cursor-pointer" : ""} ${mine ? "bg-[#1565C0] text-white" : "bg-white text-[#0D2137] shadow-sm"}`}
       >
-        <span
-          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${mine ? "bg-white/20" : "bg-[#EAF2FF] text-[#1565C0]"}`}
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.8}
+        <div className="flex items-center gap-3">
+          <span
+            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${mine ? "bg-white/20" : "bg-[#EAF2FF] text-[#1565C0]"}`}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M14 3v5h5M7 3h7l5 5v11a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"
-            />
-          </svg>
-        </span>
-        <span className="text-[13px] truncate">{m.fileName}</span>
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.8}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M14 3v5h5M7 3h7l5 5v11a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"
+              />
+            </svg>
+          </span>
+          <span className="text-[13px] truncate flex-1">{m.fileName}</span>
+        </div>
+        <div className="flex justify-end mt-1">
+          <TimeMeta light={mine} />
+        </div>
       </div>
     );
   } else if (m.type === "voice") {
-    // content holds the R2 URL (set by normalizeMessage or by optimistic push)
     const audioSrc = m.content || "";
     const hasAudio =
       audioSrc.startsWith("http") || audioSrc.startsWith("blob:");
@@ -380,10 +408,12 @@ function Bubble({
             }}
           />
         )}
+        <div className="flex justify-end">
+          <TimeMeta light={mine} />
+        </div>
       </div>
     );
   } else if (m.type === "idea") {
-    // Shared idea — a tappable card that opens the idea detail page.
     const idea = m.idea || {};
     content = (
       <button
@@ -410,38 +440,45 @@ function Bubble({
           <p className="mt-0.5 text-[13px] font-bold text-[#0D2137] leading-snug line-clamp-2">
             {idea.title || "Untitled idea"}
           </p>
-          <p className="mt-1.5 text-[12px] font-semibold text-[#1565C0]">
-            View idea →
-          </p>
+          <div className="mt-1.5 flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-[#1565C0]">
+              View idea →
+            </span>
+            <TimeMeta light={false} />
+          </div>
         </div>
       </button>
     );
   } else if (m.type === "profile") {
-    // Shared profile — a tappable card that opens the shared user's profile.
     const profile = m.profile || {};
     content = (
       <button
         onClick={() => {
           if (!selectMode) onOpenProfile?.(profile);
         }}
-        className="flex items-center gap-3 w-[230px] rounded-2xl bg-white text-left shadow-sm border border-[#E3F2FD] px-4 py-3 active:scale-[0.99] transition-transform"
+        className="w-[230px] rounded-2xl bg-white text-left shadow-sm border border-[#E3F2FD] px-4 py-3 active:scale-[0.99] transition-transform"
       >
-        <Avatar
-          initial={profile.initial || "?"}
-          color={profile.avatarColor || "#1565C0"}
-          src={profile.profileImage}
-          size={44}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#1565C0]">
-            Shared profile
-          </p>
-          <p className="mt-0.5 text-[14px] font-bold text-[#0D2137] truncate">
-            {profile.name || "Unknown"}
-          </p>
-          <p className="mt-1 text-[12px] font-semibold text-[#1565C0]">
-            View profile →
-          </p>
+        <div className="flex items-center gap-3">
+          <Avatar
+            initial={profile.initial || "?"}
+            color={profile.avatarColor || "#1565C0"}
+            src={profile.profileImage}
+            size={44}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[#1565C0]">
+              Shared profile
+            </p>
+            <p className="mt-0.5 text-[14px] font-bold text-[#0D2137] truncate">
+              {profile.name || "Unknown"}
+            </p>
+            <p className="mt-1 text-[12px] font-semibold text-[#1565C0]">
+              View profile →
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end mt-1">
+          <TimeMeta light={false} />
         </div>
       </button>
     );
@@ -457,24 +494,9 @@ function Bubble({
         }`}
       >
         {m.replyTo && <QuotedInBubble replyTo={m.replyTo} light={mine} />}
-
         <div className="flex items-end gap-2">
-          <span className="break-words">{linkifyText(displayText)}</span>
-
-          {mine && (
-            <span className="flex items-center gap-1 text-[10px] text-white/80 font-normal whitespace-nowrap">
-              <span>{m.time || "now"}</span>
-
-              <span
-                className={`inline-flex ${
-                  m.isRead || m.read ? "text-sky-300" : "text-white/80"
-                }`}
-              >
-                <span>✓</span>
-                {(m.isRead || m.read) && <span className="-ml-1">✓</span>}
-              </span>
-            </span>
-          )}
+          <span className="break-words flex-1 min-w-0">{linkifyText(displayText)}</span>
+          <TimeMeta light={mine} />
         </div>
       </div>
     );
@@ -488,7 +510,7 @@ function Bubble({
       }}
       className={`-mx-4 px-4 py-1 transition-colors ${selected ? "bg-[#DBEAFE]/70" : ""} ${selectMode ? "cursor-pointer select-none" : ""}`}
     >
-      {/* Emoji reaction bar — only when this is the single selected message */}
+      {/* Emoji reaction bar */}
       {showReactionBar && (
         <div
           className={`flex ${mine ? "justify-end" : "justify-start"} mb-1.5`}
@@ -896,11 +918,13 @@ export default function Chat() {
 
   // ── Optimistic message push ─────────────────────────────────────────────
   const pushSent = async (payload) => {
+    const now = new Date();
     const optimistic = {
       id: "tmp-" + Date.now(),
       conversationId: id,
       fromMe: true,
-      time: "",
+      createdAt: now.toISOString(),
+      time: now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
       ...payload,
     };
     setMessages((prev) => [
@@ -1818,47 +1842,64 @@ export default function Chat() {
           ref={scrollRef}
           className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
         >
-          <div className="flex justify-center">
-            <span className="px-3 py-1 rounded-[13px] bg-[#DBEAFE] text-[12px] text-[#1565C0] font-medium">
-              {getDateLabel(messages[0]?.createdAt)}
-            </span>
-          </div>
           {searchMode && q && visibleMessages.length === 0 ? (
             <p className="text-center text-[13px] text-[#90A4AE] pt-10">
               No messages match “{searchQuery.trim()}”.
             </p>
           ) : (
-            visibleMessages.map((m) => (
-              <Bubble
-                key={m.id}
-                m={m}
-                onImageClick={(url) => setViewer(url)}
-                onReply={(msg) => setReplyTo(msg)}
-                selectMode={selectMode}
-                selected={selectedIds.includes(m.id)}
-                onToggleSelect={toggleSelect}
-                onLongPress={enterSelect}
-                reaction={reactions[m.id]}
-                showReactionBar={
-                  selectMode &&
-                  selectedIds.length === 1 &&
-                  selectedIds[0] === m.id
-                }
-                onReact={applyReaction}
-                onOpenIdea={(idea) => {
-                  if (!idea?.id) return;
-                  navigate(
-                    idea.isPremium
-                      ? `/premium/${idea.id}`
-                      : `/ideas/${idea.id}`,
-                  );
-                }}
-                onOpenProfile={(profile) => {
-                  if (!profile?.id) return;
-                  navigate(`/users/${profile.id}`);
-                }}
-              />
-            ))
+            visibleMessages.map((m, idx) => {
+              const prevMsg = idx > 0 ? visibleMessages[idx - 1] : null;
+              const curDate = m.createdAt ? new Date(m.createdAt) : null;
+              const prevDate = prevMsg?.createdAt ? new Date(prevMsg.createdAt) : null;
+
+              const dayMatches = (a, b) =>
+                a && b &&
+                a.getFullYear() === b.getFullYear() &&
+                a.getMonth() === b.getMonth() &&
+                a.getDate() === b.getDate();
+
+              const showDateSep = idx === 0 || (curDate && !dayMatches(curDate, prevDate));
+
+              return (
+                <div key={m.id}>
+                  {showDateSep && (
+                    <div className="flex justify-center py-2">
+                      <span className="px-3 py-1 rounded-[13px] bg-[#DBEAFE] text-[12px] text-[#1565C0] font-medium">
+                        {getDateLabel(m.createdAt)}
+                      </span>
+                    </div>
+                  )}
+                  <Bubble
+                    m={m}
+                    onImageClick={(url) => setViewer(url)}
+                    onReply={(msg) => setReplyTo(msg)}
+                    selectMode={selectMode}
+                    selected={selectedIds.includes(m.id)}
+                    onToggleSelect={toggleSelect}
+                    onLongPress={enterSelect}
+                    reaction={reactions[m.id]}
+                    showReactionBar={
+                      selectMode &&
+                      selectedIds.length === 1 &&
+                      selectedIds[0] === m.id
+                    }
+                    onReact={applyReaction}
+                    onOpenIdea={(idea) => {
+                      if (!idea?.id) return;
+                      navigate(
+                        idea.isPremium
+                          ? `/premium/${idea.id}`
+                          : `/ideas/${idea.id}`,
+                      );
+                    }}
+                    onOpenProfile={(profile) => {
+                      if (!profile?.id) return;
+                      navigate(`/users/${profile.id}`);
+                    }}
+                  />
+                </div>
+              );
+            })
           )}
         </div>
       )}
