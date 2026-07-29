@@ -587,8 +587,11 @@ public class MessageService {
         dto.setOtherUserId(other.getId());
         dto.setOtherUserName(other.getName());
         dto.setOtherUserAvatar(other.getProfileImage());
-        dto.setOtherUserOnline(Boolean.TRUE.equals(other.getOnline()));
-        dto.setOtherUserLastSeen(other.getLastSeen());
+        // ── Activity-status masking (mirrors PresenceService.broadcastPresence) ──
+        boolean activityVisible = other.isShowActivityStatus();
+        dto.setOtherUserActivityStatusVisible(activityVisible);
+        dto.setOtherUserOnline(activityVisible && Boolean.TRUE.equals(other.getOnline()));
+        dto.setOtherUserLastSeen(activityVisible ? other.getLastSeen() : null);
         dto.setOtherUserVerifiedCreator(other.isPremium() || other.isVerified());
         dto.setLastMessage(lastMsg);
         dto.setLastMessageType(lastType);
