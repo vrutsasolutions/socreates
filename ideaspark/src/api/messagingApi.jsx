@@ -74,7 +74,7 @@ const parseCreatedAt = (val) => {
  *   Yesterday → "Yesterday"
  *   Older → "29 Jul 2025"
  */
-const formatInboxTime = (val) => {
+export const formatInboxTime = (val) => {
   const date = parseCreatedAt(val);
   if (!date || Number.isNaN(date.getTime())) return "";
 
@@ -158,6 +158,14 @@ const normalizeConversation = (dto) => {
     lastMessage: dto.lastMessage ?? "",
     lastType: (dto.lastMessageType ?? dto.lastType ?? "TEXT").toLowerCase(),
     time: formatInboxTime(dto.lastMessageAt ?? dto.createdAt) || (dto.time ?? ""),
+    // Raw sortable timestamp (ms since epoch) behind the "2m ago"/"Yesterday"
+    // display string above — Inbox.jsx sorts the conversation list by this so
+    // whoever messaged most recently stays at the top. null when the backend
+    // sent neither lastMessageAt nor createdAt (defensive fallback only).
+    lastMessageAt: (() => {
+      const d = parseCreatedAt(dto.lastMessageAt ?? dto.createdAt);
+      return d && !Number.isNaN(d.getTime()) ? d.getTime() : null;
+    })(),
     unread: dto.unreadCount ?? dto.unread ?? 0,
     // Whether the other party is a verified creator. Drives the free-tier
     // messaging limit on the Chat page. Backend may send a single flag or the
@@ -232,6 +240,66 @@ const parseSharedProfile = (content) => {
       profileImage: null,
     };
   }
+};
+
+/**
+ * Build the inbox row preview ({ lastType, lastMessage }) from a raw
+ * message DTO — same field names/shape whether it came back from the
+ * send-message REST call or pushed live over the /user/queue/messages
+ * STOMP topic (both carry { type, content, ... }).
+ *
+ * Mirrors the preview text the mock sendMessage() branch below already
+ * builds, so live and mock behave identically.
+ */
+export const deriveLastMessagePreview = (dto) => {
+  const type = (dto.type ?? "TEXT").toLowerCase();
+  const content = dto.content ?? dto.text ?? "";
+  let lastMessage;
+  switch (type) {
+    case "image":
+      lastMessage = dto.isVideo ? "Shared a video" : "Shared a photo";
+      break;
+    case "voice":
+      lastMessage = `Voice note  ${dto.duration || ""}`.trim();
+      break;
+    case "file":
+      lastMessage = `📄 ${dto.fileName || fileNameFromUrl(content) || "File"}`;
+      break;
+    case "idea":
+      lastMessage = `💡 ${parseSharedIdea(content).title}`;
+      break;
+    case "profile":
+      lastMessage = `👤 Shared ${parseSharedProfile(content).name}`;
+      break;
+    default:
+      lastMessage = content;
+  }
+  return { lastType: type, lastMessage };
+};
+
+// Broadcast a live conversation update so any mounted Inbox re-sorts and
+// refreshes its preview text without needing a reload/refetch. Both the
+// outgoing send path (below) and the incoming STOMP handler
+// (notificationApi.jsx) call this — Inbox.jsx listens for it.
+export const broadcastInboxUpdate = ({
+  conversationId,
+  dto,
+  lastMessageAt,
+  fromMe,
+}) => {
+  if (typeof window === "undefined" || !conversationId) return;
+  const { lastType, lastMessage } = deriveLastMessagePreview(dto);
+  window.dispatchEvent(
+    new CustomEvent("inbox-conversation-update", {
+      detail: {
+        conversationId: String(conversationId),
+        lastType,
+        lastMessage,
+        lastMessageAt: lastMessageAt ?? Date.now(),
+        fromMe: !!fromMe,
+      },
+    }),
+  );
 };
 
 const normalizeMessage = (dto, myId) => {
@@ -403,6 +471,11 @@ export const sendMessage = async (conversationId, payload) => {
           }
         : c,
     );
+    broadcastInboxUpdate({
+      conversationId,
+      dto: payload,
+      fromMe: true,
+    });
     return mockResponse({ ...msg }, 150);
   }
 
@@ -427,6 +500,12 @@ export const sendMessage = async (conversationId, payload) => {
     `/messages/conversations/${conversationId}/messages`,
     backendPayload,
   );
+  broadcastInboxUpdate({
+    conversationId,
+    dto: res.data,
+    lastMessageAt: parseCreatedAt(res.data?.createdAt)?.getTime(),
+    fromMe: true,
+  });
   return { data: normalizeMessage(res.data, myId) };
 };
 
