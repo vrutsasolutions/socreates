@@ -37,6 +37,7 @@ import PayoutSettings from "../pages/PayoutSettings";
 import PayoutDetail from "../pages/PayoutDetail";
 import Search from "../pages/Search";
 import Profile from "../pages/Profile";
+import BackButtonBridge from "../components/common/BackButtonBridge";
 import UserProfile from "../pages/UserProfile";
 import IdeaDetail from "../pages/IdeaDetail";
 import PremiumDetail from "../pages/PremiumDetail";
@@ -80,6 +81,7 @@ export default function AppRouter() {
     <BrowserRouter>
       <NotificationToasts />
       <PushNotificationsBridge />
+      <BackButtonBridge />
 
       <Routes>
         <Route path="/" element={<Welcome />} />

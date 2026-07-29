@@ -9,6 +9,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
+import { pushBackHandler } from "../../utils/backOverlayStack";
 
 export default function ProfileShareButton({ userId, name }) {
   const [open, setOpen] = useState(false);
@@ -31,6 +32,13 @@ export default function ProfileShareButton({ userId, name }) {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
+  // While the fallback popover is open, let the hardware back button /
+  // system back gesture close it instead of navigating away or exiting
+  // the app. See src/utils/backOverlayStack.js for how this is checked.
+  useEffect(() => {
+    if (!open) return;
+    return pushBackHandler(() => setOpen(false));
+  }, [open]);
   const handleClick = async () => {
     // Native Android/iOS app — use Capacitor's Share plugin.
     // navigator.share is unreliable inside a Capacitor WebView: it can
