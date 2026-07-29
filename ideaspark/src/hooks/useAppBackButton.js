@@ -10,11 +10,15 @@
 //  Priority, checked in order, first match wins:
 //    1. An overlay is open (modal/sheet/popover registered via
 //       backOverlayStack) → close it. Nothing else happens.
-//    2. We're not on one of the bottom-tab root screens → navigate back
-//       one step in-app (React Router, not raw WebView history).
-//    3. We ARE on a root screen → require a second press within 2s,
+//    2. We're already on Home → require a second press within 2s,
 //       showing a small "Press back again to exit" toast on the first
 //       press. Second press within the window calls App.exitApp().
+//    3. Anywhere else (bottom-tab screens like Explore/Premium/Profile/
+//       Messages, or any deeper page like Settings, Creator Dashboard,
+//       etc.) → go straight to Home. This is intentionally NOT
+//       navigate(-1)/history-based — the product requirement is that
+//       back always lands on Home from anywhere, not "one step up
+//       wherever you came from."
 //
 //  Only runs on native Android/iOS via Capacitor — no-op in a regular
 //  browser tab, same guard pattern as usePushNotifications.
@@ -25,18 +29,9 @@ import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { consumeBack } from "../utils/backOverlayStack";
 
-// Bottom-tab roots + other screens a user commonly lands on directly
-// (e.g. after a deep link) where there's nothing meaningful left to go
-// "back" to in-app — these are the screens where back should ask for
-// confirmation instead of silently exiting.
-const EXIT_ROOTS = [
-  "/home",
-  "/search",
-  "/add-idea",
-  "/premium",
-  "/profile",
-  "/messages",
-];
+// Only Home requires the "press back again to exit" confirmation.
+// Every other screen's back gesture goes straight to Home.
+const EXIT_ROOTS = ["/home"];
 
 const EXIT_CONFIRM_WINDOW_MS = 2000;
 
@@ -72,15 +67,15 @@ export default function useAppBackButton() {
       if (consumeBack()) return;
 
       const path = locationRef.current.pathname;
-      const isRoot = EXIT_ROOTS.includes(path);
+      const isHome = EXIT_ROOTS.includes(path);
 
-      // 2. Not on a root screen — just go back a step in-app.
-      if (!isRoot) {
-        navigate(-1);
+      // 2. Not on Home — go straight to Home, from anywhere.
+      if (!isHome) {
+        navigate("/home");
         return;
       }
 
-      // 3. On a root screen — require a confirming second press.
+      // 3. Already on Home — require a confirming second press to exit.
       if (exitArmedRef.current) {
         clearTimeout(exitTimerRef.current);
         CapacitorApp.exitApp();

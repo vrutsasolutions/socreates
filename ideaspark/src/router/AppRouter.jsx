@@ -9,7 +9,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationToasts from "../components/common/NotificationToasts";
 import usePushNotifications from "../hooks/usePushNotifications";
-import useBackButton from "../hooks/useBackButton";
 
 import Welcome from "../pages/Welcome";
 import Login from "../pages/Login";
@@ -69,12 +68,20 @@ function PublicOnly({ children }) {
   return user ? <Navigate to="/home" replace /> : children;
 }
 
-// Renders nothing — exists purely so usePushNotifications and useBackButton
-// (both need useNavigate / useLocation from React Router) run as descendants
-// of BrowserRouter. Mirrors how NotificationToasts is mounted above it.
+// Renders nothing — exists purely so usePushNotifications (needs
+// useNavigate / useLocation from React Router) runs as a descendant of
+// BrowserRouter. Mirrors how NotificationToasts is mounted above it.
+//
+// Back-button/back-gesture handling lives solely in useAppBackButton
+// (mounted via BackButtonBridge below) — it used to also be handled here
+// via useBackButton, but that hook never unsubscribed its Capacitor
+// listener (App.addListener returns a Promise, and the old cleanup called
+// .remove() on the Promise itself, which is a no-op). That left stale,
+// mismatched listeners piling up on every navigation, which is why back
+// gestures behaved inconsistently across screens. useBackButton.js has
+// been removed — do not reintroduce it.
 function PushNotificationsBridge() {
   usePushNotifications();
-  useBackButton();
   return null;
 }
 

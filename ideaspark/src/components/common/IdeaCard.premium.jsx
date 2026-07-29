@@ -465,7 +465,7 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
     <div
       onClick={handleClick}
       className="sc-card sc-animate-slide-up"
-      style={{ cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+      style={{ cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
     >
       {/* Image / Thumbnail */}
       <div style={{

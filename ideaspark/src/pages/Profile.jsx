@@ -60,6 +60,7 @@ export default function Profile() {
   // Follower / following counts for the signed-in user's own profile.
   // Uses useCallback so the same function ref can be passed to the
   // visibilitychange listener without re-registering on every render.
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const refreshFollowStats = useCallback(() => {
     if (!user?.id) return;
     fetchFollowStats(user.id)
@@ -323,9 +324,9 @@ export default function Profile() {
                   ))}
               </div>
             ) : ideas.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 items-stretch">
                 {ideas.map((i) => (
-                  <div key={i.id}>
+                  <div key={i.id} className="flex flex-col h-full">
                     <IdeaCard idea={i} />
 
                     {tab === "My Ideas" && (
