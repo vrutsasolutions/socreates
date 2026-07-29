@@ -1633,7 +1633,7 @@ export default function Chat() {
           /* ── NORMAL HEADER ── */
           <div className="flex items-center gap-3 relative z-10">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/messages")}
               aria-label="Go back"
               className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
             >
