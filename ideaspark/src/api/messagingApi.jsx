@@ -35,6 +35,72 @@ const formatTime = (date) =>
   });
 const clock = () =>
   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+/**
+ * Parse a backend createdAt value → proper JS Date.
+ *
+ * The backend stores LocalDateTime.now() on AWS EB which defaults to UTC.
+ * Jackson serialises it WITHOUT timezone info — either as an ISO string
+ * ("2025-07-29T10:55:00") or as an array [2025,7,29,10,55,0,0].
+ *
+ * JavaScript's `new Date("2025-07-29T10:55:00")` treats timezone-less strings
+ * as LOCAL time — but the value is actually UTC, so a user in IST would see
+ * 10:55 AM instead of the correct 4:25 PM.
+ *
+ * Fix: flag the value as UTC so toLocaleTimeString() converts correctly.
+ *
+ * NOTE: The optimistic push in Chat.jsx uses `new Date().toISOString()` which
+ * already ends with "Z", so this function won't double-append.
+ */
+const parseCreatedAt = (val) => {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  // Jackson array: [year, month(1-based), day, hour, min, sec, nano?]
+  if (Array.isArray(val)) {
+    return new Date(
+      Date.UTC(val[0], (val[1] ?? 1) - 1, val[2] ?? 1, val[3] ?? 0, val[4] ?? 0, val[5] ?? 0),
+    );
+  }
+  // ISO string without timezone suffix → append Z to mark as UTC
+  if (typeof val === "string" && !val.endsWith("Z") && !val.includes("+")) {
+    return new Date(val + "Z");
+  }
+  return new Date(val);
+};
+
+/**
+ * Format a date for the inbox conversation list:
+ *   Today → "10:07 AM"
+ *   Yesterday → "Yesterday"
+ *   Older → "29 Jul 2025"
+ */
+const formatInboxTime = (val) => {
+  const date = parseCreatedAt(val);
+  if (!date || Number.isNaN(date.getTime())) return "";
+
+  const now = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+
+  const sameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (sameDay(date, now)) {
+    return date.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+  if (sameDay(date, yesterday)) return "Yesterday";
+  return date.toLocaleDateString([], {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
 // ════════════════════════════════════════════════════════════════════════
 //  NORMALIZERS — convert backend DTO shapes → frontend shape
 // ════════════════════════════════════════════════════════════════════════
@@ -91,7 +157,7 @@ const normalizeConversation = (dto) => {
       String(dto.otherUserId) === String(myId),
     lastMessage: dto.lastMessage ?? "",
     lastType: (dto.lastMessageType ?? dto.lastType ?? "TEXT").toLowerCase(),
-    time: dto.createdAt ? formatTime(dto.createdAt) : (dto.time ?? ""),
+    time: formatInboxTime(dto.lastMessageAt ?? dto.createdAt) || (dto.time ?? ""),
     unread: dto.unreadCount ?? dto.unread ?? 0,
     // Whether the other party is a verified creator. Drives the free-tier
     // messaging limit on the Chat page. Backend may send a single flag or the
@@ -170,6 +236,7 @@ const parseSharedProfile = (content) => {
 
 const normalizeMessage = (dto, myId) => {
   const type = (dto.type ?? "TEXT").toLowerCase();
+  const parsed = parseCreatedAt(dto.createdAt);
   return {
     id: String(dto.id),
     conversationId: String(dto.conversationId),
@@ -186,13 +253,14 @@ const normalizeMessage = (dto, myId) => {
     fileName: type === "file" ? fileNameFromUrl(dto.content) : undefined,
     reaction: dto.reaction ?? undefined,
     isRead: dto.isRead ?? dto.read ?? false,
-    createdAt: dto.createdAt ?? null,
-    time: dto.createdAt
-      ? new Date(dto.createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : (dto.time ?? ""),
+    createdAt: parsed ? parsed.toISOString() : null,
+    time:
+      parsed && !Number.isNaN(parsed.getTime())
+        ? parsed.toLocaleTimeString([], {
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : (dto.time ?? ""),
   };
 };
 
