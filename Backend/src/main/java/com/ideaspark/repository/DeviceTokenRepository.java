@@ -3,6 +3,7 @@ package com.ideaspark.repository;
 import com.ideaspark.model.DeviceToken;
 import com.ideaspark.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,5 +22,9 @@ public interface DeviceTokenRepository extends JpaRepository<DeviceToken, UUID> 
 
     // Used when FCM reports a token as invalid/unregistered (app uninstalled,
     // token rotated, etc.) — see PushNotificationService.
+    // Spring Data derived deletes require @Transactional — without it,
+    // calls from DeviceTokenService.unregisterToken() and
+    // PushNotificationService.sendPush() throw TransactionRequiredException.
+    @Transactional
     void deleteByDeviceToken(String deviceToken);
 }
