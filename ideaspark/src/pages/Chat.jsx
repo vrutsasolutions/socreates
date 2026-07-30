@@ -278,12 +278,12 @@ function Bubble({
   const timeLabel = m.time || formatMessageTime(m.createdAt);
   const TimeMeta = ({ light }) => (
     timeLabel ? (
-      <span className={`inline-flex items-center gap-1 text-[10px] font-normal whitespace-nowrap ${
+      <span className={`inline-flex items-center gap-0.5 text-[10px] font-normal whitespace-nowrap ${
         light ? "text-white/70" : "text-[#90A4AE]"
       }`}>
         <span>{timeLabel}</span>
         {mine && (
-          <span className={`inline-flex ${
+          <span className={`inline-flex text-[11px] leading-none ${
             (m.isRead || m.read)
               // Bright cyan on a blue bubble, dark blue on a light bubble —
               // both chosen for clear contrast against "sent" (white/70,
@@ -293,7 +293,7 @@ function Bubble({
               : (light ? "text-white/70" : "text-[#90A4AE]")
           }`}>
             <span>✓</span>
-            {(m.isRead || m.read) && <span className="-ml-0.5">✓</span>}
+            {(m.isRead || m.read) && <span className="-ml-[5px]">✓</span>}
           </span>
         )}
       </span>
@@ -841,6 +841,13 @@ export default function Chat() {
       alive = false;
     };
   }, [id]);
+
+  // ── Auto-focus the message input once the chat is loaded ──────────────
+  useEffect(() => {
+    if (!loading && textInputRef.current) {
+      textInputRef.current.focus();
+    }
+  }, [loading]);
 
   useEffect(() => {
     const handleReadReceipt = (event) => {
@@ -1848,7 +1855,7 @@ export default function Chat() {
       ) : (
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+          className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5"
         >
           {searchMode && q && visibleMessages.length === 0 ? (
             <p className="text-center text-[13px] text-[#90A4AE] pt-10">
