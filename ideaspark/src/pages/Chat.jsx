@@ -41,6 +41,7 @@ import {
   isRequestPendingError,
   acceptRequest,
   declineRequest,
+  normalizeMessage,
 } from "../api/messagingApi";
 import { isVerifiedCreatorPartner } from "../config/messagingLimits";
 
@@ -872,6 +873,57 @@ export default function Chat() {
       window.removeEventListener("message-read-receipt", handleReadReceipt);
     };
   }, []);
+
+  // ── Live incoming messages from the other participant ─────────────────
+  // The STOMP /queue/messages subscription (notificationApi.jsx) dispatches
+  // this event whenever a non-self message arrives. Without this listener,
+  // incoming messages only showed up in the notification bell/toast but NOT
+  // as chat bubbles — the user had to leave and re-enter the conversation.
+  useEffect(() => {
+    const handleInbound = (event) => {
+      const dto = event.detail;
+      if (String(dto.conversationId) !== String(id)) return; // not this chat
+      const normalized = normalizeMessage(dto, user?.id);
+      setMessages((prev) => {
+        // Dedupe: if we already have this message (e.g. optimistic send
+        // from another tab/device), skip it.
+        if (prev.some((m) => String(m.id) === String(normalized.id))) return prev;
+        return [...prev.filter((m) => m.type !== "typing"), normalized];
+      });
+    };
+
+    window.addEventListener("chat-message-inbound", handleInbound);
+    return () => window.removeEventListener("chat-message-inbound", handleInbound);
+  }, [id, user?.id]);
+
+  // ── Live reaction updates from the other participant ──────────────────
+  // Dispatched by the STOMP /queue/chat-events subscription when someone
+  // reacts to a message. Without this, the other person's reaction only
+  // appeared after leaving and re-entering the chat.
+  useEffect(() => {
+    const handleReaction = (event) => {
+      const { conversationId, messageId, emoji } = event.detail;
+      if (String(conversationId) !== String(id)) return;
+      setReactions((prev) => ({ ...prev, [messageId]: emoji || undefined }));
+    };
+
+    window.addEventListener("chat-reaction-update", handleReaction);
+    return () => window.removeEventListener("chat-reaction-update", handleReaction);
+  }, [id]);
+
+  // ── Live delete-for-everyone from the other participant ───────────────
+  // Dispatched by the STOMP /queue/chat-events subscription when someone
+  // deletes a message for everyone.
+  useEffect(() => {
+    const handleDelete = (event) => {
+      const { conversationId, messageId } = event.detail;
+      if (String(conversationId) !== String(id)) return;
+      setMessages((prev) => prev.filter((m) => String(m.id) !== String(messageId)));
+    };
+
+    window.addEventListener("chat-message-deleted", handleDelete);
+    return () => window.removeEventListener("chat-message-deleted", handleDelete);
+  }, [id]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
