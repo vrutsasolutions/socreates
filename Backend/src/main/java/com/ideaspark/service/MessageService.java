@@ -185,17 +185,38 @@ public class MessageService {
         Message m = messageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Message not found"));
 
-        assertParticipant(m.getConversation(), me);
+        Conversation conv = m.getConversation();
+        assertParticipant(conv, me);
 
         String current = m.getReactions().get(me.getId());
 
+        String resolvedEmoji;
         if (emoji == null || emoji.isBlank() || emoji.equals(current)) {
             m.getReactions().remove(me.getId());
+            resolvedEmoji = null;
         } else {
             m.getReactions().put(me.getId(), emoji);
+            resolvedEmoji = emoji;
         }
 
         messageRepository.save(m);
+
+        // Push the reaction to the OTHER participant so their open Chat
+        // view updates live without re-fetching.
+        User other = conv.getParticipant1().getId().equals(me.getId())
+                ? conv.getParticipant2()
+                : conv.getParticipant1();
+
+        Map<String, Object> event = new HashMap<>();
+        event.put("eventType", "REACTION");
+        event.put("messageId", messageId);
+        event.put("conversationId", conv.getId());
+        event.put("userId", me.getId());
+        event.put("emoji", resolvedEmoji);
+
+        messagingTemplate.convertAndSendToUser(
+                other.getEmail(), "/queue/chat-events", event);
+
         return toMessageDTO(m, me);
     }
 
@@ -226,13 +247,28 @@ public class MessageService {
         Message m = messageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Message not found"));
 
-        assertParticipant(m.getConversation(), me);
+        Conversation conv = m.getConversation();
+        assertParticipant(conv, me);
 
         if ("everyone".equalsIgnoreCase(scope)) {
             if (!m.getSender().getId().equals(me.getId())) {
                 throw new RuntimeException("Only the sender can delete for everyone");
             }
             messageRepository.delete(m);
+
+            // Push to the OTHER participant so their open Chat view removes
+            // the bubble live. "Delete for me" is local-only — no push needed.
+            User other = conv.getParticipant1().getId().equals(me.getId())
+                    ? conv.getParticipant2()
+                    : conv.getParticipant1();
+
+            Map<String, Object> event = new HashMap<>();
+            event.put("eventType", "DELETE");
+            event.put("messageId", messageId);
+            event.put("conversationId", conv.getId());
+
+            messagingTemplate.convertAndSendToUser(
+                    other.getEmail(), "/queue/chat-events", event);
         } else {
             m.getDeletedFor().add(me.getId());
             messageRepository.save(m);
