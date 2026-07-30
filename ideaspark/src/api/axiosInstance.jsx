@@ -16,19 +16,6 @@ const getToken = () => {
   return null;
 };
 
-// True when the JWT is missing, malformed, or its `exp` is in the past.
-// Used to tell a *dead session* (token expired/gone) apart from a genuine
-// authorization failure (valid token, but the action isn't allowed).
-const isTokenExpired = (token) => {
-  if (!token) return true;
-  try {
-    const { exp } = JSON.parse(atob(token.split(".")[1]));
-    return !exp || exp * 1000 <= Date.now();
-  } catch {
-    return true; // unparseable token — treat as dead
-  }
-};
-
 axiosInstance.interceptors.request.use((config) => {
   const token = getToken();
   if (token) {
@@ -37,15 +24,32 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-// Global auth-failure handler. The backend returns 401/403 for requests that
-// reach an authenticated endpoint without a usable token. Because every
-// browseable page (feed, idea detail, comments) is public, an expired session
-// stays invisible until the first authenticated call — historically surfacing
-// as a confusing error (e.g. "User not found" on a profile tap).
+// Clears the session and bounces to /login. Callers decide WHEN a failure
+// actually means "dead session" (see the response interceptor below and
+// notificationApi.jsx's onStompError for the two current callers) — this
+// function just performs the clear + redirect unconditionally once called.
 //
-// When such a failure coincides with a missing/expired token, the session is
-// dead: clear it and bounce to /login. A 401/403 while the token is still valid
-// is a real authorization error, so we leave those for the calling page.
+// This used to also re-check the JWT's decoded `exp` claim before doing
+// anything, to avoid hijacking a *genuine* authorization error (valid
+// session, action just isn't allowed) as if it were a dead session. But
+// decoding a JWT client-side only reads the payload — it can't verify the
+// signature. A token with a tampered/invalid signature still decodes to a
+// perfectly normal, unexpired `exp`, so that check silently let a truly
+// dead session (bad signature — same as expired/missing, from the server's
+// point of view) loop 401s/403s forever instead of ever redirecting. The
+// server's response status is the only trustworthy signal here; see the
+// callers below for how they decide.
+export const forceLogout = () => {
+  localStorage.clear();
+  const path = window.location.pathname;
+  const onPublicPage = ["/", "/login", "/register", "/forgot-password"].includes(path);
+  if (!onPublicPage) {
+    const redirect = encodeURIComponent(path + window.location.search);
+    // Full navigation so the React tree re-reads the now-cleared auth state.
+    window.location.replace(`/login?session=expired&redirect=${redirect}`);
+  }
+};
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -53,20 +57,17 @@ axiosInstance.interceptors.response.use(
     const url = error?.config?.url || "";
     // Login/register own their own error UX — never hijack them.
     const isAuthEndpoint = url.includes("/auth/");
+    // The ONLY endpoints in this app with a real role-based 403 for a
+    // genuinely logged-in user (see SecurityConfig: hasRole("ADMIN")).
+    // Every other authenticated route in this app is a plain
+    // .authenticated() check with no finer-grained permission layer, so a
+    // 401 *or* 403 anywhere else means the request was never authenticated
+    // in the first place — same root cause as a dead session, regardless of
+    // what the client-decoded token looks like.
+    const isAdminEndpoint = url.includes("/admin/");
 
-    if (
-      (status === 401 || status === 403) &&
-      !isAuthEndpoint &&
-      isTokenExpired(getToken())
-    ) {
-      localStorage.clear();
-      const path = window.location.pathname;
-      const onPublicPage = ["/", "/login", "/register", "/forgot-password"].includes(path);
-      if (!onPublicPage) {
-        const redirect = encodeURIComponent(path + window.location.search);
-        // Full navigation so the React tree re-reads the now-cleared auth state.
-        window.location.replace(`/login?session=expired&redirect=${redirect}`);
-      }
+    if ((status === 401 || status === 403) && !isAuthEndpoint && !isAdminEndpoint) {
+      forceLogout();
     }
 
     return Promise.reject(error);

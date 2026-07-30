@@ -10,6 +10,7 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 @Configuration
@@ -30,16 +31,26 @@ public class WebSocketAuthConfig implements WebSocketMessageBrokerConfigurer {
 
                 if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
 
+                    // Previously: an invalid/missing token just skipped setUser()
+                    // and let the CONNECT through anonymously — the socket stayed
+                    // open, it just couldn't receive /user/queue/* pushes. That's
+                    // fine for private data (Spring can't route it without a
+                    // Principal) but it still let unauthenticated clients hold a
+                    // connection open and read broadcast-only destinations like
+                    // /topic/presence. Now we reject the CONNECT outright so every
+                    // live session is tied to a verified user from the start.
                     String bearer = accessor.getFirstNativeHeader("Authorization");
+                    String token = (bearer != null && bearer.startsWith("Bearer "))
+                            ? bearer.substring(7)
+                            : null;
 
-                    if (bearer != null && bearer.startsWith("Bearer ")) {
-                        String token = bearer.substring(7);
-
-                        if (jwtUtil.isTokenValid(token)) {
-                            String email = jwtUtil.extractEmail(token);
-                            accessor.setUser(() -> email);
-                        }
+                    if (token == null || !jwtUtil.isTokenValid(token)) {
+                        throw new BadCredentialsException(
+                                "WebSocket CONNECT rejected: missing or invalid JWT");
                     }
+
+                    String email = jwtUtil.extractEmail(token);
+                    accessor.setUser(() -> email);
                 }
 
                 return message;

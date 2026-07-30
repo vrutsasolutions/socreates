@@ -182,14 +182,21 @@ from the message text (backend sends none of those).
 > The bell's initial list / unread-count / mark-read still run on **mock**
 > (`USE_MOCK.notifications = true`) because the GET/read endpoints above don't exist yet.
 >
-> **Backend gaps to close** (so the bell is fully live, not just real-time):
+> **Update:** items 2 and 3 below are done — this section was stale.
+> ~~2. The WS handshake is currently unauthenticated~~ — `WebSocketAuthConfig`
+>    validates the JWT on `CONNECT` and now **rejects the frame outright**
+>    (`BadCredentialsException`) if the token is missing or invalid, rather
+>    than silently letting an anonymous session through.
+> ~~3. Pushes go to one shared `/topic/notifications`~~ — per-user delivery is
+>    live via `convertAndSendToUser(email, "/queue/notifications", ...)`
+>    (same pattern for `/queue/messages`, `/queue/chat-events`,
+>    `/queue/read-receipts`). `/topic/presence` remains an intentionally
+>    public broadcast (online/offline status, gated per-user by the
+>    Activity Status toggle — see `PresenceService`).
+>
+> **Backend gaps still open:**
 > 1. Add `GET /`, `GET /unread-count`, `POST /{id}/read`, `POST /read-all`.
-> 2. The WS handshake is currently **unauthenticated** (`setAllowedOriginPatterns("*")`,
->    no JWT check) — add a STOMP `ChannelInterceptor`/handshake auth.
-> 3. Pushes go to one **shared** `/topic/notifications` (every client gets every
->    notification). For per-user delivery, send to `/user/queue/notifications`
->    via `convertAndSendToUser(...)`.
-> 4. Consider adding `type`/`title`/`link` to the `Notification` entity so the
+> 2. Consider adding `type`/`title`/`link` to the `Notification` entity so the
 >    frontend doesn't have to infer `type` from message text.
 
 ---

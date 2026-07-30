@@ -12,6 +12,7 @@ import api from "./axiosInstance";
 import { USE_MOCK, mockResponse } from "./config";
 import { MOCK_NOTIFICATIONS } from "./mockData";
 import { broadcastInboxUpdate } from "./messagingApi";
+import { forceLogout } from "./axiosInstance";
 
 const WS_URL = import.meta.env.VITE_WS_URL || "http://localhost:8081/ws";
 
@@ -167,7 +168,18 @@ export const subscribeToNotifications = (onMessage) => {
     heartbeatOutgoing: 10000,
   });
 
+  // Tracks whether the CURRENT attempt cycle has an established connection.
+  // Spring wraps a rejected CONNECT (WebSocketAuthConfig throwing on a
+  // missing/invalid JWT) in a generic
+  // "Failed to send message to ExecutorSubscribableChannel[...]" error —
+  // the message text isn't a reliable signal. But nothing else in this app
+  // throws during CONNECT, so any STOMP error received while `connected`
+  // is still false is, by construction, a rejected CONNECT.
+  let connected = false;
+
   client.onConnect = () => {
+    connected = true;
+
     client.subscribe("/topic/presence", (frame) => {
       try {
         const presence = JSON.parse(frame.body);
@@ -298,12 +310,33 @@ export const subscribeToNotifications = (onMessage) => {
     });
   };
 
+  client.onDisconnect = () => {
+    connected = false;
+  };
+
+  client.onWebSocketClose = () => {
+    connected = false;
+  };
+
   client.onStompError = (frame) => {
     console.error(
       "[notifications] STOMP error",
       frame.headers["message"],
       frame.body,
     );
+
+    // If we never reached onConnect for this attempt, the backend rejected
+    // the CONNECT frame outright (see WebSocketAuthConfig — missing/expired/
+    // invalid JWT, including a tampered signature that still decodes to a
+    // seemingly-unexpired token). Without this check, stompjs's
+    // reconnectDelay just keeps retrying with the same bad token every 5s
+    // forever. Stop retrying and bounce to /login via the same helper the
+    // REST 401/403 path uses — this connection-state check is already a
+    // reliable signal on its own, no need to re-verify the token client-side.
+    if (!connected) {
+      client.deactivate();
+      forceLogout();
+    }
   };
 
   client.onWebSocketError = (event) => {
