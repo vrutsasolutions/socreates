@@ -679,7 +679,7 @@ export default function AddIdea() {
                 value={form.description}
                 onChange={handleChange}
                 maxLength={DESC_MAX}
-                rows={5}
+                rows={7}
                 className={inputCls}
               />
               <p className={`text-[11px] mt-1 ${form.description.trim().length < DESC_MIN ? 'text-[#E53935]' : 'text-[#90A4AE]'}`}>
@@ -689,7 +689,7 @@ export default function AddIdea() {
 
             <div>
               <label className="text-xs font-bold text-[#0D2137]">Category</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-72 overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-[230px] overflow-y-auto pr-1">
                 {CATEGORIES.map((cat) => {
                   const catColor = CATEGORY_COLORS[cat] || defaultColor;
                   const selected = form.category === cat;
