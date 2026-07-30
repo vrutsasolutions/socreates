@@ -427,13 +427,17 @@ export const fetchConversationMedia = async (conversationId) => {
 };
 
 // ── Messages within a thread ─────────────────────────────────────────────────
-export const fetchMessages = async (conversationId) => {
+// page 0 = most recent `size` messages (default call — used when opening a
+// chat). Pass a higher `page` to load older messages, e.g. when the user
+// scrolls to the top of the thread.
+export const fetchMessages = async (conversationId, page = 0, size = 40) => {
   if (USE_MOCK.messaging) {
     return mockResponse((threads[conversationId] || []).map((m) => ({ ...m })));
   }
   const myId = getMyId();
   const res = await api.get(
     `/messages/conversations/${conversationId}/messages`,
+    { params: { page, size } },
   );
   return { data: (res.data ?? []).map((m) => normalizeMessage(m, myId)) };
 };

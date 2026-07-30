@@ -285,7 +285,11 @@ function Bubble({
         {mine && (
           <span className={`inline-flex ${
             (m.isRead || m.read)
-              ? (light ? "text-sky-300" : "text-[#1565C0]")
+              // Bright cyan on a blue bubble, dark blue on a light bubble —
+              // both chosen for clear contrast against "sent" (white/70,
+              // grey), unlike the previous sky-300 which was too close to
+              // white/70 to read as "changed" at a glance.
+              ? (light ? "text-cyan-300" : "text-[#1565C0]")
               : (light ? "text-white/70" : "text-[#90A4AE]")
           }`}>
             <span>✓</span>
@@ -840,11 +844,15 @@ export default function Chat() {
 
   useEffect(() => {
     const handleReadReceipt = (event) => {
-      const readMessageId = event.detail;
+      // Backend sends a JSON array of message ids that just got marked
+      // read (batched per sender), not a single id.
+      const readIds = new Set(
+        (Array.isArray(event.detail) ? event.detail : [event.detail]).map(String),
+      );
 
       setMessages((prev) =>
         prev.map((msg) =>
-          String(msg.id) === String(readMessageId)
+          readIds.has(String(msg.id))
             ? { ...msg, isRead: true, read: true }
             : msg,
         ),

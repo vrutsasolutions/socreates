@@ -44,8 +44,12 @@ public class MessageController {
     }
 
     @GetMapping("/conversations/{id}/messages")
-    public List<MessageDTO> getMessages(@PathVariable UUID id, Authentication auth) {
-        return messageService.getMessages(id, auth.getName());
+    public List<MessageDTO> getMessages(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "40") int size,
+            Authentication auth) {
+        return messageService.getMessages(id, auth.getName(), page, size);
     }
 
     @PostMapping("/conversations/{id}/messages")

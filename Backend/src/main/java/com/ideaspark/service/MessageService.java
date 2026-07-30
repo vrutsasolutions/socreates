@@ -23,12 +23,19 @@ import com.ideaspark.model.BlockedUser;
 import com.ideaspark.model.Report;
 import com.ideaspark.repository.ReportRepository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -57,13 +64,39 @@ public class MessageService {
 
     public List<ConversationDTO> listConversations(String email) {
         User me = getUser(email);
-        return conversationRepository.findAllByUser(me).stream()
+
+        List<Conversation> conversations = conversationRepository.findAllByUser(me).stream()
                 // A PENDING request only belongs in the inbox of the person who
                 // sent it — the other participant sees it under Message
                 // Requests instead, not mixed into their regular chat list.
                 .filter(c -> c.getStatus() != Conversation.Status.PENDING
                         || isInitiator(c, me))
-                .map(c -> toConversationDTO(c, me))
+                .toList();
+
+        if (conversations.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> ids = conversations.stream().map(Conversation::getId).toList();
+
+        // Two queries total for ALL conversations, instead of two queries
+        // PER conversation (was the main cause of the Inbox screen being
+        // slow — see findLastMessagesForConversations/countUnreadForConversations).
+        Map<UUID, Message> lastMessageByConversationId = messageRepository
+                .findLastMessagesForConversations(ids).stream()
+                .collect(Collectors.toMap(m -> m.getConversation().getId(), m -> m));
+
+        Map<UUID, Long> unreadByConversationId = new HashMap<>();
+        for (Object[] row : messageRepository.countUnreadForConversations(ids, me.getId())) {
+            unreadByConversationId.put((UUID) row[0], (Long) row[1]);
+        }
+
+        return conversations.stream()
+                .map(c -> toConversationDTO(
+                        c,
+                        me,
+                        lastMessageByConversationId.get(c.getId()),
+                        unreadByConversationId.getOrDefault(c.getId(), 0L)))
                 .filter(dto -> dto.getLastMessageAt() != null)
                 .sorted((a, b) -> b.getLastMessageAt().compareTo(a.getLastMessageAt()))
                 .toList();
@@ -98,29 +131,50 @@ public class MessageService {
         return toConversationDTO(conv, me);
     }
 
+    private static final int MESSAGES_PAGE_SIZE = 40;
+
+    // Backward-compatible overload — defaults to the first (most recent) page.
     public List<MessageDTO> getMessages(UUID conversationId, String email) {
+        return getMessages(conversationId, email, 0, MESSAGES_PAGE_SIZE);
+    }
+
+    // page 0 = most recent MESSAGES_PAGE_SIZE messages, page 1 = the next
+    // (older) batch, etc. Previously this loaded the ENTIRE conversation
+    // history on every open — the slowest part of opening a chat, and it
+    // only got worse the longer a conversation went on.
+    public List<MessageDTO> getMessages(UUID conversationId, String email, int page, int size) {
         User me = getUser(email);
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new RuntimeException("Conversation not found"));
         assertParticipant(conv, me);
 
-        List<Message> messages = messageRepository.findByConversationOrderByCreatedAtAsc(conv);
+        // Marking read still covers the WHOLE thread (not just the page
+        // being viewed) — a separate, cheap query rather than scanning
+        // every message in the conversation.
+        List<Message> unread = messageRepository
+                .findByConversationAndIsReadFalseAndSenderIdNot(conv, me.getId());
 
-        messages.stream()
-                .filter(m -> !m.isRead() && !m.getSender().getId().equals(me.getId()))
-                .forEach(m -> m.setRead(true));
+        if (!unread.isEmpty()) {
+            unread.forEach(m -> m.setRead(true));
+            messageRepository.saveAll(unread);
 
-        messageRepository.saveAll(messages);
+            // One STOMP send per SENDER, not per message — if the other
+            // person had 30 unread messages, that used to fire 30
+            // individual WebSocket sends.
+            unread.stream()
+                    .collect(Collectors.groupingBy(m -> m.getSender().getEmail()))
+                    .forEach((senderEmail, msgs) -> messagingTemplate.convertAndSendToUser(
+                            senderEmail,
+                            "/queue/read-receipts",
+                            msgs.stream().map(Message::getId).toList()));
+        }
 
-        messages.stream()
-                .filter(m -> m.isRead())
-                .filter(m -> !m.getSender().getId().equals(me.getId()))
-                .forEach(m -> messagingTemplate.convertAndSendToUser(
-                        m.getSender().getEmail(),
-                        "/queue/read-receipts",
-                        m.getId()));
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        List<Message> pageMessages = new ArrayList<>(
+                messageRepository.findByConversation(conv, pageable).getContent());
+        Collections.reverse(pageMessages); // back to oldest → newest for display
 
-        return messages.stream()
+        return pageMessages.stream()
                 .filter(m -> !m.getDeletedFor().contains(me.getId()))
                 .map(m -> toMessageDTO(m, me))
                 .toList();
@@ -552,14 +606,26 @@ public class MessageService {
         checkFreeLimit(conv, me, type);
     }
 
+    // Used for single-conversation lookups (getConversation, startConversation)
+    // where running two extra queries for just one conversation is fine —
+    // it's only a problem when it happens once PER conversation in a list.
     private ConversationDTO toConversationDTO(Conversation c, User me) {
-        User other = c.getParticipant1().getId().equals(me.getId())
-                ? c.getParticipant2()
-                : c.getParticipant1();
-
         Message last = messageRepository
                 .findTopByConversationOrderByCreatedAtDesc(c)
                 .orElse(null);
+        long unread = messageRepository
+                .countByConversationAndIsReadFalseAndSenderIdNot(c, me.getId());
+        return toConversationDTO(c, me, last, unread);
+    }
+
+    // Used by listConversations, which precomputes last message + unread
+    // count for ALL conversations in two batched queries up front (see
+    // findLastMessagesForConversations/countUnreadForConversations) instead
+    // of calling this per conversation.
+    private ConversationDTO toConversationDTO(Conversation c, User me, Message last, long unread) {
+        User other = c.getParticipant1().getId().equals(me.getId())
+                ? c.getParticipant2()
+                : c.getParticipant1();
 
         String lastMsg = "";
         String lastType = "TEXT";
@@ -578,9 +644,6 @@ public class MessageService {
                 default -> last.getContent();
             };
         }
-
-        long unread = messageRepository
-                .countByConversationAndIsReadFalseAndSenderIdNot(c, me.getId());
 
         ConversationDTO dto = new ConversationDTO();
         dto.setId(c.getId());

@@ -219,9 +219,13 @@ export const subscribeToNotifications = (onMessage) => {
 
     client.subscribe(TOPIC_READ_RECEIPTS, (frame) => {
       try {
+        // Backend now sends a JSON array of message ids, batched per
+        // sender (was previously one raw unparsed id — frame.body used
+        // directly meant it still had quote characters in it and never
+        // matched msg.id, so ticks never updated live).
         window.dispatchEvent(
           new CustomEvent("message-read-receipt", {
-            detail: frame.body,
+            detail: JSON.parse(frame.body),
           }),
         );
       } catch (err) {

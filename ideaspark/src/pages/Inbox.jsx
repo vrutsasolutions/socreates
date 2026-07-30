@@ -175,10 +175,10 @@ export default function Inbox() {
         prev.map((c) =>
           String(c.otherUserId) === String(presence.userId)
             ? {
-                ...c,
-                online: presence.online,
-                activityVisible: presence.visible ?? true,
-              }
+              ...c,
+              online: presence.online,
+              activityVisible: presence.visible ?? true,
+            }
             : c
         )
       );
@@ -217,13 +217,13 @@ export default function Inbox() {
           return prev.map((c) =>
             String(c.id) === String(conversationId)
               ? {
-                  ...c,
-                  lastType,
-                  lastMessage,
-                  lastMessageAt,
-                  time: formatInboxTime(lastMessageAt),
-                  unread: fromMe || isOpenRightNow ? 0 : (c.unread || 0) + 1,
-                }
+                ...c,
+                lastType,
+                lastMessage,
+                lastMessageAt,
+                time: formatInboxTime(lastMessageAt),
+                unread: fromMe || isOpenRightNow ? 0 : (c.unread || 0) + 1,
+              }
               : c,
           );
         }
@@ -299,7 +299,7 @@ export default function Inbox() {
 
         <div className="flex items-center gap-2 relative z-10">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/home')}
             aria-label="Go back"
             className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
           >
