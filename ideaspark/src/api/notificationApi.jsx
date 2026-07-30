@@ -18,6 +18,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || "http://localhost:8081/ws";
 const TOPIC_NOTIFICATIONS = "/user/queue/notifications";
 const TOPIC_MESSAGES = "/user/queue/messages";
 const TOPIC_READ_RECEIPTS = "/user/queue/read-receipts";
+const TOPIC_CHAT_EVENTS = "/user/queue/chat-events";
 
 let mockStore = MOCK_NOTIFICATIONS.map((n) => ({ ...n }));
 
@@ -183,22 +184,20 @@ export const subscribeToNotifications = (onMessage) => {
 
     // Likes / follows / comments / bookmarks / new-idea / follow-request /
     // privacy-change / system — everything NotificationService pushes to
-    // convertAndSendToUser(email, "/queue/notifications", saved). This was
-    // previously missing, so only DM toasts (TOPIC_MESSAGES, below) ever
-    // reached the UI even though the backend was sending these correctly.
+    // convertAndSendToUser(email, "/queue/notifications", saved).
     //
     // MESSAGE-type notifications are SKIPPED here because the same DM also
     // arrives on TOPIC_MESSAGES (below) with richer fields (senderName,
     // conversationId on the DTO itself). Without this guard every incoming
-    // DM would appear twice — once from /queue/notifications (Notification
+    // DM appears twice — once from /queue/notifications (Notification
     // entity, id=UUID) and once from /queue/messages (MessageDTO, id=
-    // "n-msg-{id}") — because the two different ids bypass the dedupe
-    // check in NotificationContext.
+    // "n-msg-{id}") — the two different ids bypass NotificationContext's
+    // dedupe check.
     client.subscribe(TOPIC_NOTIFICATIONS, (frame) => {
       try {
         const dto = JSON.parse(frame.body);
         const normalized = normalizeNotification(dto);
-        if (normalized.type === 'message') return; // handled by TOPIC_MESSAGES
+        if (normalized.type === "message") return; // handled by TOPIC_MESSAGES
         onMessage?.(normalized);
       } catch (err) {
         console.error(
@@ -235,10 +234,43 @@ export const subscribeToNotifications = (onMessage) => {
 
         if (fromMe) return;
 
+        // Dispatch the raw DTO so the active Chat view (if open) can
+        // append it live — without this, incoming messages only showed up
+        // in the notification bell/toast but NOT as chat bubbles until the
+        // user left and re-entered the conversation.
+        window.dispatchEvent(
+          new CustomEvent("chat-message-inbound", { detail: msgDto }),
+        );
+
         onMessage?.(messageToNotification(msgDto));
       } catch (err) {
         console.error(
           "[notifications] bad message STOMP payload",
+          err,
+          frame.body,
+        );
+      }
+    });
+
+    // ── Chat-level events: reactions + delete-for-everyone ──────────────
+    // These are pushed by MessageService when someone reacts to or deletes
+    // a message, so the other participant's open Chat view updates live
+    // without needing to re-fetch.
+    client.subscribe(TOPIC_CHAT_EVENTS, (frame) => {
+      try {
+        const event = JSON.parse(frame.body);
+        if (event.eventType === "REACTION") {
+          window.dispatchEvent(
+            new CustomEvent("chat-reaction-update", { detail: event }),
+          );
+        } else if (event.eventType === "DELETE") {
+          window.dispatchEvent(
+            new CustomEvent("chat-message-deleted", { detail: event }),
+          );
+        }
+      } catch (err) {
+        console.error(
+          "[notifications] bad chat-events payload",
           err,
           frame.body,
         );
