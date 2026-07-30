@@ -17,7 +17,8 @@ import useAnchoredPosition from './useAnchoredPosition';
 const PANEL_WIDTH = 320;
 
 function timeAgo(iso) {
-  const then = new Date(iso).getTime();
+  const raw = typeof iso === 'string' && !iso.endsWith('Z') && !iso.includes('+') ? iso + 'Z' : iso;
+  const then = new Date(raw).getTime();
   if (Number.isNaN(then)) return '';
   const s = Math.max(0, Math.floor((Date.now() - then) / 1000));
   if (s < 60) return 'just now';
@@ -128,9 +129,9 @@ export default function MessageBell() {
                     {/* Icon chip — small count badge when several events are clubbed together */}
                     <span className="relative mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[#EEF4FF] text-[#1565C0]">
                       <Icon name="message-square" className="w-4 h-4" />
-                      {g.count > 1 && (
+                      {g.unreadCount > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-[3px] flex items-center justify-center rounded-full bg-[#1565C0] text-white text-[9px] font-bold leading-none ring-1 ring-white">
-                          {g.count > 9 ? '9+' : g.count}
+                          {g.unreadCount > 9 ? '9+' : g.unreadCount}
                         </span>
                       )}
                     </span>
