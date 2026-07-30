@@ -28,6 +28,17 @@ export default function usePushNotifications() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Keep the latest navigate in a ref instead of the effect's dependency
+  // array. useNavigate()'s reference CAN change across renders in some
+  // router-context-update scenarios, and having it in the dependency array
+  // meant the effect's cleanup (which removes all four Capacitor listeners,
+  // including 'registration') could fire moments after setup — right as
+  // the native side was dispatching the FCM token to the 'registration'
+  // listener, so registerDeviceToken() never actually ran. The token would
+  // "complete" on the native side but never reach the backend.
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
+
   // Avoid re-registering on every re-render — only (re)run the whole flow
   // when we go from "no user" to "user", not on every AuthContext update.
   const registeredForUserId = useRef(null);
@@ -69,6 +80,8 @@ export default function usePushNotifications() {
     // Step 2 — the device token arrives here, asynchronously, once
     // register() succeeds.
     const registrationListener = PushNotifications.addListener('registration', (token) => {
+      console.log('[push] registration listener fired, token length=', token?.value?.length);
+
       // Stashed locally so AuthContext.logout() can unregister this exact
       // token from the backend on sign-out — otherwise a logged-out device
       // keeps receiving pushes meant for the account that just left it.
@@ -80,11 +93,12 @@ export default function usePushNotifications() {
       // successful registration (e.g. next login) — not worth blocking
       // app startup over.
       registerDeviceToken(token.value, Capacitor.getPlatform())
+        .then(() => console.log('[push] registerDeviceToken() POST succeeded'))
         .catch((err) => console.error('[push] failed to register device token', err));
     });
 
     const registrationErrorListener = PushNotifications.addListener('registrationError', (err) => {
-      console.error('[push] registration error', err);
+      console.error('[push] registration error:', JSON.stringify(err));
     });
 
     // Foreground receive — the app is open when a push arrives. We
@@ -103,17 +117,18 @@ export default function usePushNotifications() {
     // NotificationToasts does for in-app taps.
     const actionListener = PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       const link = action?.notification?.data?.link;
-      if (link) navigate(link);
+      if (link) navigateRef.current(link);
     });
 
     setup();
 
     return () => {
+      console.log('[push] effect cleanup running — removing listeners');
       cancelled = true;
       registrationListener.remove();
       registrationErrorListener.remove();
       receivedListener.remove();
       actionListener.remove();
     };
-  }, [user, navigate]);
+  }, [user?.id]);
 }
