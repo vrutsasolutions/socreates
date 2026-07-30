@@ -140,7 +140,8 @@ export const NotificationProvider = ({ children }) => {
   // to this window — items past it are simply excluded, not deleted, so
   // markAsRead etc. still work fine if a stale id somehow gets referenced.
   const visibleItems = items.filter((n) => {
-    const age = now - new Date(n.createdAt).getTime();
+    const raw = typeof n.createdAt === 'string' && !n.createdAt.endsWith('Z') && !n.createdAt.includes('+') ? n.createdAt + 'Z' : n.createdAt;
+    const age = now - new Date(raw).getTime();
     return Number.isNaN(age) || age <= DROPDOWN_RETENTION_MS;
   });
 
