@@ -5,8 +5,10 @@ import com.ideaspark.model.User;
 import com.ideaspark.repository.DeviceTokenRepository;
 import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DeviceTokenService {
@@ -28,6 +30,7 @@ public class DeviceTokenService {
 
         if (existing != null) {
             deviceTokenRepository.save(existing); // no field changes needed — @PreUpdate bumps updatedAt
+            log.info("Device token refreshed for user {} ({}, platform={})", email, deviceToken, platform);
             return;
         }
 
@@ -37,6 +40,7 @@ public class DeviceTokenService {
                 .platform(platform != null ? platform : "android")
                 .build();
         deviceTokenRepository.save(token);
+        log.info("New device token saved for user {} ({}, platform={})", email, deviceToken, platform);
     }
 
     // Best-effort cleanup — called on logout (frontend) so a signed-out
@@ -44,5 +48,6 @@ public class DeviceTokenService {
     // out of it.
     public void unregisterToken(String deviceToken) {
         deviceTokenRepository.deleteByDeviceToken(deviceToken);
+        log.info("Device token unregistered: {}", deviceToken);
     }
 }
