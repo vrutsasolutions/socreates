@@ -24,7 +24,8 @@ import {
 } from "../api/userApi";
 
 function timeAgo(iso) {
-  const then = new Date(iso).getTime();
+  const raw = typeof iso === 'string' && !iso.endsWith('Z') && !iso.includes('+') ? iso + 'Z' : iso;
+  const then = new Date(raw).getTime();
   if (Number.isNaN(then)) return "";
   const s = Math.max(0, Math.floor((Date.now() - then) / 1000));
   if (s < 60) return "just now";
