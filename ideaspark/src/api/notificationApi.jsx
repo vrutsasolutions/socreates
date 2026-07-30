@@ -186,10 +186,20 @@ export const subscribeToNotifications = (onMessage) => {
     // convertAndSendToUser(email, "/queue/notifications", saved). This was
     // previously missing, so only DM toasts (TOPIC_MESSAGES, below) ever
     // reached the UI even though the backend was sending these correctly.
+    //
+    // MESSAGE-type notifications are SKIPPED here because the same DM also
+    // arrives on TOPIC_MESSAGES (below) with richer fields (senderName,
+    // conversationId on the DTO itself). Without this guard every incoming
+    // DM would appear twice — once from /queue/notifications (Notification
+    // entity, id=UUID) and once from /queue/messages (MessageDTO, id=
+    // "n-msg-{id}") — because the two different ids bypass the dedupe
+    // check in NotificationContext.
     client.subscribe(TOPIC_NOTIFICATIONS, (frame) => {
       try {
         const dto = JSON.parse(frame.body);
-        onMessage?.(normalizeNotification(dto));
+        const normalized = normalizeNotification(dto);
+        if (normalized.type === 'message') return; // handled by TOPIC_MESSAGES
+        onMessage?.(normalized);
       } catch (err) {
         console.error(
           "[notifications] bad notification STOMP payload",

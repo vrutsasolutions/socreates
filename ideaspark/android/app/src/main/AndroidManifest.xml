@@ -26,6 +26,23 @@
 
         </activity>
 
+        <!-- FCM: default notification channel (must match MainActivity's CHANNEL_ID) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="socreate_default" />
+
+        <!-- FCM: small icon shown in the status bar + notification shade.
+             Uses the app launcher icon until a dedicated monochrome
+             ic_stat_socreate is designed. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+
+        <!-- FCM: notification accent colour (SoCreate brand blue) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/socreate_blue" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
