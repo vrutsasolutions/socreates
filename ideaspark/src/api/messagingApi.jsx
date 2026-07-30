@@ -302,7 +302,7 @@ export const broadcastInboxUpdate = ({
   );
 };
 
-const normalizeMessage = (dto, myId) => {
+export const normalizeMessage = (dto, myId) => {
   const type = (dto.type ?? "TEXT").toLowerCase();
   const parsed = parseCreatedAt(dto.createdAt);
   return {
