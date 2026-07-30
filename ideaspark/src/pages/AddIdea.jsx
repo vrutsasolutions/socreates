@@ -7,7 +7,7 @@ import { hasCreatorPro, isVerified } from '../api/paymentApi';
 import { AIAssistantBar, AIThinkingBubble } from '../components/common/AIInteractions.premium';
 import { saveIdeaDraft, takeIdeaDraft, clearIdeaDraft } from '../state/ideaDraft';
 import { setEditorInput, takeEditorOutput } from '../state/imageEditorStore';
-import { filesToCompressedDataURLs, dataURLsToFiles } from '../state/imageCodec';
+import { filesToCompressedDataURLs, dataURLsToFiles } from '../state/ImageCodec';
 import { CATEGORIES } from '../constants/categories';
 import { CATEGORY_COLORS, defaultColor, IdeaIcon } from '../components/common/categoryIcons';
 

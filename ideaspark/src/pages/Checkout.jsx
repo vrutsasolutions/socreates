@@ -7,6 +7,7 @@
 // ════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../context/AuthContext';
 import { USE_MOCK } from '../api/config';
 import { createOrder, subscribe } from '../api/paymentApi';
@@ -68,13 +69,35 @@ export default function Checkout() {
         return;
       }
 
-      // The Razorpay popup needs window.Razorpay, loaded from the CDN script in
-      // index.html. If it's undefined the script never ran — almost always an
-      // ad/privacy blocker (uBlock, Brave Shields, AdGuard) blocking
-      // checkout.razorpay.com, or the page is offline. Say so explicitly rather
-      // than throwing a generic "could not start payment".
+      // ── Native app (Capacitor WebView) ─────────────────────────────────
+      // Razorpay's checkout.js CDN script often fails to load inside a
+      // Capacitor Android/iOS WebView (blocked by mixed-content policy,
+      // WebView security restrictions, or CSP). When running as a native
+      // app, dynamically inject the script if it hasn't loaded yet and
+      // give it a moment to initialize. This avoids the misleading
+      // "ad blocker" error that testers would otherwise see.
       if (typeof window.Razorpay === 'undefined') {
-        setError('Razorpay could not load. A browser ad/privacy blocker is likely blocking checkout.razorpay.com — disable it for this site (or try an incognito window without extensions), then reload and retry.');
+        // Try loading the script dynamically (works in both web and native)
+        const loaded = await new Promise((resolve) => {
+          const existing = document.querySelector('script[src*="checkout.razorpay.com"]');
+          if (existing) { resolve(false); return; } // already in DOM but failed
+          const s = document.createElement('script');
+          s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          s.onload = () => resolve(true);
+          s.onerror = () => resolve(false);
+          document.head.appendChild(s);
+        });
+        // Give the script a beat to initialize window.Razorpay
+        if (loaded) await new Promise((r) => setTimeout(r, 500));
+      }
+
+      if (typeof window.Razorpay === 'undefined') {
+        const isNative = Capacitor.isNativePlatform();
+        setError(
+          isNative
+            ? 'Razorpay checkout could not load in the app. Please try completing your purchase from a browser at socreate.in instead.'
+            : 'Razorpay could not load. A browser ad/privacy blocker is likely blocking checkout.razorpay.com — disable it for this site (or try an incognito window without extensions), then reload and retry.'
+        );
         setLoading('');
         return;
       }
@@ -204,7 +227,7 @@ export default function Checkout() {
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between text-[14px]">
             <span className="text-[#546E7A]">Subtotal</span>
-            <span className="text-[#0D2137] font-semibold">{price}.00</span>
+            <span className="text-[#0D2137] font-semibold">{price}</span>
           </div>
           <div className="border-t border-[#E3F2FD]" />
           <div className="flex items-center justify-between">

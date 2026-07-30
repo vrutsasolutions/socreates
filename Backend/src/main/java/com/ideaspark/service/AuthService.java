@@ -17,7 +17,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,14 @@ public class AuthService {
 
     @Value("${google.client.id}")
     private String googleClientId;
+
+    // Android native (Capacitor) Google Sign-In uses a different OAuth client
+    // ID than the web frontend — both live in the same GCP project but are
+    // separate OAuth 2.0 credentials (Web vs Android). The backend must
+    // accept tokens issued for EITHER audience, otherwise Android login
+    // fails with "Invalid Google token" while web login works fine.
+    @Value("${google.client.id.android:}")
+    private String googleClientIdAndroid;
 
     // Same admin email UserDetailsServiceImpl uses to grant ROLE_ADMIN.
     // Used here only to set the UserDTO.isAdmin UI hint on login/register/Google.
@@ -83,10 +93,17 @@ public class AuthService {
         }
 
         try {
+            List<String> audiences = new ArrayList<>();
+            audiences.add(googleClientId);
+            if (googleClientIdAndroid != null && !googleClientIdAndroid.isBlank()
+                    && !googleClientIdAndroid.equals(googleClientId)) {
+                audiences.add(googleClientIdAndroid);
+            }
+
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(),
                     GsonFactory.getDefaultInstance())
-                    .setAudience(Collections.singletonList(googleClientId))
+                    .setAudience(audiences)
                     .build();
 
             GoogleIdToken idToken = verifier.verify(token);
