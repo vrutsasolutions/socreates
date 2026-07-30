@@ -181,6 +181,24 @@ export const subscribeToNotifications = (onMessage) => {
       }
     });
 
+    // Likes / follows / comments / bookmarks / new-idea / follow-request /
+    // privacy-change / system — everything NotificationService pushes to
+    // convertAndSendToUser(email, "/queue/notifications", saved). This was
+    // previously missing, so only DM toasts (TOPIC_MESSAGES, below) ever
+    // reached the UI even though the backend was sending these correctly.
+    client.subscribe(TOPIC_NOTIFICATIONS, (frame) => {
+      try {
+        const dto = JSON.parse(frame.body);
+        onMessage?.(normalizeNotification(dto));
+      } catch (err) {
+        console.error(
+          "[notifications] bad notification STOMP payload",
+          err,
+          frame.body,
+        );
+      }
+    });
+
     client.subscribe(TOPIC_MESSAGES, (frame) => {
       try {
         const msgDto = JSON.parse(frame.body);

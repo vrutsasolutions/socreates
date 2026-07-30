@@ -43,7 +43,7 @@ export default function Premium() {
         </div>
 
         {/* TOP BAR (NO STRUCTURE CHANGE) */}
-        <div className="flex items-center relative z-10">
+        <div className="flex items-center justify-between relative z-10">
           
 <button
   onClick={() => navigate(-1)}
@@ -55,7 +55,13 @@ export default function Premium() {
   </svg>
 </button>
 
-          <h1 className="flex-1 text-center text-white font-bold text-lg">
+          {/* Absolutely centered on the header, independent of the back
+              button on the left and the (conditional) Upgrade button on
+              the right — previously used flex-1 + text-center, which only
+              centers within the leftover space, so the title visibly
+              drifted right when the Upgrade button was hidden (Premium
+              members). */}
+          <h1 className="absolute left-1/2 -translate-x-1/2 text-white font-bold text-lg">
             Premium Ideas
           </h1>
 

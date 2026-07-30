@@ -124,7 +124,13 @@ export default function Profile() {
             </svg>
           </button>
 
-          <h1 className="text-white font-bold text-lg">Profile</h1>
+          {/* Absolutely centered on the header instead of relying on
+              justify-between — the right-hand icon group (share +
+              settings) is wider than the single back button on the left,
+              so the title was being pulled visibly left of true center. */}
+          <h1 className="absolute left-1/2 -translate-x-1/2 text-white font-bold text-lg">
+            Profile
+          </h1>
 
           <div className="flex items-center gap-4">
             {user?.id && <ProfileShareButton userId={user.id} name={user?.name} />}
