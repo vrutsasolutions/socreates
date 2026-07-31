@@ -3,17 +3,14 @@
 //  Order summary + payment-method choice. Reached from Membership via
 //  navigate('/membership/checkout', { state: { plan, billing, ... } }).
 //
-//  TWO payment paths:
-//    • Native app (Capacitor) → razorpay-cordova plugin (native SDK)
-//      Supports UPI, Cards, Netbanking, Wallets — all natively.
-//    • Web browser → checkout.js popup (window.Razorpay)
-//      Razorpay's standard web checkout.
+//  Uses Razorpay's standard checkout.js popup (window.Razorpay) everywhere,
+//  including inside the Capacitor WebView on Android — see the note on
+//  payRazorpay() below for why the native razorpay-cordova plugin isn't used.
 //
-//  Both verify the signature server-side before granting premium.
+//  Verified server-side (signature check) before granting premium.
 // ════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
-import { Capacitor } from '@capacitor/core';
+import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext';
 import { USE_MOCK } from '../api/config';
 import { createOrder, subscribe } from '../api/paymentApi';
@@ -65,64 +62,7 @@ export default function Checkout() {
       state: { message: err?.response?.data?.message || err?.message, plan, billing, planLabel, price },
     });
 
-  // ── Native Razorpay (Cordova plugin) ────────────────────────────────
-  // Uses the razorpay-cordova plugin which invokes Razorpay's native
-  // Android SDK. This supports UPI (intent-based: GPay, PhonePe, etc.),
-  // Cards, Netbanking, Wallets — everything that the web checkout.js
-  // blocks inside a WebView.
-  const payNative = async (ord, key) => {
-    const RazorpayCheckout = window.RazorpayCheckout;
-    if (!RazorpayCheckout) {
-      setError('Razorpay native plugin not found. Please reinstall the app.');
-      setLoading('');
-      return;
-    }
-
-    const options = {
-      key,
-      amount: ord.amount,
-      currency: ord.currency || 'INR',
-      name: 'SoCreate',
-      description: `${planLabel} · ${yearly ? 'Yearly' : 'Monthly'}`,
-      order_id: ord.orderId,
-      prefill: {
-        name: user?.name || '',
-        email: user?.email || '',
-      },
-      theme: { color: '#1565C0' },
-    };
-
-    RazorpayCheckout.open(
-      options,
-      // Success callback
-      async (resp) => {
-        try {
-          const { data } = await subscribe({
-            ...payload('razorpay'),
-            paymentId: resp.razorpay_payment_id,
-            orderId: resp.razorpay_order_id,
-            signature: resp.razorpay_signature,
-          });
-          onSuccess(data);
-        } catch (err) {
-          onFailure(err);
-        }
-      },
-      // Error callback
-      (err) => {
-        console.error('[Razorpay Native] payment failed:', err);
-        setLoading('');
-        if (err?.code === 2) {
-          // User cancelled — code 2 in Razorpay native SDK
-          return;
-        }
-        onFailure({
-          response: { data: { message: err?.description || 'Payment failed' } },
-          message: err?.description || 'Payment failed',
-        });
-      }
-    );
-  };
+  
 
   // ── Web Razorpay (checkout.js popup) ────────────────────────────────
   const payWeb = async (ord, key) => {
@@ -181,18 +121,13 @@ export default function Checkout() {
         return;
       }
 
-      // razorpay-cordova v0.1.0 has callback bugs with Capacitor v8+:
-      // payment captures on Razorpay's end but the success callback never
-      // fires in JS, so the app reports "failed" even though money was
-      // debited. Use checkout.js everywhere until a Capacitor-native
-      // Razorpay plugin is available. checkout.js works in the Capacitor
-      // WebView — the only trade-off is UPI intent (opening GPay/PhonePe
-      // apps directly) won't launch; UPI collect, cards, netbanking, and
-      // wallets all work normally.
-      //
-      // To restore native SDK support later, swap this back to:
-      //   if (Capacitor.isNativePlatform()) await payNative(ord, key);
-      //   else await payWeb(ord, key);
+      // Always use checkout.js (payWeb), not the native razorpay-cordova plugin.
+      // That plugin (v0.1.0, unmaintained) has callback bugs under Capacitor v8+:
+      // payment captures on Razorpay's end but the success callback never fires
+      // in JS, so the app reports "failed" even though money was debited.
+      // checkout.js works fine in the Capacitor WebView — the only trade-off is
+      // UPI intent (opening GPay/PhonePe directly) won't launch; UPI collect,
+      // cards, netbanking, and wallets all work normally.
       await payWeb(ord, key);
     } catch (err) {
       console.error('[Razorpay] payment start failed:', err);
