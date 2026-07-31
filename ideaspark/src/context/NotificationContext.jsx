@@ -2,9 +2,14 @@
 //  NotificationContext
 //  ----------------------------------------------------------------------
 //  Single source of notification state for the bell + toasts.
-//    • initial list / unread count / mark-read  → REST (mock for now, §7 gaps)
-//    • live pushes                              → STOMP/SockJS (live)
+//    • initial list / unread count / mark-read  → REST
+//    • live pushes                              → STOMP/SockJS
+//    • reconnect gap recovery                   → REST re-fetch on reconnect
 //  On each live push we prepend to the list, bump unread, and surface a toast.
+//
+//  The STOMP subscription uses REF-based callbacks so the onConnect handler
+//  (which fires on every reconnect) always calls the latest version of
+//  onMessage/onReconnect — never a stale closure from the initial mount.
 // ════════════════════════════════════════════════════════════════════════
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from './AuthContext';
@@ -171,7 +176,7 @@ export const NotificationProvider = ({ children }) => {
     toastTimers.current[n.id] = setTimeout(() => dismissToast(n.id), TOAST_TTL);
   }, [dismissToast]);
 
-  // ── Initial load ──────────────────────────────────────────────────────
+  // ── Initial load (also used as reconnect gap recovery) ────────────────
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -220,6 +225,27 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [items]);
 
+  // ── Ref-based callbacks for STOMP ─────────────────────────────────────
+  // The STOMP client's onConnect fires on every reconnect but captures its
+  // callbacks once at subscription time. Using refs ensures the onConnect
+  // handler always calls the LATEST version of onMessage/onReconnect,
+  // even if the provider has re-rendered since the subscription was created.
+  const onMessageRef = useRef(null);
+  const onReconnectRef = useRef(null);
+
+  onMessageRef.current = (n) => {
+    setItems((prev) => {
+      if (prev.some((x) => x.id === n.id)) return prev; // dedupe
+      return [n, ...prev];
+    });
+    pushToast(n);
+  };
+
+  // On reconnect, re-fetch the full list via REST to fill the gap.
+  // This replaces the entire items array (REST returns everything),
+  // so any notifications pushed during the disconnect are now present.
+  onReconnectRef.current = load;
+
   // ── Wire up only when logged in ───────────────────────────────────────
   useEffect(() => {
     if (!user) {
@@ -230,20 +256,17 @@ export const NotificationProvider = ({ children }) => {
 
     load();
 
-    const unsubscribe = subscribeToNotifications((n) => {
-      setItems((prev) => {
-        if (prev.some((x) => x.id === n.id)) return prev; // dedupe
-        return [n, ...prev];
-      });
-      pushToast(n);
-    });
+    // Pass ref objects (not raw functions) so the STOMP client always
+    // reads the latest .current — no stale closures on reconnect.
+    const unsubscribe = subscribeToNotifications(onMessageRef, onReconnectRef);
 
     return () => {
       unsubscribe?.();
       Object.values(toastTimers.current).forEach(clearTimeout);
       toastTimers.current = {};
     };
-  }, [user, load, pushToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Mark all message-type notifications as read (call when user opens /messages)
   const clearMessageNotifications = useCallback(async () => {
