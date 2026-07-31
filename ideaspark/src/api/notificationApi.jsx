@@ -5,6 +5,12 @@
 //    ✅ LIVE  — STOMP over SockJS: /queue/notifications (per-user)
 //               Also /queue/messages (new DM) — both surfaces a toast.
 //    ✅ LIVE  — GET /api/notifications, unread-count, mark-read, read-all
+//
+//  This module also handles reconnect gap recovery: when the WebSocket
+//  drops and reconnects, any notifications pushed during the gap are
+//  lost (the simple broker doesn't queue them). On every reconnect we
+//  fire a REST re-fetch so the NotificationContext picks up what was
+//  missed — that's why the caller passes an `onReconnect` callback.
 // ════════════════════════════════════════════════════════════════════════
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
@@ -113,6 +119,19 @@ export const normalizeNotification = (n = {}) => {
             ? `/users/${n.referenceId}`
             : "/home";
 
+  // ── Normalize createdAt ──
+  // The backend's REST API serializes LocalDateTime as an ISO string
+  // ("2026-07-31T10:00:00"), but the STOMP message converter may
+  // serialize it as a JSON array ([2026,7,31,10,0,0]) if the
+  // WebSocketMessageConverterConfig hasn't been deployed yet.
+  // Handle both formats gracefully.
+  let createdAt = n.createdAt;
+  if (Array.isArray(createdAt)) {
+    // [year, month, day, hour, minute, second?, nano?]
+    const [y, mo, d, h = 0, mi = 0, s = 0] = createdAt;
+    createdAt = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(mi).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
   return {
     id:
       n.id ?? "n-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
@@ -120,7 +139,7 @@ export const normalizeNotification = (n = {}) => {
     title: n.title ?? TITLES[type],
     message,
     read: n.read ?? n.readStatus ?? false,
-    createdAt: n.createdAt ?? new Date().toISOString(),
+    createdAt: createdAt ?? new Date().toISOString(),
     referenceId: n.referenceId ?? null,
     conversationId: n.conversationId ?? null,
     link: n.link ?? defaultLink,
@@ -142,10 +161,24 @@ const messageToNotification = (msgDto) => ({
     : "/messages",
 });
 
-export const subscribeToNotifications = (onMessage) => {
+// ═══════════════════════════════════════════════════════════════════════
+//  subscribeToNotifications
+//  ─────────────────────────────────────────────────────────────────────
+//  Accepts two callbacks:
+//    • onMessage(normalizedNotification) — called for each live push
+//    • onReconnect()                     — called after every reconnect
+//                                          so the caller can re-fetch via
+//                                          REST and fill any gap
+//
+//  Both callbacks are read from a `.current` ref on the passed objects
+//  so the STOMP client always uses the latest version, even across
+//  React re-renders and reconnects. The caller wraps them in
+//  `{ current: fn }` (i.e. a React ref) and passes the ref object.
+// ═══════════════════════════════════════════════════════════════════════
+export const subscribeToNotifications = (onMessageRef, onReconnectRef) => {
   if (USE_MOCK.notificationsRealtime) {
     const t = setTimeout(() => {
-      onMessage?.(
+      onMessageRef.current?.(
         normalizeNotification({
           id: "n-live-" + Date.now(),
           message: "Someone just liked your idea",
@@ -168,17 +201,33 @@ export const subscribeToNotifications = (onMessage) => {
     heartbeatOutgoing: 10000,
   });
 
-  // Tracks whether the CURRENT attempt cycle has an established connection.
-  // Spring wraps a rejected CONNECT (WebSocketAuthConfig throwing on a
-  // missing/invalid JWT) in a generic
-  // "Failed to send message to ExecutorSubscribableChannel[...]" error —
-  // the message text isn't a reliable signal. But nothing else in this app
-  // throws during CONNECT, so any STOMP error received while `connected`
-  // is still false is, by construction, a rejected CONNECT.
+  // Tracks whether we've been connected at least once before this
+  // connect. The very first connect is NOT a "reconnect" (the REST
+  // load() already runs alongside it in NotificationContext). Every
+  // subsequent onConnect IS a reconnect — notifications pushed during
+  // the gap between disconnect and this new connect were lost by the
+  // simple broker, so we need to re-fetch via REST.
+  let hasConnectedBefore = false;
+
+  // Tracks whether the CURRENT attempt cycle has an established
+  // connection — used to distinguish a rejected CONNECT (expired JWT)
+  // from a mid-session error.
   let connected = false;
 
   client.onConnect = () => {
     connected = true;
+    console.log("[ws] STOMP connected");
+
+    // ── Gap recovery ─────────────────────────────────────────────────
+    // On reconnect (not the first connect), re-fetch all notifications
+    // via REST. NotificationContext's load() will merge them into state,
+    // deduplicating by id, so any notification sent while we were
+    // disconnected appears instantly.
+    if (hasConnectedBefore) {
+      console.log("[ws] reconnect detected — re-fetching to fill gap");
+      onReconnectRef?.current?.();
+    }
+    hasConnectedBefore = true;
 
     client.subscribe("/topic/presence", (frame) => {
       try {
@@ -210,7 +259,8 @@ export const subscribeToNotifications = (onMessage) => {
         const dto = JSON.parse(frame.body);
         const normalized = normalizeNotification(dto);
         if (normalized.type === "message") return; // handled by TOPIC_MESSAGES
-        onMessage?.(normalized);
+        console.log("[ws] notification received:", normalized.type, normalized.id);
+        onMessageRef.current?.(normalized);
       } catch (err) {
         console.error(
           "[notifications] bad notification STOMP payload",
@@ -254,7 +304,8 @@ export const subscribeToNotifications = (onMessage) => {
           new CustomEvent("chat-message-inbound", { detail: msgDto }),
         );
 
-        onMessage?.(messageToNotification(msgDto));
+        console.log("[ws] message received from:", msgDto.senderName);
+        onMessageRef.current?.(messageToNotification(msgDto));
       } catch (err) {
         console.error(
           "[notifications] bad message STOMP payload",
@@ -312,15 +363,17 @@ export const subscribeToNotifications = (onMessage) => {
 
   client.onDisconnect = () => {
     connected = false;
+    console.log("[ws] STOMP disconnected");
   };
 
   client.onWebSocketClose = () => {
     connected = false;
+    console.log("[ws] WebSocket closed — will reconnect in", client.reconnectDelay, "ms");
   };
 
   client.onStompError = (frame) => {
     console.error(
-      "[notifications] STOMP error",
+      "[ws] STOMP error",
       frame.headers["message"],
       frame.body,
     );
@@ -340,7 +393,7 @@ export const subscribeToNotifications = (onMessage) => {
   };
 
   client.onWebSocketError = (event) => {
-    console.error("[notifications] WebSocket error", event);
+    console.error("[ws] WebSocket error", event);
   };
 
   client.activate();
