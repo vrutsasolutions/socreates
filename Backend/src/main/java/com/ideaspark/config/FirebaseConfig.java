@@ -13,6 +13,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 // Initializes the Firebase Admin SDK once at startup so the backend can
 // SEND push notifications via FCM.
@@ -66,10 +67,18 @@ public class FirebaseConfig {
             GoogleCredentials credentials;
 
             if (hasJson) {
-                // Read credentials directly from the env-var JSON string.
                 log.info("Initializing Firebase from FIREBASE_SERVICE_ACCOUNT_JSON env var.");
+
+                // Elastic Beanstalk env vars are fragile for raw JSON: `eb setenv`
+                // splits on commas, and console copy/paste often adds stray
+                // wrapping quotes — both corrupt the value before it even gets
+                // here. To sidestep that entirely, we accept the value as
+                // base64-encoded JSON and only fall back to treating it as raw
+                // JSON if it doesn't look like base64.
+                String rawJson = decodeIfBase64(serviceAccountJson.trim());
+
                 try (InputStream stream = new ByteArrayInputStream(
-                        serviceAccountJson.getBytes(StandardCharsets.UTF_8))) {
+                        rawJson.getBytes(StandardCharsets.UTF_8))) {
                     credentials = GoogleCredentials.fromStream(stream);
                 }
             } else {
@@ -88,7 +97,30 @@ public class FirebaseConfig {
 
         } catch (IOException e) {
             log.error("Failed to initialize Firebase Admin SDK — push notifications disabled. "
-                    + "Check the service account JSON is valid.", e);
+                    + "The value in FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON (or valid "
+                    + "base64-encoded JSON). Common causes on Elastic Beanstalk: the value was "
+                    + "set with `eb setenv KEY=val1,val2` and got split on the commas inside the "
+                    + "JSON, or it was pasted with extra wrapping quotes. Re-encode the key file "
+                    + "as base64 (e.g. `base64 -w0 service-account.json`) and set that as the env "
+                    + "var value instead — see FirebaseConfig class comment for details.", e);
+        }
+    }
+
+    // Returns the base64-decoded string if `value` looks like base64-encoded
+    // JSON (i.e. it does NOT already start with '{', the first char of any
+    // valid service-account JSON document). Otherwise returns `value` as-is
+    // so existing raw-JSON env vars keep working unchanged.
+    private String decodeIfBase64(String value) {
+        if (value.isEmpty() || value.charAt(0) == '{') {
+            return value;
+        }
+        try {
+            byte[] decoded = Base64.getDecoder().decode(value);
+            return new String(decoded, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            // Not valid base64 either — let it fall through and fail parsing
+            // as raw JSON, which will produce a clear error above.
+            return value;
         }
     }
 }
