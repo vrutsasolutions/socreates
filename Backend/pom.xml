@@ -155,6 +155,13 @@
     <artifactId>razorpay-java</artifactId>
     <version>1.4.8</version>
 </dependency>
+<dependency>
+    <groupId>com.newrelic.agent.java</groupId>
+    <artifactId>newrelic-java</artifactId>
+    <version>8.21.0</version>
+    <scope>provided</scope>
+    <type>zip</type>
+</dependency>
 
   </dependencies>
 
@@ -194,6 +201,32 @@
     <artifactId>exec-maven-plugin</artifactId>
     <version>3.1.0</version>
 </plugin>
+<!-- Unzip New Relic Java agent into target/ -->
+<plugin>
+<groupId>org.apache.maven.plugins</groupId>
+<artifactId>maven-dependency-plugin</artifactId>
+<version>3.1.1</version>
+<executions>
+    <execution>
+    <id>unpack-newrelic</id>
+    <phase>package</phase>
+    <goals>
+        <goal>unpack-dependencies</goal>
+    </goals>
+    <configuration>
+        <includeGroupIds>com.newrelic.agent.java</includeGroupIds>
+        <includeArtifactIds>newrelic-java</includeArtifactIds>
+        <!-- you can optionally exclude files -->
+        <!-- <excludes>**/newrelic.yml</excludes> -->
+        <overWriteReleases>false</overWriteReleases>
+        <overWriteSnapshots>false</overWriteSnapshots>
+        <overWriteIfNewer>true</overWriteIfNewer>
+        <outputDirectory>${project.build.directory}</outputDirectory>
+    </configuration>
+    </execution>
+</executions>
+</plugin>
+
     </plugins>
   </build>
 
