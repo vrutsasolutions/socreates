@@ -2,8 +2,14 @@
 //  Checkout (figma "Checkout · Confirm your order")
 //  Order summary + payment-method choice. Reached from Membership via
 //  navigate('/membership/checkout', { state: { plan, billing, ... } }).
-//  "Pay with Razorpay" opens Razorpay's hosted popup (Card / UPI / Netbanking),
-//  then verifies the signature server-side before granting premium.
+//
+//  TWO payment paths:
+//    • Native app (Capacitor) → razorpay-cordova plugin (native SDK)
+//      Supports UPI, Cards, Netbanking, Wallets — all natively.
+//    • Web browser → checkout.js popup (window.Razorpay)
+//      Razorpay's standard web checkout.
+//
+//  Both verify the signature server-side before granting premium.
 // ════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
@@ -56,9 +62,107 @@ export default function Checkout() {
   const onFailure = (err) =>
     navigate('/membership/failure', {
       replace: true,
-      state: { message: err?.response?.data?.message, plan, billing, planLabel, price },
+      state: { message: err?.response?.data?.message || err?.message, plan, billing, planLabel, price },
     });
 
+  // ── Native Razorpay (Cordova plugin) ────────────────────────────────
+  // Uses the razorpay-cordova plugin which invokes Razorpay's native
+  // Android SDK. This supports UPI (intent-based: GPay, PhonePe, etc.),
+  // Cards, Netbanking, Wallets — everything that the web checkout.js
+  // blocks inside a WebView.
+  const payNative = async (ord, key) => {
+    const RazorpayCheckout = window.RazorpayCheckout;
+    if (!RazorpayCheckout) {
+      setError('Razorpay native plugin not found. Please reinstall the app.');
+      setLoading('');
+      return;
+    }
+
+    const options = {
+      key,
+      amount: ord.amount,
+      currency: ord.currency || 'INR',
+      name: 'SoCreate',
+      description: `${planLabel} · ${yearly ? 'Yearly' : 'Monthly'}`,
+      order_id: ord.orderId,
+      prefill: {
+        name: user?.name || '',
+        email: user?.email || '',
+      },
+      theme: { color: '#1565C0' },
+    };
+
+    RazorpayCheckout.open(
+      options,
+      // Success callback
+      async (resp) => {
+        try {
+          const { data } = await subscribe({
+            ...payload('razorpay'),
+            paymentId: resp.razorpay_payment_id,
+            orderId: resp.razorpay_order_id,
+            signature: resp.razorpay_signature,
+          });
+          onSuccess(data);
+        } catch (err) {
+          onFailure(err);
+        }
+      },
+      // Error callback
+      (err) => {
+        console.error('[Razorpay Native] payment failed:', err);
+        setLoading('');
+        if (err?.code === 2) {
+          // User cancelled — code 2 in Razorpay native SDK
+          return;
+        }
+        onFailure({
+          response: { data: { message: err?.description || 'Payment failed' } },
+          message: err?.description || 'Payment failed',
+        });
+      }
+    );
+  };
+
+  // ── Web Razorpay (checkout.js popup) ────────────────────────────────
+  const payWeb = async (ord, key) => {
+    if (typeof window.Razorpay === 'undefined') {
+      setError('Razorpay could not load. A browser ad/privacy blocker may be blocking checkout.razorpay.com — disable it for this site, then reload and retry.');
+      setLoading('');
+      return;
+    }
+
+    const rzp = new window.Razorpay({
+      key,
+      amount: ord.amount,
+      currency: ord.currency || 'INR',
+      name: 'SoCreate',
+      image: scLogo,
+      description: `${planLabel} · ${yearly ? 'Yearly' : 'Monthly'}`,
+      order_id: ord.orderId,
+      handler: async (resp) => {
+        try {
+          const { data } = await subscribe({
+            ...payload('razorpay'),
+            paymentId: resp.razorpay_payment_id,
+            orderId: resp.razorpay_order_id,
+            signature: resp.razorpay_signature,
+          });
+          onSuccess(data);
+        } catch (err) {
+          onFailure(err);
+        }
+      },
+      prefill: { name: user?.name, email: user?.email },
+      theme: { color: '#1565C0' },
+      modal: { ondismiss: () => setLoading('') },
+    });
+    rzp.on('payment.failed', (r) =>
+      onFailure({ response: { data: { message: r?.error?.description } } }));
+    rzp.open();
+  };
+
+  // ── Main pay handler ────────────────────────────────────────────────
   const payRazorpay = async () => {
     setLoading('razorpay'); setError('');
     try {
@@ -66,39 +170,6 @@ export default function Checkout() {
       if (USE_MOCK.payment) {
         const { data } = await subscribe(payload('razorpay'));
         onSuccess(data);
-        return;
-      }
-
-      // ── Native app (Capacitor WebView) ─────────────────────────────────
-      // Razorpay's checkout.js CDN script often fails to load inside a
-      // Capacitor Android/iOS WebView (blocked by mixed-content policy,
-      // WebView security restrictions, or CSP). When running as a native
-      // app, dynamically inject the script if it hasn't loaded yet and
-      // give it a moment to initialize. This avoids the misleading
-      // "ad blocker" error that testers would otherwise see.
-      if (typeof window.Razorpay === 'undefined') {
-        // Try loading the script dynamically (works in both web and native)
-        const loaded = await new Promise((resolve) => {
-          const existing = document.querySelector('script[src*="checkout.razorpay.com"]');
-          if (existing) { resolve(false); return; } // already in DOM but failed
-          const s = document.createElement('script');
-          s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-          s.onload = () => resolve(true);
-          s.onerror = () => resolve(false);
-          document.head.appendChild(s);
-        });
-        // Give the script a beat to initialize window.Razorpay
-        if (loaded) await new Promise((r) => setTimeout(r, 500));
-      }
-
-      if (typeof window.Razorpay === 'undefined') {
-        const isNative = Capacitor.isNativePlatform();
-        setError(
-          isNative
-            ? 'Razorpay checkout could not load in the app. Please try completing your purchase from a browser at socreate.in instead.'
-            : 'Razorpay could not load. A browser ad/privacy blocker is likely blocking checkout.razorpay.com — disable it for this site (or try an incognito window without extensions), then reload and retry.'
-        );
-        setLoading('');
         return;
       }
 
@@ -110,38 +181,14 @@ export default function Checkout() {
         return;
       }
 
-      const rzp = new window.Razorpay({
-        key,
-        amount:   ord.amount,
-        currency: ord.currency || 'INR',
-        name:     'SoCreate',
-        image:    scLogo,
-        description: `${planLabel} · ${yearly ? 'Yearly' : 'Monthly'}`,
-        order_id: ord.orderId,
-        handler: async (resp) => {
-          try {
-            const { data } = await subscribe({
-              ...payload('razorpay'),
-              paymentId: resp.razorpay_payment_id,
-              orderId:   resp.razorpay_order_id,
-              signature: resp.razorpay_signature,
-            });
-            onSuccess(data);
-          } catch (err) {
-            onFailure(err);
-          }
-        },
-        prefill: { name: user?.name, email: user?.email },
-        theme:   { color: '#1565C0' },
-        modal:   { ondismiss: () => setLoading('') },
-      });
-      rzp.on('payment.failed', (r) =>
-        onFailure({ response: { data: { message: r?.error?.description } } }));
-      rzp.open();
+      // Native app → use Razorpay's native Android/iOS SDK (supports UPI)
+      // Web browser → use checkout.js popup
+      if (Capacitor.isNativePlatform()) {
+        await payNative(ord, key);
+      } else {
+        await payWeb(ord, key);
+      }
     } catch (err) {
-      // Surface the real cause. A backend error carries response.data.message;
-      // a network/CORS failure (request never reached the server) carries only
-      // err.message === "Network Error". Log the full error for the console too.
       console.error('[Razorpay] payment start failed:', err);
       const status = err?.response?.status;
       setError(

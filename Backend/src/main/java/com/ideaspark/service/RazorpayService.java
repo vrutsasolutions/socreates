@@ -5,6 +5,8 @@ import com.razorpay.RazorpayClient;
 import com.razorpay.Refund;
 import com.razorpay.Utils;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Service;
 // test-mode order creation, and HMAC payment-signature verification.
 @Service
 public class RazorpayService {
+
+    private static final Logger log = LoggerFactory.getLogger(RazorpayService.class);
 
     @Value("${razorpay.key-id:}")
     private String keyId;
@@ -79,13 +83,29 @@ public class RazorpayService {
 
     /** Verify the order/payment/signature triple returned by the checkout. */
     public boolean verifySignature(String orderId, String paymentId, String signature) {
+        // Never log the secret or the full signature — just enough to diagnose
+        // *why* a mismatch happened (missing keySecret vs a genuine bad signature)
+        // without leaking anything sensitive into the logs.
+        log.info("Verifying Razorpay signature: orderId={}, paymentId={}, keyId={}, keySecretLength={}, signaturePrefix={}",
+                orderId, paymentId, keyId,
+                keySecret == null ? 0 : keySecret.length(),
+                signature == null ? "null" : signature.substring(0, Math.min(8, signature.length())));
         try {
             JSONObject attrs = new JSONObject();
             attrs.put("razorpay_order_id", orderId);
             attrs.put("razorpay_payment_id", paymentId);
             attrs.put("razorpay_signature", signature);
-            return Utils.verifyPaymentSignature(attrs, keySecret);
+            boolean result = Utils.verifyPaymentSignature(attrs, keySecret);
+            if (!result) {
+                log.warn("Razorpay signature verification FAILED for orderId={}, paymentId={} — keySecret is either wrong/stale or the values don't match a real completed checkout.",
+                        orderId, paymentId);
+            } else {
+                log.info("Razorpay signature verification succeeded for orderId={}, paymentId={}", orderId, paymentId);
+            }
+            return result;
         } catch (Exception e) {
+            log.error("Razorpay signature verification threw an exception for orderId={}, paymentId={}: {}",
+                    orderId, paymentId, e.toString());
             return false;
         }
     }
