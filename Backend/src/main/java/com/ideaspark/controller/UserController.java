@@ -38,6 +38,7 @@ public class UserController {
     private final com.ideaspark.service.PresenceService presenceService;
     private final com.ideaspark.service.UserAccountService userAccountService;
     private final com.ideaspark.service.ProfilePrivacyService profilePrivacyService;
+    private final com.ideaspark.service.MembershipService membershipService;
 
     // Same admin email UserDetailsServiceImpl uses to grant ROLE_ADMIN.
     // Used here only to set the UserDTO.isAdmin UI hint.
@@ -317,6 +318,13 @@ public class UserController {
         dto.setIdeasCount(ideaRepository.countByCreatorId(user.getId()));
         dto.setLikesCount(ideaRepository.sumLikeCountByCreatorId(user.getId()));
         dto.setSavedCount((int) savedIdeaRepository.countByUserId(user.getId()));
+        // Same shape as login/register/subscribe. Without this, GET/PUT /users/me
+        // returns membership: null even for an active subscriber — and since the
+        // frontend's login() fully replaces the cached user (not a merge), calling
+        // it after any profile edit wiped out plan/price/renewsAt locally, even
+        // though isPremium and the DB were still correct. Confirmed as the cause
+        // of "membership dashboard shows the price again after paying."
+        dto.setMembership(membershipService.activeMembershipShape(user));
         return dto;
     }
 }

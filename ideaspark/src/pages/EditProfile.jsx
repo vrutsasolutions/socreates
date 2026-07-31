@@ -10,7 +10,7 @@ const USERNAME_RE = /^[a-z0-9._]{3,30}$/;
 
 export default function EditProfile() {
   const navigate = useNavigate();
-  const { user, login } = useAuth();
+  const { user, updateUser } = useAuth();
   const fileRef = useRef();
 
   const originalUsername = user?.username || "";
@@ -120,7 +120,7 @@ export default function EditProfile() {
       const { data } = await api.put("/users/me", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      login(data, localStorage.getItem("token"));
+      updateUser(data);
       setSuccess("Profile updated!");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update profile");
