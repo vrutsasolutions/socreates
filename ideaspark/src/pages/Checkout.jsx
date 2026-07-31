@@ -181,13 +181,19 @@ export default function Checkout() {
         return;
       }
 
-      // Native app → use Razorpay's native Android/iOS SDK (supports UPI)
-      // Web browser → use checkout.js popup
-      if (Capacitor.isNativePlatform()) {
-        await payNative(ord, key);
-      } else {
-        await payWeb(ord, key);
-      }
+      // razorpay-cordova v0.1.0 has callback bugs with Capacitor v8+:
+      // payment captures on Razorpay's end but the success callback never
+      // fires in JS, so the app reports "failed" even though money was
+      // debited. Use checkout.js everywhere until a Capacitor-native
+      // Razorpay plugin is available. checkout.js works in the Capacitor
+      // WebView — the only trade-off is UPI intent (opening GPay/PhonePe
+      // apps directly) won't launch; UPI collect, cards, netbanking, and
+      // wallets all work normally.
+      //
+      // To restore native SDK support later, swap this back to:
+      //   if (Capacitor.isNativePlatform()) await payNative(ord, key);
+      //   else await payWeb(ord, key);
+      await payWeb(ord, key);
     } catch (err) {
       console.error('[Razorpay] payment start failed:', err);
       const status = err?.response?.status;
