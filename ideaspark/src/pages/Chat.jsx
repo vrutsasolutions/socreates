@@ -283,13 +283,13 @@ function Bubble({
       <video
         src={src}
         controls
-        className="w-[200px] h-[130px] object-cover rounded-2xl bg-black"
+        className="max-w-[240px] rounded-2xl bg-black"
       />
     ) : (
       <img
         src={src}
         alt="shared"
-        className="w-[200px] h-[130px] object-cover rounded-2xl"
+        className="max-w-[240px] rounded-2xl"
       />
     );
     content = (
@@ -311,7 +311,7 @@ function Bubble({
           </button>
         )}
         {m.text && (
-          <p className="mt-1 max-w-[200px] text-[12px] text-[#0D2137]">
+          <p className="mt-1 max-w-[240px] text-[12px] text-[#0D2137]">
             {m.text}
           </p>
         )}
