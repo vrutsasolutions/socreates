@@ -5,7 +5,8 @@ import BottomNav from '../components/common/BottomNav.premium';
 import Icon from '../components/common/Icon';
 import SharePostSheet from '../components/common/SharePostSheet';
 import { useAuth } from '../context/AuthContext';
-import ImageGallery, { ideaImages } from '../components/common/ImageGallery';
+import ImageGallery from '../components/common/ImageGallery';
+import { ideaImages } from '../components/common/ideaImages';
 import {
   fetchIdeaById,
   fetchComments,
@@ -177,7 +178,7 @@ export default function PremiumDetail() {
     setComments((c) => c.filter((x) => x.id !== commentId));
     try {
       await deleteComment(commentId);
-    } catch (_) {
+    } catch {
       setComments(prev); // revert on failure
     }
   };
@@ -192,7 +193,7 @@ export default function PremiumDetail() {
     setLikes((l) => (wasLiked ? l - 1 : l + 1));
     try {
       wasLiked ? await unlikeIdea(id) : await likeIdea(id);
-    } catch (_) {
+    } catch {
       setLiked(wasLiked);
       setLikes((l) => (wasLiked ? l + 1 : l - 1));
     }
@@ -227,7 +228,7 @@ export default function PremiumDetail() {
         setFollowing(false);
         showToast('Unfollowed');
       }
-    } catch (_) {
+    } catch {
       setFollowing(wasFollowing); // revert on failure
       showToast('Could not update follow');
     } finally {
@@ -244,7 +245,9 @@ export default function PremiumDetail() {
       wasSaved ? await unsaveIdea(id) : await saveIdea(id);
       setSaved(!wasSaved);
       showToast(wasSaved ? 'Removed from saved' : 'Saved to your ideas');
-    } catch (_) {}
+    } catch {
+      // ignored
+    }
     setSaving(false);
     saveRef.current = false;
   };

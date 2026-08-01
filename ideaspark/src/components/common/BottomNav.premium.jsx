@@ -100,7 +100,7 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const location = useLocation();
   const { user } = useAuth();
-  const navRef   = useRef(null);
+  const navRef = useRef(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, opacity: 0 });
   const itemRefs = useRef([]);
 
@@ -111,12 +111,12 @@ export default function BottomNav() {
     );
     if (activeIdx === -1 || !itemRefs.current[activeIdx] || !navRef.current) return;
 
-    const navRect  = navRef.current.getBoundingClientRect();
+    const navRect = navRef.current.getBoundingClientRect();
     const itemRect = itemRefs.current[activeIdx].getBoundingClientRect();
 
     setPillStyle({
-      left:    itemRect.left - navRect.left + itemRect.width / 2 - 20,
-      width:   40,
+      left: itemRect.left - navRect.left + itemRect.width / 2 - 20,
+      width: 40,
       opacity: 1,
     });
   }, [location.pathname]);
@@ -153,16 +153,17 @@ export default function BottomNav() {
         <div
           aria-hidden
           style={{
-            position:   'absolute',
-            top:        8,
-            height:     3,
+            position: 'absolute',
+            top: 8,
+            height: 3,
             borderRadius: 999,
             background: 'var(--sc-primary-500, #1565C0)',
             transition: 'left 300ms cubic-bezier(0.34,1.56,0.64,1), width 300ms cubic-bezier(0.34,1.56,0.64,1), opacity 200ms ease',
             ...pillStyle,
           }}
         />
-
+        {/* eslint-disable-next-line no-unused-vars -- Icon IS used below as a JSX tag; this
+    config lacks eslint-plugin-react, so core no-unused-vars can't see that usage */}
         {NAV_ITEMS.map(({ to, label, Icon, isAdd }, idx) => (
           <NavLink
             key={to}
@@ -232,7 +233,7 @@ export default function BottomNav() {
 
                   {/* Label */}
                   <span style={{
-                    fontSize:   10,
+                    fontSize: 10,
                     fontWeight: isActive ? 700 : 500,
                     letterSpacing: isActive ? '-0.01em' : '0.01em',
                     fontFamily: 'var(--sc-font-body, Inter, sans-serif)',

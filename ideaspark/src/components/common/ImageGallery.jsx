@@ -1,13 +1,6 @@
 import { useState } from 'react';
-import { CATEGORY_COLORS, defaultColor, IdeaIcon } from './categoryIcons';
-
-/** Normalize an idea's images: prefer imageUrls[], fall back to single imageUrl. */
-export function ideaImages(idea) {
-  if (!idea) return [];
-  const urls = Array.isArray(idea.imageUrls) ? idea.imageUrls.filter(Boolean) : [];
-  if (urls.length) return urls;
-  return idea.imageUrl ? [idea.imageUrl] : [];
-}
+import { IdeaIcon } from './categoryIcons';
+import { CATEGORY_COLORS, defaultColor } from './categoryConstants';
 
 /**
  * Swipeable image gallery for detail views — arrows + dots + counter.

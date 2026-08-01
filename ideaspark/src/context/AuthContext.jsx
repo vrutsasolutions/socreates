@@ -47,4 +47,10 @@ export const AuthProvider = ({ children }) => {
   )
 }
 
+// This file colocates a context, its provider, and a hook — a very common
+// and recommended React pattern, but it means the file exports more than
+// just components, which react-refresh's strict rule flags. Splitting the
+// hook into its own file would require updating every one of this app's
+// many `useAuth` import sites, so we suppress the rule here instead.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext)

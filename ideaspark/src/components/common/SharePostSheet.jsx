@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../messaging/Avatar';
-import { ideaImages } from './ImageGallery';
+import { ideaImages } from './ideaImages';
 import { fetchShareTargets, sharePost } from '../../api/messagingApi';
 
 export default function SharePostSheet({ post, onClose, onToast }) {
@@ -33,7 +33,7 @@ export default function SharePostSheet({ post, onClose, onToast }) {
         const list = Array.isArray(data) ? data : [];
         setPeople(list);
         setSelected(new Set(list.slice(0, 2).map((p) => p.id)));
-      } catch (err) {
+      } catch {
         if (!alive) return;
         setPeople([]);
         setSelected(new Set());
@@ -91,7 +91,7 @@ export default function SharePostSheet({ post, onClose, onToast }) {
       if (count === 1 && convoId) {
         navigate(`/messages/${convoId}`);
       }
-    } catch (err) {
+    } catch {
       onToast?.('Could not share post. Please try again.');
     } finally {
       setSending(false);

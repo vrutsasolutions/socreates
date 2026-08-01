@@ -17,8 +17,9 @@ import { useAuth }          from '../../context/AuthContext';
 import api                  from '../../api/axiosInstance';
 import { AIBadge } from './AIInteractions.premium';
 import SharePostSheet from './SharePostSheet';
-import { ideaImages } from './ImageGallery';
-import { CATEGORY_COLORS, defaultColor, IdeaIcon } from './categoryIcons';
+import { ideaImages } from './ideaImages';
+import { IdeaIcon } from './categoryIcons';
+import { CATEGORY_COLORS, defaultColor } from './categoryConstants';
 
 /* ── Helpers ─────────────────────────────────────────────── */
 function formatDate(dateString) {
@@ -187,7 +188,9 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
         : await api.post(`/ideas/${idea.id}/save`);
       setSaved(s => !s);
       onSaveToggle?.(idea.id, !saved);
-    } catch (_) {}
+    } catch {
+      // ignored
+    }
     setSaving(false);
     saveRef.current = false;
   };
@@ -203,7 +206,7 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
       wasLiked
         ? await api.delete(`/ideas/${idea.id}/like`)
         : await api.post(`/ideas/${idea.id}/like`);
-    } catch (_) {
+    } catch {
       setLiked(wasLiked);
       setLikes(l => wasLiked ? l + 1 : l - 1);
     }

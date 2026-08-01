@@ -34,9 +34,6 @@ import {
   uploadImage,
   reactToMessage,
   deleteMessage,
-  blockUser,
-  unblockUser,
-  reportUser,
   isLimitReachedError,
   isRequestPendingError,
   acceptRequest,
@@ -91,27 +88,6 @@ const formatMessageTime = (value) => {
   });
 };
 
-const getDateLabel = (dateValue) => {
-  const date = dateValue ? new Date(dateValue) : new Date();
-
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-
-  const sameDay = (a, b) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  if (sameDay(date, today)) return "Today";
-  if (sameDay(date, yesterday)) return "Yesterday";
-
-  return date.toLocaleDateString([], {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
 const QUICK_REACTIONS = [
   { label: "Like", emoji: "👍" },
   { label: "Fire", emoji: "🔥" },
@@ -229,6 +205,27 @@ function ReplyBtn({ onClick }) {
   );
 }
 
+function TimeMeta({ light, timeLabel, mine, isRead }) {
+  if (!timeLabel) return null;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-normal whitespace-nowrap ${
+      light ? "text-white/70" : "text-[#90A4AE]"
+    }`}>
+      <span>{timeLabel}</span>
+      {mine && (
+        <span className={`inline-flex text-[11px] leading-none ${
+          isRead
+            ? (light ? "text-cyan-300" : "text-[#1565C0]")
+            : (light ? "text-white/70" : "text-[#90A4AE]")
+        }`}>
+          <span>✓</span>
+          {isRead && <span className="-ml-[5px]">✓</span>}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function Bubble({
   m,
   onImageClick,
@@ -277,29 +274,6 @@ function Bubble({
 
   // ── Inline time+ticks (appears inside every bubble type) ──
   const timeLabel = m.time || formatMessageTime(m.createdAt);
-  const TimeMeta = ({ light }) => (
-    timeLabel ? (
-      <span className={`inline-flex items-center gap-0.5 text-[10px] font-normal whitespace-nowrap ${
-        light ? "text-white/70" : "text-[#90A4AE]"
-      }`}>
-        <span>{timeLabel}</span>
-        {mine && (
-          <span className={`inline-flex text-[11px] leading-none ${
-            (m.isRead || m.read)
-              // Bright cyan on a blue bubble, dark blue on a light bubble —
-              // both chosen for clear contrast against "sent" (white/70,
-              // grey), unlike the previous sky-300 which was too close to
-              // white/70 to read as "changed" at a glance.
-              ? (light ? "text-cyan-300" : "text-[#1565C0]")
-              : (light ? "text-white/70" : "text-[#90A4AE]")
-          }`}>
-            <span>✓</span>
-            {(m.isRead || m.read) && <span className="-ml-[5px]">✓</span>}
-          </span>
-        )}
-      </span>
-    ) : null
-  );
 
   let content;
 
@@ -332,7 +306,7 @@ function Bubble({
           >
             {media}
             <span className="absolute bottom-1.5 right-1.5 bg-black/50 rounded-full px-1.5 py-0.5">
-              <TimeMeta light />
+              <TimeMeta light timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
             </span>
           </button>
         )}
@@ -373,7 +347,7 @@ function Bubble({
           <span className="text-[13px] truncate flex-1">{m.fileName}</span>
         </div>
         <div className="flex justify-end mt-1">
-          <TimeMeta light={mine} />
+          <TimeMeta light={mine} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
         </div>
       </div>
     );
@@ -414,7 +388,7 @@ function Bubble({
           />
         )}
         <div className="flex justify-end">
-          <TimeMeta light={mine} />
+          <TimeMeta light={mine} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
         </div>
       </div>
     );
@@ -449,7 +423,7 @@ function Bubble({
             <span className="text-[12px] font-semibold text-[#1565C0]">
               View idea →
             </span>
-            <TimeMeta light={false} />
+            <TimeMeta light={false} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
           </div>
         </div>
       </button>
@@ -483,7 +457,7 @@ function Bubble({
           </div>
         </div>
         <div className="flex justify-end mt-1">
-          <TimeMeta light={false} />
+          <TimeMeta light={false} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
         </div>
       </button>
     );
@@ -501,7 +475,7 @@ function Bubble({
         {m.replyTo && <QuotedInBubble replyTo={m.replyTo} light={mine} />}
         <div className="flex items-end gap-2">
           <span className="break-words flex-1 min-w-0">{linkifyText(displayText)}</span>
-          <TimeMeta light={mine} />
+          <TimeMeta light={mine} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
         </div>
       </div>
     );
@@ -782,36 +756,6 @@ export default function Chat() {
     }
   };
 
-  const handleBlockUser = async () => {
-    try {
-      await blockUser(convo.otherUserId);
-      showToast("User blocked successfully");
-      navigate("/messages");
-    } catch (err) {
-      console.error(err);
-      showToast(err.response?.data?.message || "Failed to block user");
-    }
-  };
-
-  const handleUnblockUser = async () => {
-    try {
-      await unblockUser(convo.otherUserId);
-      showToast("User unblocked successfully");
-    } catch (err) {
-      console.error(err);
-      showToast(err.response?.data?.message || "Failed to unblock user");
-    }
-  };
-
-  const handleReportUser = async () => {
-    try {
-      await reportUser(convo.otherUserId, "Spam");
-      showToast("User reported successfully");
-    } catch (err) {
-      console.error(err);
-      showToast(err.response?.data?.message || "Failed to report user");
-    }
-  };
   // ── Load conversation + messages ────────────────────────────────────────
   useEffect(() => {
     let alive = true;
@@ -1370,7 +1314,9 @@ export default function Chat() {
         );
         try {
           URL.revokeObjectURL(it.url);
-        } catch (_) {}
+        } catch {
+          // ignored
+        }
       } catch (err) {
         console.error("Image send failed:", err);
         setMessages((prev) => prev.filter((m) => m.id !== tmpId));

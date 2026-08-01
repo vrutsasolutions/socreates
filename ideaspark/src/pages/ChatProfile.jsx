@@ -8,7 +8,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
-import { ChatActionsLayer, handleFor } from '../components/messaging/ChatActions';
+import { ChatActionsLayer } from '../components/messaging/ChatActions';
+import { handleFor } from '../components/messaging/chatHelpers';
 import { fetchConversation, fetchConversationMedia } from '../api/messagingApi';
 
 const SafetyRow = ({ title, subtitle, danger, onClick, children }) => (
