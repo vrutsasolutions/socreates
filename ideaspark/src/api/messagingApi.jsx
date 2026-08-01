@@ -352,7 +352,8 @@ const normalizeContact = (dto) => ({
     : dto.email
       ? `@${dto.email.split("@")[0]}`
       : "",
-  online: false, // backend doesn't track online status for contacts
+  online: dto.isOnline ?? false,
+  activityVisible: dto.activityStatusVisible ?? true,
   profileImage: dto.profileImage ?? null,
   // The backend now includes the caller in /messages/contacts (pinned
   // first) so "message yourself" is discoverable — flag it the same way
