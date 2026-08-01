@@ -3,13 +3,18 @@ package com.ideaspark.service;
 import com.ideaspark.model.User;
 import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PresenceService {
@@ -86,6 +91,18 @@ public class PresenceService {
         payload.put("visible", visible);
 
         messagingTemplate.convertAndSend("/topic/presence", payload);
+    }
+
+    // ── Startup cleanup ───────────────────────────────────────────────────
+    // On every deploy/restart the in-memory sessionCounts map is wiped, but
+    // the DB is_online column keeps its pre-restart values. Without this
+    // reset, users who were online at the moment of the last deploy stay
+    // stuck as "online" forever (until they reconnect AND disconnect).
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void resetOnlineStatusOnStartup() {
+        int cleared = userRepository.resetAllOnlineStatus();
+        log.info("Server startup: reset is_online=false for {} users", cleared);
     }
 
     // Called right after the Activity Status toggle is saved (see
