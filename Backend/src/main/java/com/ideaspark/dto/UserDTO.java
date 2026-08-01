@@ -35,4 +35,13 @@ public class UserDTO {
     // startedAt, renewsAt, stats) so re-login restores the same shape that
     // /payment/subscribe persists. Null when the user has no active membership.
     private Object membership;
+
+    // ── Presence (used by New Chat / contacts list) ──────────────────────
+    // Already masked by the service layer: online is false when the user
+    // has turned Activity Status off, so the frontend never needs to check
+    // activityStatusVisible separately for the dot — but it does need the
+    // flag to decide whether to show "Offline" text vs nothing.
+    @JsonProperty("isOnline")
+    private boolean isOnline;
+    private boolean activityStatusVisible;
 }
