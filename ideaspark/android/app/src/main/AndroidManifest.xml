@@ -59,4 +59,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Voice messages: Chat.jsx calls navigator.mediaDevices.getUserMedia({audio:true}).
+         Android can never grant a runtime permission that isn't declared here —
+         without this line the WebView's mic prompt is silently denied every
+         time, with no OS dialog ever shown to the user. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 </manifest>

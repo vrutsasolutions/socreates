@@ -3,6 +3,7 @@ package com.ideaspark.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ideaspark.model.AuditLog;
+import com.ideaspark.model.MembershipPayment;
 import com.ideaspark.repository.AuditLogRepository;
 import com.ideaspark.repository.MembershipPaymentRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +14,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Optional;
 
 /**
  * Processes incoming Razorpay webhook calls. This is the security-critical
@@ -129,7 +131,26 @@ public class RazorpayWebhookService {
         }
 
         // ── 3b. Idempotency check — THE critical replay guard ──
-        if (paymentRepository.existsByGatewayPaymentId(razorpayPaymentId)) {
+        // IMPORTANT: this must only stop a TRUE replay (a captured payment
+        // being reprocessed), not block a later, more authoritative event
+        // for the same payment_id. Razorpay can send more than one webhook
+        // for the same razorpay_payment_id across a payment's lifecycle
+        // (e.g. an early payment.failed, later followed by payment.captured
+        // once retried on Razorpay's side). The old check —
+        // existsByGatewayPaymentId — returned true the instant ANY event
+        // for that payment_id had been recorded, so a payment.failed
+        // arriving first permanently froze the row at status="failed" and
+        // silently discarded the real payment.captured webhook that
+        // followed: webhook_received stayed true (something did arrive)
+        // but paid_at/status/membership never got the successful outcome,
+        // even though Razorpay's own dashboard showed the payment as
+        // captured. Only skip reprocessing once we've already recorded
+        // this exact payment_id as captured — any other prior status is
+        // not final and a newer event should be allowed to correct it.
+        Optional<MembershipPayment> existingByPaymentId =
+                paymentRepository.findByGatewayPaymentId(razorpayPaymentId);
+        if (existingByPaymentId.isPresent()
+                && "captured".equalsIgnoreCase(existingByPaymentId.get().getStatus())) {
             return ResponseEntity.ok("Already processed");
         }
 

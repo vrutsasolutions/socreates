@@ -71,6 +71,25 @@ public class MembershipService {
                 ? LocalDateTime.now().plusYears(1)
                 : LocalDateTime.now().plusMonths(1);
 
+        // ── Supersede any prior active membership ───────────────────────
+        // Every "current plan" lookup (toUserPayload/activeMembershipShape/
+        // getStatus, and the idempotency branch above) reads
+        // findTopByUserIdAndStatusOrderByEndDateDesc — i.e. whichever ACTIVE
+        // row has the FURTHEST-OUT end date wins, not whichever was bought
+        // most recently. Since subscribe() never used to close out an old
+        // active row, a Reader Premium *yearly* purchase (ends ~12mo out)
+        // bought before a later Creator Pro *monthly* purchase (ends ~1mo
+        // out) would keep "winning" that ordering — the user's payment is
+        // captured and premium stays true, but membership.plan stays
+        // "reader" until the older row's end date passes, so hasCreatorPro()
+        // reads false and only the plain Premium badge renders. Cancel every
+        // existing active row before inserting the new one so there is
+        // always exactly one active membership, and that one is unambiguous.
+        List<Membership> priorActive =
+                membershipRepository.findByUserIdAndStatus(user.getId(), "active");
+        priorActive.forEach(m -> m.setStatus("canceled"));
+        membershipRepository.saveAll(priorActive);
+
         Membership membership = Membership.builder()
                 .user(user)
                 .plan(plan)
