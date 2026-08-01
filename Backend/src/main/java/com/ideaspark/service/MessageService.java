@@ -53,6 +53,28 @@ public class MessageService {
     private static final int FREE_TEXT_LIMIT = 5;
     private static final int FREE_FILE_LIMIT = 1;
 
+    // ── Active Now rail ──────────────────────────────────────────────────
+    // Returns users who are currently online AND have activity status
+    // visible AND share an ACCEPTED conversation with the caller.
+    public List<Map<String, Object>> getActiveContacts(String email) {
+        User me = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return userRepository.findOnlineContacts(me).stream()
+                .map(u -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", u.getId());
+                    m.put("name", u.getName());
+                    m.put("initial", u.getName() != null && !u.getName().isBlank()
+                            ? String.valueOf(u.getName().charAt(0)).toUpperCase()
+                            : "?");
+                    m.put("profileImage", u.getProfileImage());
+                    m.put("online", true);
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
+
     // Matches http(s):// links inside plain text message content.
     private static final Pattern URL_PATTERN = Pattern.compile(
             "(https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)");
@@ -727,6 +749,12 @@ public class MessageService {
         dto.setProfileImage(u.getProfileImage());
         dto.setBio(u.getBio());
         dto.setPremium(u.isPremium());
+
+        // Presence — masked the same way as ConversationDTO / broadcastPresence:
+        // when Activity Status is off, online is always false so the dot never shows.
+        boolean visible = u.isShowActivityStatus();
+        dto.setOnline(visible && Boolean.TRUE.equals(u.getOnline()));
+        dto.setActivityStatusVisible(visible);
 
         return dto;
     }
