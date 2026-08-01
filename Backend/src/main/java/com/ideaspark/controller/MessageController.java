@@ -88,8 +88,8 @@ public class MessageController {
     }
 
     @GetMapping("/active")
-    public List<Object> getActiveUsers(Authentication auth) {
-        return Collections.emptyList();
+    public List<Map<String, Object>> getActiveUsers(Authentication auth) {
+        return messageService.getActiveContacts(auth.getName());
     }
 
     @GetMapping("/blocked")
