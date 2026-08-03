@@ -305,15 +305,24 @@ export default function DrawerMenu({ open, onClose }) {
                 {user?.email ?? ''}
               </div>
 
-              {/* Plan badge */}
-              {user?.isPremium ? (
+              {/* Plan badge — tier-specific, matches Profile page badges */}
+              {creatorPro ? (
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7,
                   background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
                   color: '#78350F', fontSize: 10, fontWeight: 800,
                   letterSpacing: '0.05em', padding: '3px 9px', borderRadius: 999,
                 }}>
-                  <StarIcon size={9} /> PREMIUM
+                  <StarIcon size={9} /> CREATOR PRO
+                </div>
+              ) : user?.isPremium ? (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7,
+                  background: 'linear-gradient(135deg,#60A5FA,#3B82F6)',
+                  color: '#fff', fontSize: 10, fontWeight: 800,
+                  letterSpacing: '0.05em', padding: '3px 9px', borderRadius: 999,
+                }}>
+                  <StarIcon size={9} /> READER PREMIUM
                 </div>
               ) : (
                 <div style={{
