@@ -80,7 +80,7 @@ export default function VerifyOtp() {
 
       if (mode === 'register' && payload) {
         const { data } = await registerUser(payload);
-        login(data.user, data.token);
+        login(data.user);
         navigate('/select-interests', { replace: true });
       } else {
         navigate('/login', { replace: true });

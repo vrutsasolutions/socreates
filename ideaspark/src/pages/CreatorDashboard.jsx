@@ -96,12 +96,13 @@ const fmtNextMonthName = (iso) => {
   }
 };
 
-// Same account as the backend's app.admin.email (SecurityConfig / hasRole("ADMIN")).
-// Purely a UI gate — hiding the button for non-admins is a UX nicety; the
-// backend is what actually enforces this and rejects everyone else with 403
-// regardless of what's shown here.
-const ADMIN_EMAIL =
-  import.meta.env.VITE_ADMIN_EMAIL || "vrutsasolutions@gmail.com";
+// Previously: this file hardcoded/read VITE_ADMIN_EMAIL and compared it to
+// user.email client-side — which meant the admin's email address shipped in
+// plain text inside the JS bundle for every visitor, logged-in or not. The
+// backend (AuthService/UserController) already computes this exact check
+// server-side and returns it as UserDTO.isAdmin on login/register/google AND
+// /users/me — so just use that instead of re-deriving it from a duplicated,
+// publicly-exposed copy of the admin email.
 
 /* Normalize a revenue-history row coming from /api/creator/earnings into the
    shape the table renders. */
@@ -138,8 +139,7 @@ function fmtMonth(iso) {
 export default function CreatorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isAdmin =
-    !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isAdmin = !!user?.isAdmin;
   const [data, setData] = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [loading, setLoading] = useState(true);

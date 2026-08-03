@@ -39,6 +39,7 @@ public class UserController {
     private final com.ideaspark.service.UserAccountService userAccountService;
     private final com.ideaspark.service.ProfilePrivacyService profilePrivacyService;
     private final com.ideaspark.service.MembershipService membershipService;
+    private final com.ideaspark.security.JwtUtil jwtUtil;
 
     // Same admin email UserDetailsServiceImpl uses to grant ROLE_ADMIN.
     // Used here only to set the UserDTO.isAdmin UI hint.
@@ -96,7 +97,8 @@ public class UserController {
     @PutMapping("/me/password")
     public ResponseEntity<Map<String, String>> changePassword(
             @RequestBody ChangePasswordRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            jakarta.servlet.http.HttpServletResponse response) {
 
         User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
 
@@ -130,9 +132,22 @@ public class UserController {
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        // Invalidate every token issued before this point — closes the gap
+        // where a changed password used to leave any already-issued JWT
+        // (e.g. lifted via XSS, or on a since-lost device) valid for up to
+        // 24h more. Bump first, then mint a fresh token below so THIS
+        // session doesn't get logged out by its own password change.
+        user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
 
-        return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+        com.ideaspark.dto.AuthResponse fresh = authService.issueTokenFor(user);
+        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE,
+                com.ideaspark.security.CookieUtil.buildAuthCookie(
+                        fresh.getToken(), jwtUtil.getExpirationMillis()).toString());
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Password changed successfully",
+                "token", fresh.getToken()));
     }
 
     // GET /api/users/me/privacy-preferences

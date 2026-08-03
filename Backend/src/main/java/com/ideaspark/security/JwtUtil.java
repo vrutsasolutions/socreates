@@ -30,10 +30,19 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // Generate token from email
-    public String generateToken(String email) {
+    private static final String CLAIM_TOKEN_VERSION = "tv";
+
+    public long getExpirationMillis() {
+        return expiration;
+    }
+
+    // Generate token from email + the account's current tokenVersion, so
+    // JwtFilter can reject this token later without needing a blacklist
+    // table — see User.tokenVersion.
+    public String generateToken(String email, int tokenVersion) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim(CLAIM_TOKEN_VERSION, tokenVersion)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -48,6 +57,20 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+    // Extract the tokenVersion this token was issued with. Tokens minted
+    // before this claim existed have no "tv" claim at all — treat those as
+    // version 0, which matches the DB default for every existing user, so
+    // the rollout doesn't force a mass logout.
+    public int extractTokenVersion(String token) {
+        Object claim = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get(CLAIM_TOKEN_VERSION);
+        return claim == null ? 0 : ((Number) claim).intValue();
     }
 
     // Check if token is valid

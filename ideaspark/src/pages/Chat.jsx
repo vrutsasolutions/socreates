@@ -17,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import Avatar from "../components/messaging/Avatar";
 import { useSearchParams } from "react-router-dom";
 import { setEditorInput, takeEditorOutput } from "../state/imageEditorStore";
+import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
 
 import {
   ChatActionsLayer,
@@ -208,16 +209,14 @@ function ReplyBtn({ onClick }) {
 function TimeMeta({ light, timeLabel, mine, isRead }) {
   if (!timeLabel) return null;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-normal whitespace-nowrap ${
-      light ? "text-white/70" : "text-[#90A4AE]"
-    }`}>
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-normal whitespace-nowrap ${light ? "text-white/70" : "text-[#90A4AE]"
+      }`}>
       <span>{timeLabel}</span>
       {mine && (
-        <span className={`inline-flex text-[11px] leading-none ${
-          isRead
+        <span className={`inline-flex text-[11px] leading-none ${isRead
             ? (light ? "text-cyan-300" : "text-[#1565C0]")
             : (light ? "text-white/70" : "text-[#90A4AE]")
-        }`}>
+          }`}>
           <span>✓</span>
           {isRead && <span className="-ml-[5px]">✓</span>}
         </span>
@@ -466,11 +465,10 @@ function Bubble({
     const displayText = m.text ?? m.content ?? "";
     content = (
       <div
-        className={`max-w-[240px] px-4 py-2.5 text-[13px] leading-snug ${
-          mine
+        className={`max-w-[240px] px-4 py-2.5 text-[13px] leading-snug ${mine
             ? "bg-[#1565C0] text-white font-semibold rounded-[18px] rounded-br-md"
             : "bg-white text-[#0D2137] rounded-[18px] rounded-bl-md shadow-sm"
-        }`}
+          }`}
       >
         {m.replyTo && <QuotedInBubble replyTo={m.replyTo} light={mine} />}
         <div className="flex items-end gap-2">
@@ -528,9 +526,8 @@ function Bubble({
 
           {reaction && (
             <span
-              className={`absolute -bottom-2.5 ${
-                mine ? "left-1" : "right-1"
-              } bg-white rounded-full shadow px-1 py-0.5 text-[13px] leading-none border border-[#E3F2FD]`}
+              className={`absolute -bottom-2.5 ${mine ? "left-1" : "right-1"
+                } bg-white rounded-full shadow px-1 py-0.5 text-[13px] leading-none border border-[#E3F2FD]`}
             >
               {reaction}
             </span>
@@ -988,9 +985,9 @@ export default function Chat() {
   const replySnippet = () =>
     replyTo
       ? {
-          name: replyTo.fromMe ? "You" : (convo?.name ?? ""),
-          text: quotedLabel(replyTo),
-        }
+        name: replyTo.fromMe ? "You" : (convo?.name ?? ""),
+        text: quotedLabel(replyTo),
+      }
       : undefined;
 
   const handleSayHello = () => {
@@ -1420,7 +1417,8 @@ export default function Chat() {
         try {
           const { Capacitor } = await import("@capacitor/core");
           isNative = Capacitor.isNativePlatform();
-        } catch (_) {}
+        // eslint-disable-next-line no-unused-vars
+        } catch (_) { /* empty */ }
 
         setMicError(
           isNative
@@ -1506,8 +1504,8 @@ export default function Chat() {
   const visibleMessages =
     searchMode && q
       ? messages.filter((m) =>
-          (m.text ?? m.content ?? "").toLowerCase().includes(q),
-        )
+        (m.text ?? m.content ?? "").toLowerCase().includes(q),
+      )
       : messages;
 
   const getDateLabel = (dateValue) => {
@@ -1955,16 +1953,12 @@ export default function Chat() {
           {micError === "mic_denied_native" ? (
             <button
               onClick={async () => {
-                // Open this app's Android settings page so the user can
-                // re-enable the microphone permission. Uses @capacitor/app
-                // (already installed) to get the package name and launch
-                // the system intent. Falls back to a simple dismiss if
-                // something goes wrong.
                 try {
-                  const { App } = await import("@capacitor/app");
-                  const { id: packageName } = await App.getInfo();
-                  await App.openUrl({ url: `package:${packageName}` });
-                } catch (_) {
+                  await NativeSettings.openAndroid({
+                    option: AndroidSettings.ApplicationDetails,
+                  });
+                } catch (err) {
+                  console.error(err);
                   setMicError(null);
                 }
               }}
@@ -2331,11 +2325,10 @@ export default function Chat() {
                 setEmojiOpen((o) => !o);
               }}
               aria-label="Emoji"
-              className={`w-10 h-10 rounded-full border flex items-center justify-center shrink-0 active:scale-95 transition-all ${
-                emojiOpen
+              className={`w-10 h-10 rounded-full border flex items-center justify-center shrink-0 active:scale-95 transition-all ${emojiOpen
                   ? "bg-[#1565C0] border-[#1565C0] text-white"
                   : "bg-[#F0F6FF] border-[#BBDEFB] text-[#1565C0] hover:bg-[#DBEAFE]"
-              }`}
+                }`}
             >
               <svg
                 className="w-5 h-5"

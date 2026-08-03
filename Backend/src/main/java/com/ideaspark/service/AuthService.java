@@ -238,8 +238,41 @@ public class AuthService {
         dto.setMembership(membershipService.activeMembershipShape(user));
 
         AuthResponse res = new AuthResponse();
-        res.setToken(jwtUtil.generateToken(user.getEmail()));
+        res.setToken(jwtUtil.generateToken(user.getEmail(), user.getTokenVersion()));
         res.setUser(dto);
         return res;
+    }
+
+    // Public wrapper so controllers that already have a managed User (e.g.
+    // UserController after a password change) can mint a fresh
+    // AuthResponse/cookie without duplicating buildResponse's DTO mapping.
+    public AuthResponse issueTokenFor(User user) {
+        return buildResponse(user);
+    }
+
+    // Used only by the WebSocket STOMP handshake (see AuthController's
+    // /session-token and notificationApi.jsx) — that connection authenticates
+    // via a native STOMP header, not the browser-attached auth cookie, so
+    // the frontend needs a way to get a short-lived copy of the current
+    // token without the web app keeping a standing copy in localStorage.
+    public String getSessionToken(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return jwtUtil.generateToken(user.getEmail(), user.getTokenVersion());
+    }
+
+    // Bumps the account's tokenVersion, which makes every JWT issued before
+    // this call fail JwtFilter's revocation check on its very next request —
+    // even though it's still cryptographically valid and unexpired. This is
+    // an "everywhere" logout (all devices/sessions), which is the only
+    // option available without a per-token session table; callers that want
+    // to keep the *current* session alive (e.g. change-password) should
+    // call this and then issueTokenFor(user) to hand the client a fresh
+    // token for its own session.
+    public void invalidateAllTokens(String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setTokenVersion(user.getTokenVersion() + 1);
+            userRepository.save(user);
+        });
     }
 }

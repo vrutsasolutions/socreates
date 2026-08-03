@@ -140,7 +140,7 @@ export default function Membership() {
     setLoading(true); setError('');
     try {
       const { data } = await cancelMembership();
-      login(data.user, localStorage.getItem('token'));
+      login(data.user);
     } catch (err) {
       setError(err.response?.data?.message || 'Could not cancel membership. Please try again.');
     }

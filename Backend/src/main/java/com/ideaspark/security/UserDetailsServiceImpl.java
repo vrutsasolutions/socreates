@@ -35,10 +35,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
                 : Collections.emptyList();
 
-        return new org.springframework.security.core.userdetails.User(
+        return new AppUserPrincipal(
                 user.getEmail(),
                 user.getPassword(),
-                authorities
+                authorities,
+                user.getTokenVersion()
         );
     }
 }

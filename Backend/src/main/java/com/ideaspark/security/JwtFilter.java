@@ -39,14 +39,30 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        String authHeader = request.getHeader("Authorization");
+        String token = extractToken(request);
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        if (token != null) {
             if (jwtUtil.isTokenValid(token)) {
                 String email = jwtUtil.extractEmail(token);
                 try {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+                    // Revocation check: this token was signed with a
+                    // tokenVersion snapshot from whenever it was issued.
+                    // If the account's tokenVersion has moved on since —
+                    // password change, forgot-password reset, or explicit
+                    // logout — treat an otherwise cryptographically valid,
+                    // unexpired token as dead. Without this, none of those
+                    // actions could ever actually invalidate a token
+                    // already in an attacker's hands.
+                    if (userDetails instanceof AppUserPrincipal principal
+                            && principal.getTokenVersion() != jwtUtil.extractTokenVersion(token)) {
+                        log.debug("JWT tokenVersion mismatch (revoked) for {}", email);
+                        SecurityContextHolder.clearContext();
+                        chain.doFilter(request, response);
+                        return;
+                    }
+
                     UsernamePasswordAuthenticationToken auth =
                             new UsernamePasswordAuthenticationToken(
                                 userDetails, null, userDetails.getAuthorities());
@@ -72,5 +88,24 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
         chain.doFilter(request, response);
+    }
+
+    // Prefer the Authorization header (used by the Capacitor native app and
+    // any non-browser API client); fall back to the httpOnly auth_token
+    // cookie the web app now relies on instead of localStorage.
+    private String extractToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (jakarta.servlet.http.Cookie cookie : cookies) {
+                if (CookieUtil.COOKIE_NAME.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 }

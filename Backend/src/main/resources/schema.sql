@@ -30,8 +30,20 @@ CREATE TABLE IF NOT EXISTS users (
   is_online               BOOLEAN DEFAULT FALSE,
   last_seen               TIMESTAMP,
   auth_provider           VARCHAR(50) DEFAULT 'local',
-  created_at              TIMESTAMP DEFAULT NOW()
+  created_at              TIMESTAMP DEFAULT NOW(),
+  -- Bumped on password change, forgot-password reset, and explicit logout.
+  -- Embedded as the "tv" claim in every JWT (see JwtUtil); JwtFilter
+  -- rejects any token whose "tv" no longer matches this value. This is
+  -- what makes revocation possible at all — previously a stolen/leaked
+  -- token stayed valid for its full 24h no matter what the account did.
+  token_version           INT NOT NULL DEFAULT 0
 );
+
+-- Safe to re-run against the existing production DB: CREATE TABLE above is a
+-- no-op there (table already exists), so this ALTER is what actually lands
+-- the new column. ddl-auto=validate means Hibernate will refuse to start
+-- until this has been applied.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INT NOT NULL DEFAULT 0;
 
 -- ── IDEAS ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS ideas (

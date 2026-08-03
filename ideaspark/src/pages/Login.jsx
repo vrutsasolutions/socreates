@@ -124,7 +124,7 @@ export default function Login() {
       if (remember) localStorage.setItem(REMEMBER_KEY, form.email.trim().toLowerCase());
       else localStorage.removeItem(REMEMBER_KEY);
 
-      login(data.user, data.token);
+      login(data.user);
 
       const redirectTo = redirectParam || location.state?.from?.pathname || '/home';
       navigate(redirectTo, { replace: true });
@@ -153,7 +153,7 @@ export default function Login() {
       setLoading(true);
 
       const res = await api.post('/auth/google', { token: idToken });
-      login(res.data.user, res.data.token);
+      login(res.data.user);
 
       const redirectTo = redirectParam || location.state?.from?.pathname || '/home';
       navigate(redirectTo, { replace: true });

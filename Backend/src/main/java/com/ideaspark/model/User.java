@@ -123,6 +123,15 @@ public class User {
     @Column(name = "auth_provider")
     private String authProvider = "local";
 
+    // Embedded in every JWT as the "tv" claim (see JwtUtil). Bumping this
+    // (password change, forgot-password reset, explicit logout) makes every
+    // token issued before the bump fail JwtFilter's version check, even
+    // though it's still within its 24h expiry. @Builder.Default so
+    // User.builder() matches the DB's NOT NULL DEFAULT 0 for new signups.
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private int tokenVersion = 0;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

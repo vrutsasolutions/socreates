@@ -187,6 +187,14 @@ public class OtpController {
 
         user.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder()
                 .encode(newPassword));
+        // Same reasoning as UserController#changePassword: a forgot-password
+        // reset is exactly the scenario where an attacker may have had
+        // account access via a leaked token — bump tokenVersion so any
+        // token issued before this reset stops working immediately instead
+        // of remaining valid for up to 24h more. Unlike change-password,
+        // there's no "current session" to preserve here — this flow isn't
+        // logged in, so the user simply logs in fresh with the new password.
+        user.setTokenVersion(user.getTokenVersion() + 1);
 
         userRepository.save(user);
 

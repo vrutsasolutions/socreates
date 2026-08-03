@@ -48,7 +48,7 @@ export default function Checkout() {
   const payload = (gateway) => ({ plan, billing, gateway, planLabel, price });
 
   const onSuccess = (data) => {
-    login(data.user, localStorage.getItem('token'));
+    login(data.user);
     navigate('/membership/success', { state: { membership: data.user?.membership } });
   };
 

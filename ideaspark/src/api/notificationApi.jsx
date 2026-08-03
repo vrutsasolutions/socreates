@@ -191,214 +191,237 @@ export const subscribeToNotifications = (onMessageRef, onReconnectRef) => {
     return () => clearTimeout(t);
   }
 
-  const token = localStorage.getItem("token");
+  // The token used to come straight out of localStorage. Now that the web
+  // app no longer keeps a standing copy there (see AuthContext.jsx — auth
+  // rides the httpOnly cookie instead), STOMP CONNECT needs a token handed
+  // to it explicitly (SockJS/STOMP can't attach the browser's cookie the
+  // way withCredentials does for normal HTTP), so fetch one just before
+  // connecting via the cookie-authenticated /auth/session-token endpoint.
+  // It's held only in this closure for the life of the socket — never
+  // written to storage.
+  let client = null;
+  let cancelled = false;
 
-  const client = new Client({
-    webSocketFactory: () => new SockJS(WS_URL),
-    connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
-    reconnectDelay: 5000,
-    heartbeatIncoming: 10000,
-    heartbeatOutgoing: 10000,
-  });
+  api
+    .get("/auth/session-token")
+    .then(({ data }) => {
+      if (cancelled) return;
+      const token = data?.token;
 
-  // Tracks whether we've been connected at least once before this
-  // connect. The very first connect is NOT a "reconnect" (the REST
-  // load() already runs alongside it in NotificationContext). Every
-  // subsequent onConnect IS a reconnect — notifications pushed during
-  // the gap between disconnect and this new connect were lost by the
-  // simple broker, so we need to re-fetch via REST.
-  let hasConnectedBefore = false;
-
-  // Tracks whether the CURRENT attempt cycle has an established
-  // connection — used to distinguish a rejected CONNECT (expired JWT)
-  // from a mid-session error.
-  let connected = false;
-
-  client.onConnect = () => {
-    connected = true;
-    console.log("[ws] STOMP connected");
-
-    // ── Gap recovery ─────────────────────────────────────────────────
-    // On reconnect (not the first connect), re-fetch all notifications
-    // via REST. NotificationContext's load() will merge them into state,
-    // deduplicating by id, so any notification sent while we were
-    // disconnected appears instantly.
-    if (hasConnectedBefore) {
-      console.log("[ws] reconnect detected — re-fetching to fill gap");
-      onReconnectRef?.current?.();
-    }
-    hasConnectedBefore = true;
-
-    client.subscribe("/topic/presence", (frame) => {
-      try {
-        const presence = JSON.parse(frame.body);
-
-        window.dispatchEvent(
-          new CustomEvent("presence-update", {
-            detail: presence,
-          }),
-        );
-      } catch (err) {
-        console.error("[presence] bad payload", err, frame.body);
-      }
+        client = new Client({
+      webSocketFactory: () => new SockJS(WS_URL),
+      connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+      reconnectDelay: 5000,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
     });
 
-    // Likes / follows / comments / bookmarks / new-idea / follow-request /
-    // privacy-change / system — everything NotificationService pushes to
-    // convertAndSendToUser(email, "/queue/notifications", saved).
-    //
-    // MESSAGE-type notifications are SKIPPED here because the same DM also
-    // arrives on TOPIC_MESSAGES (below) with richer fields (senderName,
-    // conversationId on the DTO itself). Without this guard every incoming
-    // DM appears twice — once from /queue/notifications (Notification
-    // entity, id=UUID) and once from /queue/messages (MessageDTO, id=
-    // "n-msg-{id}") — the two different ids bypass NotificationContext's
-    // dedupe check.
-    client.subscribe(TOPIC_NOTIFICATIONS, (frame) => {
-      try {
-        const dto = JSON.parse(frame.body);
-        const normalized = normalizeNotification(dto);
-        if (normalized.type === "message") return; // handled by TOPIC_MESSAGES
-        console.log("[ws] notification received:", normalized.type, normalized.id);
-        onMessageRef.current?.(normalized);
-      } catch (err) {
-        console.error(
-          "[notifications] bad notification STOMP payload",
-          err,
-          frame.body,
-        );
+    // Tracks whether we've been connected at least once before this
+    // connect. The very first connect is NOT a "reconnect" (the REST
+    // load() already runs alongside it in NotificationContext). Every
+    // subsequent onConnect IS a reconnect — notifications pushed during
+    // the gap between disconnect and this new connect were lost by the
+    // simple broker, so we need to re-fetch via REST.
+    let hasConnectedBefore = false;
+
+    // Tracks whether the CURRENT attempt cycle has an established
+    // connection — used to distinguish a rejected CONNECT (expired JWT)
+    // from a mid-session error.
+    let connected = false;
+
+    client.onConnect = () => {
+      connected = true;
+      console.log("[ws] STOMP connected");
+
+      // ── Gap recovery ─────────────────────────────────────────────────
+      // On reconnect (not the first connect), re-fetch all notifications
+      // via REST. NotificationContext's load() will merge them into state,
+      // deduplicating by id, so any notification sent while we were
+      // disconnected appears instantly.
+      if (hasConnectedBefore) {
+        console.log("[ws] reconnect detected — re-fetching to fill gap");
+        onReconnectRef?.current?.();
       }
-    });
+      hasConnectedBefore = true;
 
-    client.subscribe(TOPIC_MESSAGES, (frame) => {
-      try {
-        const msgDto = JSON.parse(frame.body);
+      client.subscribe("/topic/presence", (frame) => {
+        try {
+          const presence = JSON.parse(frame.body);
 
-        const myId = (() => {
-          try {
-            return JSON.parse(localStorage.getItem("user") || "{}").id;
-          } catch {
-            return null;
-          }
-        })();
-
-        const fromMe = !!(myId && String(msgDto.senderId) === String(myId));
-
-        // Any mounted Inbox re-sorts/refreshes its preview off this,
-        // regardless of who sent it — e.g. a message sent from another
-        // device should still bump this device's inbox to the top.
-        broadcastInboxUpdate({
-          conversationId: msgDto.conversationId,
-          dto: msgDto,
-          lastMessageAt: new Date(msgDto.createdAt ?? Date.now()).getTime(),
-          fromMe,
-        });
-
-        if (fromMe) return;
-
-        // Dispatch the raw DTO so the active Chat view (if open) can
-        // append it live — without this, incoming messages only showed up
-        // in the notification bell/toast but NOT as chat bubbles until the
-        // user left and re-entered the conversation.
-        window.dispatchEvent(
-          new CustomEvent("chat-message-inbound", { detail: msgDto }),
-        );
-
-        console.log("[ws] message received from:", msgDto.senderName);
-        onMessageRef.current?.(messageToNotification(msgDto));
-      } catch (err) {
-        console.error(
-          "[notifications] bad message STOMP payload",
-          err,
-          frame.body,
-        );
-      }
-    });
-
-    // ── Chat-level events: reactions + delete-for-everyone ──────────────
-    // These are pushed by MessageService when someone reacts to or deletes
-    // a message, so the other participant's open Chat view updates live
-    // without needing to re-fetch.
-    client.subscribe(TOPIC_CHAT_EVENTS, (frame) => {
-      try {
-        const event = JSON.parse(frame.body);
-        if (event.eventType === "REACTION") {
           window.dispatchEvent(
-            new CustomEvent("chat-reaction-update", { detail: event }),
+            new CustomEvent("presence-update", {
+              detail: presence,
+            }),
           );
-        } else if (event.eventType === "DELETE") {
-          window.dispatchEvent(
-            new CustomEvent("chat-message-deleted", { detail: event }),
+        } catch (err) {
+          console.error("[presence] bad payload", err, frame.body);
+        }
+      });
+
+      // Likes / follows / comments / bookmarks / new-idea / follow-request /
+      // privacy-change / system — everything NotificationService pushes to
+      // convertAndSendToUser(email, "/queue/notifications", saved).
+      //
+      // MESSAGE-type notifications are SKIPPED here because the same DM also
+      // arrives on TOPIC_MESSAGES (below) with richer fields (senderName,
+      // conversationId on the DTO itself). Without this guard every incoming
+      // DM appears twice — once from /queue/notifications (Notification
+      // entity, id=UUID) and once from /queue/messages (MessageDTO, id=
+      // "n-msg-{id}") — the two different ids bypass NotificationContext's
+      // dedupe check.
+      client.subscribe(TOPIC_NOTIFICATIONS, (frame) => {
+        try {
+          const dto = JSON.parse(frame.body);
+          const normalized = normalizeNotification(dto);
+          if (normalized.type === "message") return; // handled by TOPIC_MESSAGES
+          console.log("[ws] notification received:", normalized.type, normalized.id);
+          onMessageRef.current?.(normalized);
+        } catch (err) {
+          console.error(
+            "[notifications] bad notification STOMP payload",
+            err,
+            frame.body,
           );
         }
-      } catch (err) {
-        console.error(
-          "[notifications] bad chat-events payload",
-          err,
-          frame.body,
-        );
+      });
+
+      client.subscribe(TOPIC_MESSAGES, (frame) => {
+        try {
+          const msgDto = JSON.parse(frame.body);
+
+          const myId = (() => {
+            try {
+              return JSON.parse(localStorage.getItem("user") || "{}").id;
+            } catch {
+              return null;
+            }
+          })();
+
+          const fromMe = !!(myId && String(msgDto.senderId) === String(myId));
+
+          // Any mounted Inbox re-sorts/refreshes its preview off this,
+          // regardless of who sent it — e.g. a message sent from another
+          // device should still bump this device's inbox to the top.
+          broadcastInboxUpdate({
+            conversationId: msgDto.conversationId,
+            dto: msgDto,
+            lastMessageAt: new Date(msgDto.createdAt ?? Date.now()).getTime(),
+            fromMe,
+          });
+
+          if (fromMe) return;
+
+          // Dispatch the raw DTO so the active Chat view (if open) can
+          // append it live — without this, incoming messages only showed up
+          // in the notification bell/toast but NOT as chat bubbles until the
+          // user left and re-entered the conversation.
+          window.dispatchEvent(
+            new CustomEvent("chat-message-inbound", { detail: msgDto }),
+          );
+
+          console.log("[ws] message received from:", msgDto.senderName);
+          onMessageRef.current?.(messageToNotification(msgDto));
+        } catch (err) {
+          console.error(
+            "[notifications] bad message STOMP payload",
+            err,
+            frame.body,
+          );
+        }
+      });
+
+      // ── Chat-level events: reactions + delete-for-everyone ──────────────
+      // These are pushed by MessageService when someone reacts to or deletes
+      // a message, so the other participant's open Chat view updates live
+      // without needing to re-fetch.
+      client.subscribe(TOPIC_CHAT_EVENTS, (frame) => {
+        try {
+          const event = JSON.parse(frame.body);
+          if (event.eventType === "REACTION") {
+            window.dispatchEvent(
+              new CustomEvent("chat-reaction-update", { detail: event }),
+            );
+          } else if (event.eventType === "DELETE") {
+            window.dispatchEvent(
+              new CustomEvent("chat-message-deleted", { detail: event }),
+            );
+          }
+        } catch (err) {
+          console.error(
+            "[notifications] bad chat-events payload",
+            err,
+            frame.body,
+          );
+        }
+      });
+
+      client.subscribe(TOPIC_READ_RECEIPTS, (frame) => {
+        try {
+          // Backend now sends a JSON array of message ids, batched per
+          // sender (was previously one raw unparsed id — frame.body used
+          // directly meant it still had quote characters in it and never
+          // matched msg.id, so ticks never updated live).
+          window.dispatchEvent(
+            new CustomEvent("message-read-receipt", {
+              detail: JSON.parse(frame.body),
+            }),
+          );
+        } catch (err) {
+          console.error(
+            "[notifications] bad read receipt payload",
+            err,
+            frame.body,
+          );
+        }
+      });
+    };
+
+    client.onDisconnect = () => {
+      connected = false;
+      console.log("[ws] STOMP disconnected");
+    };
+
+    client.onWebSocketClose = () => {
+      connected = false;
+      console.log("[ws] WebSocket closed — will reconnect in", client.reconnectDelay, "ms");
+    };
+
+    client.onStompError = (frame) => {
+      console.error(
+        "[ws] STOMP error",
+        frame.headers["message"],
+        frame.body,
+      );
+
+      // If we never reached onConnect for this attempt, the backend rejected
+      // the CONNECT frame outright (see WebSocketAuthConfig — missing/expired/
+      // invalid JWT, including a tampered signature that still decodes to a
+      // seemingly-unexpired token). Without this check, stompjs's
+      // reconnectDelay just keeps retrying with the same bad token every 5s
+      // forever. Stop retrying and bounce to /login via the same helper the
+      // REST 401/403 path uses — this connection-state check is already a
+      // reliable signal on its own, no need to re-verify the token client-side.
+      if (!connected) {
+        client.deactivate();
+        forceLogout();
       }
+    };
+
+    client.onWebSocketError = (event) => {
+      console.error("[ws] WebSocket error", event);
+    };
+
+    client.activate();
+    })
+    .catch((err) => {
+      console.error(
+        "[ws] failed to fetch session token — notifications will not connect",
+        err,
+      );
     });
-
-    client.subscribe(TOPIC_READ_RECEIPTS, (frame) => {
-      try {
-        // Backend now sends a JSON array of message ids, batched per
-        // sender (was previously one raw unparsed id — frame.body used
-        // directly meant it still had quote characters in it and never
-        // matched msg.id, so ticks never updated live).
-        window.dispatchEvent(
-          new CustomEvent("message-read-receipt", {
-            detail: JSON.parse(frame.body),
-          }),
-        );
-      } catch (err) {
-        console.error(
-          "[notifications] bad read receipt payload",
-          err,
-          frame.body,
-        );
-      }
-    });
-  };
-
-  client.onDisconnect = () => {
-    connected = false;
-    console.log("[ws] STOMP disconnected");
-  };
-
-  client.onWebSocketClose = () => {
-    connected = false;
-    console.log("[ws] WebSocket closed — will reconnect in", client.reconnectDelay, "ms");
-  };
-
-  client.onStompError = (frame) => {
-    console.error(
-      "[ws] STOMP error",
-      frame.headers["message"],
-      frame.body,
-    );
-
-    // If we never reached onConnect for this attempt, the backend rejected
-    // the CONNECT frame outright (see WebSocketAuthConfig — missing/expired/
-    // invalid JWT, including a tampered signature that still decodes to a
-    // seemingly-unexpired token). Without this check, stompjs's
-    // reconnectDelay just keeps retrying with the same bad token every 5s
-    // forever. Stop retrying and bounce to /login via the same helper the
-    // REST 401/403 path uses — this connection-state check is already a
-    // reliable signal on its own, no need to re-verify the token client-side.
-    if (!connected) {
-      client.deactivate();
-      forceLogout();
-    }
-  };
-
-  client.onWebSocketError = (event) => {
-    console.error("[ws] WebSocket error", event);
-  };
-
-  client.activate();
 
   return () => {
-    client.deactivate();
+    cancelled = true;
+    client?.deactivate();
   };
 };

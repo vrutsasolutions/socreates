@@ -4,8 +4,21 @@ const axiosInstance = axios.create({
   // Env-driven so the app works from a phone on the LAN (set VITE_API_BASE_URL
   // to http://<your-pc-ip>:8081/api). Falls back to localhost for desktop dev.
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8081/api",
+  // The backend now issues the JWT as an httpOnly cookie (see AuthContext.jsx
+  // — the app no longer keeps a standing copy in localStorage). withCredentials
+  // is what makes the browser actually attach/accept that cookie on requests
+  // to a different subdomain (app vs api.socreate.in); SecurityConfig's CORS
+  // config already sets allowCredentials(true) + an explicit origin allowlist
+  // to match (a wildcard "*" origin can't be paired with credentials).
+  withCredentials: true,
 });
 
+// Legacy fallback only. The web app no longer writes any of these keys to
+// localStorage (auth now rides the httpOnly cookie set by the backend —
+// see AuthContext.jsx) — this just keeps a browser that still has an old
+// token cached from before this change working until it naturally expires
+// or the person logs in again. Also covers the Capacitor native shell,
+// which sends the token via this header rather than the cookie.
 const TOKEN_KEYS = ["token", "authToken", "jwt", "accessToken"];
 
 const getToken = () => {

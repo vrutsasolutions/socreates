@@ -90,7 +90,7 @@ export default function AccountSubscription() {
     setError('');
     try {
       const { data } = await cancelMembership();
-      login(data.user, localStorage.getItem('token'));
+      login(data.user);
       navigate('/membership');
     } catch (err) {
       setError(err?.response?.data?.message || 'Could not cancel. Please try again.');
