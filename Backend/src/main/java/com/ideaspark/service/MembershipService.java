@@ -119,8 +119,15 @@ public class MembershipService {
         payment.setPaidAt(LocalDateTime.now());
         membershipPaymentRepository.save(payment);
 
-        // Mark user as premium
+        // Mark user as premium. Verified badge is Creator Pro only (confirmed
+        // business rule — not Reader Premium, despite GetVerified.jsx's copy
+        // previously implying otherwise; that copy is being corrected
+        // separately). Explicitly set to the CURRENT plan's value, not just
+        // true — since subscribe() always supersedes prior active rows, this
+        // also correctly turns verified back OFF if a Creator Pro subscriber
+        // downgrades to Reader Premium.
         user.setPremium(true);
+        user.setVerified("creator".equalsIgnoreCase(plan));
         userRepository.save(user);
 
         return Map.of("user", toUserPayload(user, membership));
@@ -144,6 +151,7 @@ public class MembershipService {
         membershipRepository.saveAll(active);
 
         user.setPremium(false);
+        user.setVerified(false);
         userRepository.save(user);
 
         return Map.of("user", toUserPayload(user, null));
@@ -184,6 +192,7 @@ public class MembershipService {
         membershipRepository.saveAll(active);
 
         user.setPremium(false);
+        user.setVerified(false);
         userRepository.save(user);
 
         return Map.of("user", toUserPayload(user, null));
