@@ -1411,11 +1411,25 @@ export default function Chat() {
       setRecordingState("recording");
       startTimer();
     } catch (err) {
-      setMicError(
-        err.name === "NotAllowedError"
-          ? "Microphone permission denied. Allow access and try again."
-          : "Could not start recording. Please try again.",
-      );
+      // On Android (Capacitor WebView), a denied RECORD_AUDIO permission
+      // throws NotAllowedError without re-prompting the user. We detect
+      // the native platform and show a special banner with an "Open
+      // Settings" action so they can re-enable it from App Info.
+      if (err.name === "NotAllowedError") {
+        let isNative = false;
+        try {
+          const { Capacitor } = await import("@capacitor/core");
+          isNative = Capacitor.isNativePlatform();
+        } catch (_) {}
+
+        setMicError(
+          isNative
+            ? "mic_denied_native"
+            : "Microphone permission denied. Allow access in your browser and try again.",
+        );
+      } else {
+        setMicError("Could not start recording. Please try again.");
+      }
     }
   };
 
@@ -1933,13 +1947,39 @@ export default function Chat() {
               d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
             />
           </svg>
-          <p className="flex-1 text-[12px] text-[#EF4444]">{micError}</p>
-          <button
-            onClick={() => setMicError(null)}
-            className="text-[#EF4444] text-[11px] font-semibold"
-          >
-            Dismiss
-          </button>
+          <p className="flex-1 text-[12px] text-[#EF4444]">
+            {micError === "mic_denied_native"
+              ? "Microphone access denied. Enable it in your device settings."
+              : micError}
+          </p>
+          {micError === "mic_denied_native" ? (
+            <button
+              onClick={async () => {
+                // Open this app's Android settings page so the user can
+                // re-enable the microphone permission. Uses @capacitor/app
+                // (already installed) to get the package name and launch
+                // the system intent. Falls back to a simple dismiss if
+                // something goes wrong.
+                try {
+                  const { App } = await import("@capacitor/app");
+                  const { id: packageName } = await App.getInfo();
+                  await App.openUrl({ url: `package:${packageName}` });
+                } catch (_) {
+                  setMicError(null);
+                }
+              }}
+              className="text-[#1565C0] text-[11px] font-semibold whitespace-nowrap"
+            >
+              Open Settings
+            </button>
+          ) : (
+            <button
+              onClick={() => setMicError(null)}
+              className="text-[#EF4444] text-[11px] font-semibold"
+            >
+              Dismiss
+            </button>
+          )}
         </div>
       )}
 
