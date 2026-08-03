@@ -10,7 +10,7 @@
 import { useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { hasCreatorPro } from '../../api/paymentApi';
+import { hasCreatorPro, isVerified } from '../../api/paymentApi';
 
 /* ── Menu data ────────────────────────────────────────────── */
 const MENU_SECTIONS = [
@@ -305,36 +305,48 @@ export default function DrawerMenu({ open, onClose }) {
                 {user?.email ?? ''}
               </div>
 
-              {/* Plan badge — tier-specific, matches Profile page badges */}
-              {creatorPro ? (
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7,
-                  background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
-                  color: '#78350F', fontSize: 10, fontWeight: 800,
-                  letterSpacing: '0.05em', padding: '3px 9px', borderRadius: 999,
-                }}>
-                  <StarIcon size={9} /> CREATOR PRO
-                </div>
-              ) : user?.isPremium ? (
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7,
-                  background: 'linear-gradient(135deg,#60A5FA,#3B82F6)',
-                  color: '#fff', fontSize: 10, fontWeight: 800,
-                  letterSpacing: '0.05em', padding: '3px 9px', borderRadius: 999,
-                }}>
-                  <StarIcon size={9} /> READER PREMIUM
-                </div>
-              ) : (
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7,
-                  background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)',
-                  fontSize: 10, fontWeight: 600, letterSpacing: '0.04em',
-                  padding: '3px 9px', borderRadius: 999,
-                  border: '1px solid rgba(255,255,255,0.2)',
-                }}>
-                  FREE PLAN
-                </div>
-              )}
+              {/* Plan badge(s) — keep in sync with Profile.jsx & UserProfile.jsx */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 7 }}>
+                {creatorPro && isVerified(user) && (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    background: 'linear-gradient(135deg,#34D399,#059669)',
+                    color: '#fff', fontSize: 10, fontWeight: 800,
+                    letterSpacing: '0.05em', padding: '3px 9px', borderRadius: 999,
+                  }}>
+                    <CheckIcon size={9} /> VERIFIED
+                  </div>
+                )}
+                {creatorPro ? (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+                    color: '#78350F', fontSize: 10, fontWeight: 800,
+                    letterSpacing: '0.05em', padding: '3px 9px', borderRadius: 999,
+                  }}>
+                    <StarIcon size={9} /> CREATOR PRO
+                  </div>
+                ) : user?.isPremium ? (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    background: '#FEF3C7', border: '1px solid #FCD34D',
+                    color: '#C2410C', fontSize: 10, fontWeight: 800,
+                    letterSpacing: '0.05em', padding: '3px 9px', borderRadius: 999,
+                  }}>
+                    <StarIcon size={9} /> READER PREMIUM
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)',
+                    fontSize: 10, fontWeight: 600, letterSpacing: '0.04em',
+                    padding: '3px 9px', borderRadius: 999,
+                    border: '1px solid rgba(255,255,255,0.2)',
+                  }}>
+                    FREE PLAN
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -515,6 +527,14 @@ function StarIcon({ size = 12 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none">
       <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+    </svg>
+  );
+}
+
+function CheckIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6L9 17l-5-5" />
     </svg>
   );
 }
