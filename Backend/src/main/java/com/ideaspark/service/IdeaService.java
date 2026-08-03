@@ -234,9 +234,12 @@ public class IdeaService {
                         .stream().map(s -> s.getIdea().getId()).collect(java.util.stream.Collectors.toSet())
                 : Set.of();
 
+        // Was ideaLikeRepository.findAll() + Java-side filter — a full table
+        // scan of every like row in the database on every single feed load.
+        // findByUserId scopes this to an indexed lookup on just this viewer's
+        // likes.
         Set<UUID> likedIdeaIds = currentUser != null
-                ? ideaLikeRepository.findAll().stream()
-                        .filter(l -> l.getUser() != null && l.getUser().getId().equals(currentUser.getId()))
+                ? ideaLikeRepository.findByUserId(currentUser.getId()).stream()
                         .map(l -> l.getIdea().getId())
                         .collect(java.util.stream.Collectors.toSet())
                 : Set.of();
@@ -246,9 +249,26 @@ public class IdeaService {
         // spec — the profile page is gated separately in getIdeasByUser().
         Set<UUID> followingIds = followingIdsOf(currentUser);
 
-        return ideas.stream()
+        List<Idea> visibleIdeas = ideas.stream()
                 .filter(i -> visibleInFeed(i, currentUser, followingIds))
-                .map(i -> toDTOFast(i, currentUser, savedIdeaIds, likedIdeaIds))
+                .toList();
+
+        // Was one commentRepository.countByIdeaId() query per idea inside
+        // toDTOFast() — an N+1 on every feed load. Batch it into a single
+        // GROUP BY query scoped to exactly the ideas being returned. Guard
+        // the empty-feed case explicitly — an empty `IN ()` clause throws on
+        // some Hibernate versions rather than just matching nothing.
+        Map<UUID, Long> commentCounts = visibleIdeas.isEmpty()
+                ? Map.of()
+                : commentRepository
+                        .countByIdeaIdIn(visibleIdeas.stream().map(Idea::getId).toList())
+                        .stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                CommentRepository.IdeaCommentCount::getIdeaId,
+                                CommentRepository.IdeaCommentCount::getCnt));
+
+        return visibleIdeas.stream()
+                .map(i -> toDTOFast(i, currentUser, savedIdeaIds, likedIdeaIds, commentCounts))
                 .toList();
     }
 
@@ -514,6 +534,12 @@ public class IdeaService {
         // Delete comments
         commentRepository.deleteAll(
                 commentRepository.findByIdeaIdOrderByCreatedAtDesc(id));
+
+        // Delete stale bell entries (LIKE/COMMENT/BOOKMARK/NEW_IDEA) pointing
+        // at this idea — left uncleaned, tapping one after deletion 404s.
+        // FOLLOW/FOLLOW_REQUEST/PRIVACY_CHANGE notifications are untouched;
+        // their referenceId points at a user id, not this idea id.
+        notificationService.deleteIdeaReferences(id);
 
         // Delete idea
         ideaRepository.delete(idea);
@@ -834,7 +860,8 @@ public class IdeaService {
         return dto;
     }
 
-    private IdeaDTO toDTOFast(Idea idea, User currentUser, Set<UUID> savedIdeaIds, Set<UUID> likedIdeaIds) {
+    private IdeaDTO toDTOFast(Idea idea, User currentUser, Set<UUID> savedIdeaIds, Set<UUID> likedIdeaIds,
+            Map<UUID, Long> commentCounts) {
         IdeaDTO dto = new IdeaDTO();
         dto.setId(idea.getId());
         dto.setTitle(idea.getTitle());
@@ -845,7 +872,7 @@ public class IdeaService {
         dto.setPremium(idea.isPremium());
         dto.setLikeCount(idea.getLikeCount());
         dto.setReadCount(idea.getReadCount());
-        dto.setCommentCount(commentRepository.countByIdeaId(idea.getId()));
+        dto.setCommentCount(commentCounts.getOrDefault(idea.getId(), 0L));
         dto.setCreatedAt(idea.getCreatedAt());
         if (idea.getCreator() != null) {
             dto.setCreatorId(idea.getCreator().getId());
