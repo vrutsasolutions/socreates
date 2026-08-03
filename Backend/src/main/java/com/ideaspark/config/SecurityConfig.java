@@ -71,7 +71,13 @@ public class SecurityConfig {
     .requestMatchers("/api/ideas").permitAll()
     .requestMatchers("/api/ideas/{id}").permitAll()
     .requestMatchers("/api/search").permitAll()
-    .requestMatchers("/api/plagiarism/**").permitAll()
+    // Plagiarism check does a full-scan cosine-similarity comparison against
+    // every idea in the DB — expensive, and only ever called from the
+    // logged-in idea-creation flow (AddIdea.jsx). It was previously
+    // permitAll(), letting anyone hammer it with zero cost to them; gating
+    // it behind auth (+ AiController-style per-user rate limit in
+    // PlagiarismController) closes that off the same way /api/ai/** is.
+    .requestMatchers("/api/plagiarism/**").authenticated()
     .requestMatchers("/ws/**").permitAll()
     .requestMatchers("/api/ideas/*/comments").permitAll()
     // Read-tracking is public (anonymous readers count too)
