@@ -7,6 +7,8 @@ import com.ideaspark.dto.MessageDTO;
 import com.ideaspark.dto.UserDTO;
 import com.ideaspark.service.MessageService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +21,8 @@ import java.util.*;
 @RequestMapping("/api/messages")
 @RequiredArgsConstructor
 public class MessageController {
+
+    private static final Logger log = LoggerFactory.getLogger(MessageController.class);
 
     private final MessageService messageService;
 
@@ -151,7 +155,7 @@ public class MessageController {
                         firstError = e.getMessage();
                     }
 
-                    System.out.println("Failed to share with user " + userId + ": " + e.getMessage());
+                    log.warn("Failed to share with user {}: {}", userId, e.getMessage(), e);
                 }
             }
 

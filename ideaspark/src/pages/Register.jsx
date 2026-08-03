@@ -123,8 +123,12 @@ export default function Register() {
       setError("That username is already taken");
       return;
     }
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    if (!/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+      setError("Password must contain at least one letter and one number");
       return;
     }
     if (form.password !== form.confirmPassword) {

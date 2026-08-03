@@ -55,8 +55,11 @@ public class AuthService {
             throw new RuntimeException("Name is required");
         if (req.getEmail() == null || req.getEmail().isBlank())
             throw new RuntimeException("Email is required");
-        if (req.getPassword() == null || req.getPassword().length() < 6)
-            throw new RuntimeException("Password must be at least 6 characters");
+        if (req.getPassword() == null)
+            throw new RuntimeException("Password is required");
+        String passwordError = com.ideaspark.util.PasswordPolicy.validate(req.getPassword());
+        if (passwordError != null)
+            throw new RuntimeException(passwordError);
 
         String username = normalizeUsername(req.getUsername());
 

@@ -4,6 +4,8 @@ import com.ideaspark.dto.*;
 import com.ideaspark.model.*;
 import com.ideaspark.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +15,8 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class IdeaService {
+
+    private static final Logger log = LoggerFactory.getLogger(IdeaService.class);
 
     private final IdeaRepository ideaRepository;
     private final UserRepository userRepository;
@@ -412,12 +416,12 @@ public class IdeaService {
 
         // Plagiarism check only for Premium users
         if (creator.isPremium()) {
-            System.out.println("Premium User Detected");
+            log.debug("Running plagiarism check for premium user {}", creator.getEmail());
 
             PlagiarismResult result = plagiarismService.check(req.getDescription());
 
-            System.out.println("Plagiarized: " + result.isPlagiarized());
-            System.out.println("Message: " + result.getMessage());
+            log.debug("Plagiarism check result: plagiarized={}, message={}",
+                    result.isPlagiarized(), result.getMessage());
 
             if (result.isPlagiarized()) {
                 throw new RuntimeException(result.getMessage());
@@ -470,12 +474,13 @@ public class IdeaService {
 
                     notificationService.sendNotification(notification);
                 } catch (Exception e) {
-                    System.out.println("New idea in-app notification failed: " + e.getMessage());
+                    log.warn("New idea in-app notification failed for follower {}: {}",
+                            follower.getEmail(), e.getMessage(), e);
                 }
 
             }
         } catch (Exception e) {
-            System.out.println("New idea follower email failed: " + e.getMessage());
+            log.warn("New idea follower email failed: {}", e.getMessage(), e);
         }
 
         return toDTO(savedIdea, creatorEmail);
@@ -699,7 +704,7 @@ public class IdeaService {
                                 newLikeCount);
                     }
                 } catch (Exception e) {
-                    System.out.println("Like milestone email failed: " + e.getMessage());
+                    log.warn("Like milestone email failed: {}", e.getMessage(), e);
                 }
             }
 
@@ -722,7 +727,7 @@ public class IdeaService {
                     notificationService.sendNotification(notification);
                 }
             } catch (Exception e) {
-                System.out.println("Notification failed: " + e.getMessage());
+                log.warn("Like notification failed: {}", e.getMessage(), e);
             }
         }
     }
@@ -786,7 +791,7 @@ public class IdeaService {
                 notificationService.sendNotification(notification);
             }
         } catch (Exception e) {
-            System.out.println("Comment notification failed: " + e.getMessage());
+            log.warn("Comment notification failed: {}", e.getMessage(), e);
         }
 
         return toCommentDTO(savedComment);

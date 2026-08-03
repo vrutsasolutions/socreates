@@ -3,6 +3,8 @@ package com.ideaspark.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
 
@@ -216,9 +220,7 @@ public class EmailService {
             mailSender.send(message);
 
         } catch (Exception e) {
-            System.out.println(
-                    "New idea email failed: " + e.getMessage()
-            );
+            log.warn("New idea email failed: {}", e.getMessage(), e);
         }
     }
 
@@ -260,17 +262,12 @@ public class EmailService {
 
             mailSender.send(message);
 
-            System.out.println(
-                    "Like milestone email sent to: " + toEmail
-            );
+            log.info("Like milestone email sent to: {}", toEmail);
 
         } catch (MessagingException
                  | java.io.UnsupportedEncodingException e) {
 
-            System.out.println(
-                    "Like milestone email failed: "
-                            + e.getMessage()
-            );
+            log.warn("Like milestone email failed: {}", e.getMessage(), e);
         }
     }
 
@@ -310,18 +307,12 @@ public class EmailService {
 
             mailSender.send(message);
 
-            System.out.println(
-                    "Follower milestone email sent to: "
-                            + toEmail
-            );
+            log.info("Follower milestone email sent to: {}", toEmail);
 
         } catch (MessagingException
                  | java.io.UnsupportedEncodingException e) {
 
-            System.out.println(
-                    "Follower milestone email failed: "
-                            + e.getMessage()
-            );
+            log.warn("Follower milestone email failed: {}", e.getMessage(), e);
         }
     }
 
@@ -532,16 +523,12 @@ public class EmailService {
 
             mailSender.send(message);
 
-            System.out.println(
-                    "Feedback email sent for: " + userEmail
-            );
+            log.info("Feedback email sent for: {}", userEmail);
 
         } catch (MessagingException
                  | java.io.UnsupportedEncodingException e) {
 
-            System.out.println(
-                    "Feedback email failed: " + e.getMessage()
-            );
+            log.warn("Feedback email failed: {}", e.getMessage(), e);
         }
     }
 
@@ -637,9 +624,7 @@ public class EmailService {
 
             mailSender.send(message);
 
-            System.out.println(
-                    "Payout success email sent to: " + toEmail
-            );
+            log.info("Payout success email sent to: {}", toEmail);
 
         } catch (MessagingException
                  | java.io.UnsupportedEncodingException e) {
@@ -650,10 +635,7 @@ public class EmailService {
              * The payout has already succeeded, so an SMTP failure must not
              * roll back or mark the actual payout as failed.
              */
-            System.out.println(
-                    "Payout success email failed: "
-                            + e.getMessage()
-            );
+            log.warn("Payout success email failed: {}", e.getMessage(), e);
         }
     }
 
@@ -696,9 +678,7 @@ public class EmailService {
 
             mailSender.send(message);
 
-            System.out.println(
-                    "Payout failure email sent to: " + toEmail
-            );
+            log.info("Payout failure email sent to: {}", toEmail);
 
         } catch (MessagingException
                  | java.io.UnsupportedEncodingException e) {
@@ -707,10 +687,7 @@ public class EmailService {
              * Do not throw an exception here because the payout state has
              * already been saved in the database.
              */
-            System.out.println(
-                    "Payout failure email failed: "
-                            + e.getMessage()
-            );
+            log.warn("Payout failure email failed: {}", e.getMessage(), e);
         }
     }
 
@@ -760,10 +737,7 @@ public class EmailService {
 
             mailSender.send(message);
 
-            System.out.println(
-                    "Payout failure admin alert sent for creator: "
-                            + creatorEmail
-            );
+            log.info("Payout failure admin alert sent for creator: {}", creatorEmail);
 
         } catch (MessagingException
                  | java.io.UnsupportedEncodingException e) {
@@ -772,10 +746,7 @@ public class EmailService {
              * Do not throw an exception here because the payout state has
              * already been saved in the database.
              */
-            System.out.println(
-                    "Payout failure admin alert failed: "
-                            + e.getMessage()
-            );
+            log.warn("Payout failure admin alert failed: {}", e.getMessage(), e);
         }
     }
 

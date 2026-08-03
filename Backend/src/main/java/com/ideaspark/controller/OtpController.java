@@ -163,6 +163,16 @@ public class OtpController {
                     .body(Map.of("message", "Email, reset token and new password are required"));
         }
 
+        // This endpoint previously had NO password-strength check at all —
+        // unlike registration and change-password, a reset could set the
+        // password to a single character. Same shared policy as the other
+        // two flows now applies here too.
+        String passwordError = com.ideaspark.util.PasswordPolicy.validate(newPassword);
+        if (passwordError != null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", passwordError));
+        }
+
         // SECURITY: a verified-OTP reset token is mandatory, so the reset
         // endpoint cannot be called without proving OTP ownership.
         if (!otpService.validateResetToken(email, resetToken)) {

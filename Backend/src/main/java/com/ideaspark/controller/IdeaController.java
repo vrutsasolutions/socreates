@@ -6,6 +6,8 @@ import com.ideaspark.service.CloudflareImageService;
 import com.ideaspark.service.IdeaService;
 import lombok.RequiredArgsConstructor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +23,8 @@ import java.util.UUID;
 @RequestMapping("/api/ideas")
 @RequiredArgsConstructor
 public class IdeaController {
+
+    private static final Logger log = LoggerFactory.getLogger(IdeaController.class);
 
     private final IdeaService ideaService;
     private final ObjectMapper objectMapper;
@@ -103,7 +107,7 @@ public class IdeaController {
             return unauthenticated();
         }
 
-        System.out.println("ideaJson = " + ideaJson);
+        log.debug("Creating idea, raw payload: {}", ideaJson);
 
         CreateIdeaRequest req = objectMapper.readValue(ideaJson, CreateIdeaRequest.class);
 

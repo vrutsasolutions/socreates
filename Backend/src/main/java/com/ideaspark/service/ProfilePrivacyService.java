@@ -9,6 +9,8 @@ import com.ideaspark.repository.FollowRequestRepository;
 import com.ideaspark.repository.NotificationRepository;
 import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ProfilePrivacyService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProfilePrivacyService.class);
 
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
@@ -263,7 +267,11 @@ public class ProfilePrivacyService {
                             n.getUser().getEmail(), "/queue/notifications", n);
                 }
             } catch (Exception e) {
-                System.out.println("Privacy-change notification push failed: " + e.getMessage());
+                // Best-effort push over STOMP — the notification row is already
+                // persisted by the caller, so a failed live push just means the
+                // user sees it on next poll/reconnect instead of instantly.
+                log.warn("Privacy-change notification push failed for user {}: {}",
+                        n.getUser() != null ? n.getUser().getEmail() : "unknown", e.getMessage(), e);
             }
         }
     }

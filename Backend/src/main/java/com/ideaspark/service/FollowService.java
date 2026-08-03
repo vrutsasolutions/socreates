@@ -13,6 +13,8 @@ import com.ideaspark.repository.FollowRequestRepository;
 import com.ideaspark.repository.NotificationRepository;
 import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class FollowService {
+
+    private static final Logger log = LoggerFactory.getLogger(FollowService.class);
 
     private final FollowRepository followRepository;
     private final FollowRequestRepository followRequestRepository;
@@ -148,11 +152,10 @@ public class FollowService {
             // Send real-time via WebSocket
             notificationService.sendNotification(saved);
 
-            System.out.println("✅ Follow notification sent to: " + target.getEmail());
+            log.info("Follow notification sent to: {}", target.getEmail());
 
         } catch (Exception e) {
-            System.out.println("❌ Follow notification failed: " + e.getMessage());
-            e.printStackTrace();
+            log.warn("Follow notification failed: {}", e.getMessage(), e);
         }
 
         // ── Follower milestone email ──────────────────────────────────────────
@@ -169,7 +172,7 @@ public class FollowService {
                 );
             }
         } catch (Exception e) {
-            System.out.println("Follower milestone email failed: " + e.getMessage());
+            log.warn("Follower milestone email failed: {}", e.getMessage(), e);
         }
     }
 
@@ -188,7 +191,7 @@ public class FollowService {
             Notification saved = notificationRepository.save(notification);
             notificationService.sendNotification(saved);
         } catch (Exception e) {
-            System.out.println("❌ Follow-request notification failed: " + e.getMessage());
+            log.warn("Follow-request notification failed: {}", e.getMessage(), e);
         }
     }
 

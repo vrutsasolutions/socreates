@@ -3,6 +3,7 @@ import AppRouter from './router/AppRouter'
 import { AuthProvider } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
 import SplashScreen from './components/common/SplashScreen'
+import ErrorBoundary from './components/common/ErrorBoundary'
 
 // Show the launch splash once per browser session (i.e. when the app is
 // opened), not on every internal route change or in-session refresh.
@@ -23,7 +24,9 @@ export default function App() {
     <AuthProvider>
       <NotificationProvider>
         {showSplash && <SplashScreen onFinish={finishSplash} />}
-        <AppRouter />
+        <ErrorBoundary>
+          <AppRouter />
+        </ErrorBoundary>
       </NotificationProvider>
     </AuthProvider>
   )

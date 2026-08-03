@@ -133,8 +133,10 @@ export default function EditProfile() {
     setSuccess("");
     if (passwords.newPass !== passwords.confirm)
       return setError("New passwords do not match");
-    if (passwords.newPass.length < 6)
-      return setError("Password must be at least 6 characters");
+    if (passwords.newPass.length < 8)
+      return setError("Password must be at least 8 characters");
+    if (!/[A-Za-z]/.test(passwords.newPass) || !/[0-9]/.test(passwords.newPass))
+      return setError("Password must contain at least one letter and one number");
     setSaving(true);
     try {
       await api.put("/users/me/password", {

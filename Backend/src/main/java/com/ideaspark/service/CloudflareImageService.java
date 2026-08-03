@@ -1,6 +1,8 @@
 package com.ideaspark.service;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,6 +16,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class CloudflareImageService {
+
+    private static final Logger log = LoggerFactory.getLogger(CloudflareImageService.class);
 
     private final S3Client s3Client;
     private final FileSecurityValidator fileSecurityValidator;
@@ -59,7 +63,7 @@ public class CloudflareImageService {
     public void deleteImage(String imageUrl) {
         try {
             if (imageUrl == null || imageUrl.isBlank()) {
-                System.out.println("R2 delete skipped: imageUrl is empty");
+                log.debug("R2 delete skipped: imageUrl is empty");
                 return;
             }
 
@@ -87,7 +91,7 @@ public class CloudflareImageService {
             s3Client.deleteObject(request);
 
         } catch (Exception e) {
-            System.out.println("Cloudflare R2 delete failed: " + e.getMessage());
+            log.warn("Cloudflare R2 delete failed: {}", e.getMessage(), e);
         }
     }
 }

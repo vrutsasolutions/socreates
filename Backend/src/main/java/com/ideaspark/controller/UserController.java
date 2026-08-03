@@ -118,9 +118,10 @@ public class UserController {
                     .body(Map.of("message", "Current password is incorrect"));
         }
 
-        if (request.getNewPassword().length() < 6) {
+        String passwordError = com.ideaspark.util.PasswordPolicy.validate(request.getNewPassword());
+        if (passwordError != null) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("message", "New password must be at least 6 characters"));
+                    .body(Map.of("message", passwordError));
         }
 
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
