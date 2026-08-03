@@ -13,7 +13,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext';
 import { USE_MOCK } from '../api/config';
-import { createOrder, subscribe } from '../api/paymentApi';
+import { createOrder, subscribe, fetchMySubscription, buildMembership } from '../api/paymentApi';
 import Icon from '../components/common/Icon';
 import scLogo from '../assets/sc-logo-razorpay.png';
 
@@ -36,8 +36,8 @@ const INCLUDES = {
 export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, login } = useAuth();
-  const [loading, setLoading] = useState('');   // '' | 'razorpay'
+  const { user, login, updateUser } = useAuth();
+  const [loading, setLoading] = useState('');   // '' | 'razorpay' | 'verifying'
   const [error, setError]     = useState('');
 
   const order = location.state || {};
@@ -62,7 +62,43 @@ export default function Checkout() {
       state: { message: err?.response?.data?.message || err?.message, plan, billing, planLabel, price },
     });
 
-  
+  // Polls GET /payment/status a few times. This exists for one specific
+  // gap: Razorpay can capture a payment while the browser never gets the
+  // chance to call subscribe() — e.g. the tab is reloaded/backgrounded
+  // during a bank-OTP or UPI redirect on mobile. When that happens the
+  // money is real and (once the Razorpay webhook lands) the account IS
+  // premium server-side, but this tab has no way to know that and would
+  // otherwise just show the generic failure screen while the DB already
+  // says "active". Give the webhook a few seconds to land before we
+  // conclude the payment actually failed.
+  const pollForActivation = async () => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        const { data } = await fetchMySubscription();
+        if (data && String(data.status).toLowerCase() === 'active') return true;
+      } catch {
+        // Not active yet (or a transient error) — keep polling.
+      }
+    }
+    return false;
+  };
+
+  // Wraps onFailure: before sending the user to the "Payment Failed"
+  // screen, double-check with the server in case the webhook already
+  // activated membership behind the scenes. Only THEN show failure.
+  const onFailureWithRecoveryCheck = async (err) => {
+    setLoading('verifying');
+    const recovered = await pollForActivation();
+    if (recovered) {
+      const membership = buildMembership(payload('razorpay'));
+      updateUser({ isPremium: true, membership });
+      navigate('/membership/success', { state: { membership } });
+      return;
+    }
+    setLoading('');
+    onFailure(err);
+  };
 
   // ── Web Razorpay (checkout.js popup) ────────────────────────────────
   const payWeb = async (ord, key) => {
@@ -90,13 +126,20 @@ export default function Checkout() {
           });
           onSuccess(data);
         } catch (err) {
-          onFailure(err);
+          // subscribe() failing here does NOT mean the payment failed —
+          // Razorpay already showed the popup's success state, so money
+          // may well have been captured. Check server status before
+          // routing to the failure screen.
+          onFailureWithRecoveryCheck(err);
         }
       },
       prefill: { name: user?.name, email: user?.email },
       theme: { color: '#1565C0' },
       modal: { ondismiss: () => setLoading('') },
     });
+    // payment.failed fires for a genuine gateway-side decline (card
+    // rejected, insufficient funds, etc.) — Razorpay itself is telling us
+    // no capture happened, so no recovery check is needed here.
     rzp.on('payment.failed', (r) =>
       onFailure({ response: { data: { message: r?.error?.description } } }));
     rzp.open();
@@ -249,9 +292,14 @@ export default function Checkout() {
           <button onClick={payRazorpay} disabled={busy}
             className="w-full text-white font-bold py-4 rounded-2xl active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2 text-sm"
             style={{ background: 'linear-gradient(135deg, #4F8EF7, #3B6FE0)' }}>
-            {loading === 'razorpay' && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            Pay with Razorpay
+            {(loading === 'razorpay' || loading === 'verifying') && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+            {loading === 'verifying' ? 'Verifying your payment…' : 'Pay with Razorpay'}
           </button>
+          {loading === 'verifying' && (
+            <p className="text-[#90A4AE] text-xs text-center -mt-1">
+              We're confirming your payment with the bank. This can take a few seconds — please don't close this page.
+            </p>
+          )}
         </div>
 
         <p className="text-[#90A4AE] text-xs text-center pb-4 inline-flex items-center justify-center gap-1 w-full">

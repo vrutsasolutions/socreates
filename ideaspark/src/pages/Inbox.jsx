@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
-import { fetchConversations, fetchActiveUsers, fetchRequests, fetchConversation, formatInboxTime } from '../api/messagingApi';
+import { fetchConversations, fetchActiveUsers, fetchRequests, fetchConversation, formatInboxTime, startConversation } from '../api/messagingApi';
 import Icon from '../components/common/Icon';
 
 const PREVIEW_ICON = { voice: 'mic', image: 'camera', idea: 'lightbulb' };
@@ -111,6 +111,25 @@ export default function Inbox() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [requestCount, setRequestCount] = useState(0);
+  const [openingUserId, setOpeningUserId] = useState(null);
+
+  // Active Now avatars carry a USER id, not a conversation id — /messages/:id
+  // expects a conversation id, so we must resolve (or create) the
+  // conversation with this user first, then navigate to its real id.
+  // Without this, Chat.jsx can't find a matching conversation and falls
+  // back to a placeholder ("Chat" / "?" / Offline / No messages yet).
+  const openActiveUser = async (userId) => {
+    if (openingUserId) return; // guard against double-taps
+    setOpeningUserId(userId);
+    try {
+      const { data } = await startConversation(userId);
+      navigate(`/messages/${data.id}`);
+    } catch (err) {
+      console.error('[Inbox] failed to start conversation from Active Now', err);
+    } finally {
+      setOpeningUserId(null);
+    }
+  };
 
   useEffect(() => {
     // Messaging is free for everyone — always load the inbox.
@@ -372,8 +391,9 @@ export default function Inbox() {
                   {active.map((u) => (
                     <button
                       key={u.id}
-                      onClick={() => navigate(`/messages/${u.id}`)}
-                      className="flex flex-col items-center gap-1.5 shrink-0 active:scale-90 transition-transform"
+                      onClick={() => openActiveUser(u.id)}
+                      disabled={openingUserId === u.id}
+                      className="flex flex-col items-center gap-1.5 shrink-0 active:scale-90 transition-transform disabled:opacity-60"
                     >
                       <Avatar initial={u.initial} color={u.avatarColor} src={u.profileImage} size={56} online={u.online} ring />
                       <span className="text-[11px] text-[#546E7A]">{u.name}</span>
