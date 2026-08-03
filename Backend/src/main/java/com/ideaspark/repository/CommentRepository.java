@@ -19,6 +19,20 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
     // Per-idea comment count (used in the content table)
     // countByIdeaId already satisfies per-idea lookup — no extra method needed.
 
+    // ── Feed batching ────────────────────────────────────────────────────────
+    // Replaces one countByIdeaId() call per idea (N+1 on every Home feed load)
+    // with a single GROUP BY query for exactly the ideas being returned.
+    // Ideas with zero comments simply won't appear in the result — callers
+    // must default missing keys to 0.
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT c.idea.id AS ideaId, COUNT(c) AS cnt FROM Comment c WHERE c.idea.id IN :ideaIds GROUP BY c.idea.id")
+    List<IdeaCommentCount> countByIdeaIdIn(@org.springframework.data.repository.query.Param("ideaIds") List<UUID> ideaIds);
+
+    interface IdeaCommentCount {
+        UUID getIdeaId();
+        Long getCnt();
+    }
+
     // ✅ Added for delete account
     void deleteByIdeaId(UUID ideaId);
     void deleteByUserId(UUID userId);
