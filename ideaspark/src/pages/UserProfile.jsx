@@ -13,6 +13,7 @@ import IdeaCard from "../components/common/IdeaCard.premium";
 import Icon from "../components/common/Icon";
 import ProfileShareButton from "../components/common/ProfileShareButton";
 import BanUserModal from "../components/common/BanUserModal";
+import { hasCreatorPro, isVerified } from "../api/paymentApi";
 import { useAuth } from "../context/AuthContext";
 import {
   fetchUserById,
@@ -282,20 +283,34 @@ export default function UserProfile() {
               {loading ? "\u00A0" : profile?.name}
             </h2>
 
-            {/* Tier badge — matches own Profile & sidebar styling exactly */}
-            {(profile?.isPremium || profile?.premium) && (
-              <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                {profile?.membership?.plan === "creator" || profile?.creatorPro ? (
+            {/* Tier badge(s) — keep in sync with Profile.jsx & DrawerMenu.premium.jsx */}
+            {!loading && (
+              <div className="mt-2 flex flex-wrap justify-center items-center gap-1.5">
+                {hasCreatorPro(profile) && isVerified(profile) && (
                   <span className="inline-flex items-center gap-1 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm"
-                    style={{ background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', color: '#78350F', letterSpacing: '0.05em' }}>
-                    <Icon name="star" className="w-3.5 h-3.5" />
-                    Creator Pro
+                    style={{ background: 'linear-gradient(135deg,#34D399,#059669)', color: '#fff', letterSpacing: '0.05em' }}>
+                    <Icon name="check" className="w-3.5 h-3.5" />
+                    Verified
                   </span>
+                )}
+                {(profile?.isPremium || profile?.premium) ? (
+                  hasCreatorPro(profile) ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm"
+                      style={{ background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', color: '#78350F', letterSpacing: '0.05em' }}>
+                      <Icon name="star" className="w-3.5 h-3.5" />
+                      Creator Pro
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm"
+                      style={{ background: '#FEF3C7', color: '#C2410C', border: '1px solid #FCD34D', letterSpacing: '0.05em' }}>
+                      <Icon name="star" className="w-3.5 h-3.5" />
+                      Reader Premium
+                    </span>
+                  )
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm"
-                    style={{ background: 'linear-gradient(135deg,#60A5FA,#3B82F6)', color: '#fff', letterSpacing: '0.05em' }}>
-                    <Icon name="star" className="w-3.5 h-3.5" />
-                    Reader Premium
+                  <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)', border: '1px solid rgba(255,255,255,0.2)', letterSpacing: '0.04em' }}>
+                    Free Plan
                   </span>
                 )}
               </div>
