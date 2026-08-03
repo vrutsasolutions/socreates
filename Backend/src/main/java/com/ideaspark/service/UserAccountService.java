@@ -73,15 +73,12 @@ public class UserAccountService {
         followRequestRepository.deleteAll(followRequestRepository.findByRequester(user));
         followRequestRepository.deleteAll(followRequestRepository.findByTarget(user));
 
-        ideaLikeRepository.deleteAll(
-                ideaLikeRepository.findAll().stream()
-                        .filter(like -> like.getUser() != null && userId.equals(like.getUser().getId()))
-                        .toList());
-
-        commentRepository.deleteAll(
-                commentRepository.findAll().stream()
-                        .filter(c -> c.getUser() != null && userId.equals(c.getUser().getId()))
-                        .toList());
+        // Was findAll() + Java-side filter on both repositories — a full
+        // table scan of every like/comment row in the database to find this
+        // one user's, on every single account deletion. deleteByUserId scopes
+        // both to an indexed DELETE.
+        ideaLikeRepository.deleteByUserId(userId);
+        commentRepository.deleteByUserId(userId);
 
         ideaRepository.findByCreatorIdOrderByCreatedAtDesc(userId).forEach(idea -> {
             commentRepository.deleteAll(
