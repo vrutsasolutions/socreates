@@ -47,4 +47,14 @@ public interface MembershipRepository extends JpaRepository<Membership, UUID> {
            "WHERE m.user.id = :userId AND m.plan = 'creator' " +
            "AND m.status = 'active' AND m.endDate > :now")
     boolean hasActiveCreatorPro(@Param("userId") UUID userId, @Param("now") LocalDateTime now);
+
+    /**
+     * Active membership rows whose paid period has already ended. Used by
+     * the daily expiry job — without this, the only "active membership"
+     * lookup (findTopByUserIdAndStatusOrderByEndDateDesc) filters on status
+     * alone, never checks endDate against the current time, so a lapsed
+     * membership stays "active" (and User.isPremium stays true) forever.
+     */
+    @Query("SELECT m FROM Membership m WHERE m.status = 'active' AND m.endDate < :now")
+    List<Membership> findActiveAndExpired(@Param("now") LocalDateTime now);
 }
