@@ -140,7 +140,16 @@ public class CreatorService {
                                 .status(CreatorDashboardDTO.StatusBlock.builder()
                                                 .creatorPro(isCreatorPro)
                                                 .verified(creator.isVerified())
-                                                .premiumPublishing(Boolean.TRUE.equals(creator.getPremiumPublishing()))
+                                                // Same dead-column problem as creatorPro above:
+                                                // User.premiumPublishing (creator.getPremiumPublishing())
+                                                // is never written anywhere either, so reading it directly
+                                                // always showed "Premium Publishing: Enabled" in red for
+                                                // every creator (Codebase Review Aug 2026, Claim #13).
+                                                // There's no separate "premium publishing" tier in the
+                                                // app — IdeaService.createIdea() gates who may publish a
+                                                // premium idea on this exact same hasActiveCreatorPro()
+                                                // check, so that's the real signal for this status too.
+                                                .premiumPublishing(isCreatorPro)
                                                 .build())
                                 .performance(CreatorDashboardDTO.PerformanceBlock.builder()
                                                 .ideasPublished(ideasPublished)
