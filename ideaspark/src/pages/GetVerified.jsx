@@ -1,8 +1,11 @@
 // ════════════════════════════════════════════════════════════════════════
 //  GetVerified — onboarding Step 3 of 3 ("One last thing")
-//  Verification is no longer a separate review flow: it's granted by paying
-//  for any membership. This step explains that and sends the user to the
-//  Membership page. Skippable — they can subscribe later from their profile.
+//  Verification is granted automatically to Creator Pro subscribers only
+//  (confirmed business rule — NOT Reader Premium; this copy previously said
+//  "Premium or Creators Pro", which promised Reader Premium subscribers a
+//  badge they never actually received). This step explains that and sends
+//  the user to the Membership page. Skippable — they can subscribe later
+//  from their profile.
 // ════════════════════════════════════════════════════════════════════════
 import { useNavigate } from 'react-router-dom';
 
@@ -69,7 +72,7 @@ export default function GetVerified() {
                   </svg>
                 </span>
                 <p className="text-[#546E7A] text-sm leading-snug">
-                  Verification is included free with Premium or Creators Pro
+                  Verification is included free with Creators Pro
                 </p>
               </div>
 
@@ -89,7 +92,7 @@ export default function GetVerified() {
           {/* Footer actions */}
           <div className="w-full pt-8 pb-2 space-y-3">
             <button
-              onClick={() => navigate('/membership')}
+              onClick={() => navigate('/membership?plan=creator')}
               className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold py-4 rounded-2xl active:scale-[0.97] transition-all shadow-lg shadow-blue-300/40 flex items-center justify-center gap-2 text-[15px]"
             >
               Get Verified — Continue
