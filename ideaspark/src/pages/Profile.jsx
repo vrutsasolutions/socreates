@@ -179,41 +179,21 @@ export default function Profile() {
 
             <h2 className="text-white font-bold text-lg mt-3">{user?.name}</h2>
 
-            {/* Status badges — verified (any paid membership) + tier pill */}
-            {isVerified(user) && (
+            {/* Tier badge — single pill matching sidebar's badge exactly */}
+            {user?.isPremium && (
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                {isVerified(user) && (
-                  <span className="inline-flex items-center gap-1 bg-[#E7F8EE] text-[#15803D] text-xs font-bold px-3 py-1 rounded-full">
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    Verified 
-                  </span>
-                )}
-
                 {hasCreatorPro(user) ? (
-                  // Creator Pro is the higher tier — show it instead of the plain Premium pill.
-                  <span className="inline-flex items-center gap-1 bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] text-[#78350F] text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                  <span className="inline-flex items-center gap-1 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm"
+                    style={{ background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', color: '#78350F', letterSpacing: '0.05em' }}>
                     <Icon name="star" className="w-3.5 h-3.5" />
                     Creator Pro
                   </span>
                 ) : (
-                  user?.isPremium && (
-                    <span className="inline-flex items-center gap-1 bg-[#FEF3C7] text-[#92400E] text-xs font-bold px-3 py-1 rounded-full">
-                      <Icon name="star" className="w-3.5 h-3.5" />
-                      Premium
-                    </span>
-                  )
+                  <span className="inline-flex items-center gap-1 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm"
+                    style={{ background: 'linear-gradient(135deg,#60A5FA,#3B82F6)', color: '#fff', letterSpacing: '0.05em' }}>
+                    <Icon name="star" className="w-3.5 h-3.5" />
+                    Reader Premium
+                  </span>
                 )}
               </div>
             )}

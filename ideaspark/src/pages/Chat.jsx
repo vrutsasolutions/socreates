@@ -34,9 +34,6 @@ import {
   uploadImage,
   reactToMessage,
   deleteMessage,
-  blockUser,
-  unblockUser,
-  reportUser,
   isLimitReachedError,
   isRequestPendingError,
   acceptRequest,
@@ -91,27 +88,6 @@ const formatMessageTime = (value) => {
   });
 };
 
-const getDateLabel = (dateValue) => {
-  const date = dateValue ? new Date(dateValue) : new Date();
-
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-
-  const sameDay = (a, b) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  if (sameDay(date, today)) return "Today";
-  if (sameDay(date, yesterday)) return "Yesterday";
-
-  return date.toLocaleDateString([], {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
 const QUICK_REACTIONS = [
   { label: "Like", emoji: "👍" },
   { label: "Fire", emoji: "🔥" },
@@ -229,6 +205,27 @@ function ReplyBtn({ onClick }) {
   );
 }
 
+function TimeMeta({ light, timeLabel, mine, isRead }) {
+  if (!timeLabel) return null;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-normal whitespace-nowrap ${
+      light ? "text-white/70" : "text-[#90A4AE]"
+    }`}>
+      <span>{timeLabel}</span>
+      {mine && (
+        <span className={`inline-flex text-[11px] leading-none ${
+          isRead
+            ? (light ? "text-cyan-300" : "text-[#1565C0]")
+            : (light ? "text-white/70" : "text-[#90A4AE]")
+        }`}>
+          <span>✓</span>
+          {isRead && <span className="-ml-[5px]">✓</span>}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function Bubble({
   m,
   onImageClick,
@@ -277,29 +274,6 @@ function Bubble({
 
   // ── Inline time+ticks (appears inside every bubble type) ──
   const timeLabel = m.time || formatMessageTime(m.createdAt);
-  const TimeMeta = ({ light }) => (
-    timeLabel ? (
-      <span className={`inline-flex items-center gap-0.5 text-[10px] font-normal whitespace-nowrap ${
-        light ? "text-white/70" : "text-[#90A4AE]"
-      }`}>
-        <span>{timeLabel}</span>
-        {mine && (
-          <span className={`inline-flex text-[11px] leading-none ${
-            (m.isRead || m.read)
-              // Bright cyan on a blue bubble, dark blue on a light bubble —
-              // both chosen for clear contrast against "sent" (white/70,
-              // grey), unlike the previous sky-300 which was too close to
-              // white/70 to read as "changed" at a glance.
-              ? (light ? "text-cyan-300" : "text-[#1565C0]")
-              : (light ? "text-white/70" : "text-[#90A4AE]")
-          }`}>
-            <span>✓</span>
-            {(m.isRead || m.read) && <span className="-ml-[5px]">✓</span>}
-          </span>
-        )}
-      </span>
-    ) : null
-  );
 
   let content;
 
@@ -309,13 +283,13 @@ function Bubble({
       <video
         src={src}
         controls
-        className="w-[200px] h-[130px] object-cover rounded-2xl bg-black"
+        className="max-w-[240px] rounded-2xl bg-black"
       />
     ) : (
       <img
         src={src}
         alt="shared"
-        className="w-[200px] h-[130px] object-cover rounded-2xl"
+        className="max-w-[240px] rounded-2xl"
       />
     );
     content = (
@@ -332,12 +306,12 @@ function Bubble({
           >
             {media}
             <span className="absolute bottom-1.5 right-1.5 bg-black/50 rounded-full px-1.5 py-0.5">
-              <TimeMeta light />
+              <TimeMeta light timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
             </span>
           </button>
         )}
         {m.text && (
-          <p className="mt-1 max-w-[200px] text-[12px] text-[#0D2137]">
+          <p className="mt-1 max-w-[240px] text-[12px] text-[#0D2137]">
             {m.text}
           </p>
         )}
@@ -373,7 +347,7 @@ function Bubble({
           <span className="text-[13px] truncate flex-1">{m.fileName}</span>
         </div>
         <div className="flex justify-end mt-1">
-          <TimeMeta light={mine} />
+          <TimeMeta light={mine} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
         </div>
       </div>
     );
@@ -414,7 +388,7 @@ function Bubble({
           />
         )}
         <div className="flex justify-end">
-          <TimeMeta light={mine} />
+          <TimeMeta light={mine} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
         </div>
       </div>
     );
@@ -449,7 +423,7 @@ function Bubble({
             <span className="text-[12px] font-semibold text-[#1565C0]">
               View idea →
             </span>
-            <TimeMeta light={false} />
+            <TimeMeta light={false} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
           </div>
         </div>
       </button>
@@ -483,7 +457,7 @@ function Bubble({
           </div>
         </div>
         <div className="flex justify-end mt-1">
-          <TimeMeta light={false} />
+          <TimeMeta light={false} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
         </div>
       </button>
     );
@@ -501,7 +475,7 @@ function Bubble({
         {m.replyTo && <QuotedInBubble replyTo={m.replyTo} light={mine} />}
         <div className="flex items-end gap-2">
           <span className="break-words flex-1 min-w-0">{linkifyText(displayText)}</span>
-          <TimeMeta light={mine} />
+          <TimeMeta light={mine} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
         </div>
       </div>
     );
@@ -782,36 +756,6 @@ export default function Chat() {
     }
   };
 
-  const handleBlockUser = async () => {
-    try {
-      await blockUser(convo.otherUserId);
-      showToast("User blocked successfully");
-      navigate("/messages");
-    } catch (err) {
-      console.error(err);
-      showToast(err.response?.data?.message || "Failed to block user");
-    }
-  };
-
-  const handleUnblockUser = async () => {
-    try {
-      await unblockUser(convo.otherUserId);
-      showToast("User unblocked successfully");
-    } catch (err) {
-      console.error(err);
-      showToast(err.response?.data?.message || "Failed to unblock user");
-    }
-  };
-
-  const handleReportUser = async () => {
-    try {
-      await reportUser(convo.otherUserId, "Spam");
-      showToast("User reported successfully");
-    } catch (err) {
-      console.error(err);
-      showToast(err.response?.data?.message || "Failed to report user");
-    }
-  };
   // ── Load conversation + messages ────────────────────────────────────────
   useEffect(() => {
     let alive = true;
@@ -1370,7 +1314,9 @@ export default function Chat() {
         );
         try {
           URL.revokeObjectURL(it.url);
-        } catch (_) {}
+        } catch {
+          // ignored
+        }
       } catch (err) {
         console.error("Image send failed:", err);
         setMessages((prev) => prev.filter((m) => m.id !== tmpId));
@@ -1465,11 +1411,25 @@ export default function Chat() {
       setRecordingState("recording");
       startTimer();
     } catch (err) {
-      setMicError(
-        err.name === "NotAllowedError"
-          ? "Microphone permission denied. Allow access and try again."
-          : "Could not start recording. Please try again.",
-      );
+      // On Android (Capacitor WebView), a denied RECORD_AUDIO permission
+      // throws NotAllowedError without re-prompting the user. We detect
+      // the native platform and show a special banner with an "Open
+      // Settings" action so they can re-enable it from App Info.
+      if (err.name === "NotAllowedError") {
+        let isNative = false;
+        try {
+          const { Capacitor } = await import("@capacitor/core");
+          isNative = Capacitor.isNativePlatform();
+        } catch (_) {}
+
+        setMicError(
+          isNative
+            ? "mic_denied_native"
+            : "Microphone permission denied. Allow access in your browser and try again.",
+        );
+      } else {
+        setMicError("Could not start recording. Please try again.");
+      }
     }
   };
 
@@ -1987,13 +1947,39 @@ export default function Chat() {
               d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
             />
           </svg>
-          <p className="flex-1 text-[12px] text-[#EF4444]">{micError}</p>
-          <button
-            onClick={() => setMicError(null)}
-            className="text-[#EF4444] text-[11px] font-semibold"
-          >
-            Dismiss
-          </button>
+          <p className="flex-1 text-[12px] text-[#EF4444]">
+            {micError === "mic_denied_native"
+              ? "Microphone access denied. Enable it in your device settings."
+              : micError}
+          </p>
+          {micError === "mic_denied_native" ? (
+            <button
+              onClick={async () => {
+                // Open this app's Android settings page so the user can
+                // re-enable the microphone permission. Uses @capacitor/app
+                // (already installed) to get the package name and launch
+                // the system intent. Falls back to a simple dismiss if
+                // something goes wrong.
+                try {
+                  const { App } = await import("@capacitor/app");
+                  const { id: packageName } = await App.getInfo();
+                  await App.openUrl({ url: `package:${packageName}` });
+                } catch (_) {
+                  setMicError(null);
+                }
+              }}
+              className="text-[#1565C0] text-[11px] font-semibold whitespace-nowrap"
+            >
+              Open Settings
+            </button>
+          ) : (
+            <button
+              onClick={() => setMicError(null)}
+              className="text-[#EF4444] text-[11px] font-semibold"
+            >
+              Dismiss
+            </button>
+          )}
         </div>
       )}
 

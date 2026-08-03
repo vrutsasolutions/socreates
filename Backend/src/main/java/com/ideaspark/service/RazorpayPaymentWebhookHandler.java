@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -58,7 +59,15 @@ public class RazorpayPaymentWebhookHandler {
 
         // Re-check inside the transaction — a second guard against a race
         // where two webhook deliveries land at nearly the same instant.
-        if (paymentRepository.existsByGatewayPaymentId(razorpayPaymentId)) {
+        // Same fix as the outer guard in RazorpayWebhookService: only a
+        // payment_id already recorded as "captured" is truly final. A row
+        // sitting at "failed"/"created" must still be reachable so a later,
+        // more authoritative payment.captured event for that same
+        // payment_id can correct it instead of being silently dropped.
+        Optional<MembershipPayment> alreadyCaptured =
+                paymentRepository.findByGatewayPaymentId(razorpayPaymentId)
+                        .filter(p -> "captured".equalsIgnoreCase(p.getStatus()));
+        if (alreadyCaptured.isPresent()) {
             return ResponseEntity.ok("Already processed");
         }
 
@@ -124,19 +133,41 @@ public class RazorpayPaymentWebhookHandler {
      * just stay null until the Subscriptions API migration lands).
      */
     private void activateMembership(MembershipPayment payment, JsonNode subscriptionEntity) {
-        Membership membership = membershipRepository
-                .findTopByUserIdAndStatusOrderByEndDateDesc(payment.getUser().getId(), "active")
-                .orElseGet(() -> Membership.builder()
-                        .user(payment.getUser())
-                        .plan(payment.getPlanType() != null && payment.getPlanType().contains("creator")
-                                ? "creator" : "reader")
-                        .gateway("razorpay")
-                        .status("active")
-                        .build());
+        // Always derive plan/billing fresh from THIS payment's plan_type —
+        // never leave them on whatever row happens to be reused below.
+        // planType is e.g. "creator_yearly"; fall back to reader/monthly if
+        // it's ever missing/malformed.
+        String planType = payment.getPlanType() != null ? payment.getPlanType() : "reader_monthly";
+        String[] planParts = planType.split("_", 2);
+        String plan = planParts.length > 0 && !planParts[0].isBlank() ? planParts[0] : "reader";
+        boolean yearly = planType.contains("yearly");
+        String billing = yearly ? "yearly" : "monthly";
 
-        membership.setStatus("active");
+        // Close out every other active row for this user first. Previously
+        // this method reused whichever active row had the FURTHEST-OUT end
+        // date (findTopByUserIdAndStatusOrderByEndDateDesc) and only ever
+        // touched its endDate/paymentId — plan/billing were left untouched
+        // on reuse. That meant a Creator Pro purchase could silently update
+        // an old, unrelated Reader Premium row's dates while leaving
+        // plan="reader" in place, and — if a second, older active row with
+        // a later end date also existed — that older reader row would keep
+        // winning every "what plan is this user on" lookup even though the
+        // user's Creator Pro payment was captured. Cancel everything active
+        // and create one fresh, unambiguous row per payment instead.
+        List<Membership> priorActive = membershipRepository
+                .findByUserIdAndStatus(payment.getUser().getId(), "active");
+        priorActive.forEach(m -> m.setStatus("canceled"));
+        membershipRepository.saveAll(priorActive);
+
+        Membership membership = Membership.builder()
+                .user(payment.getUser())
+                .plan(plan)
+                .billing(billing)
+                .gateway("razorpay")
+                .status("active")
+                .build();
+
         membership.setPaymentId(payment.getGatewayPaymentId());
-        boolean yearly = payment.getPlanType() != null && payment.getPlanType().contains("yearly");
         membership.setEndDate(yearly
                 ? LocalDateTime.now().plusYears(1)
                 : LocalDateTime.now().plusMonths(1));

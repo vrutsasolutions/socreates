@@ -27,6 +27,22 @@ export default function NewChat() {
     return () => { alive = false; };
   }, []);
 
+  // Keep online dots live while this page is open
+  useEffect(() => {
+    const handlePresence = (event) => {
+      const presence = event.detail;
+      setContacts((prev) =>
+        prev.map((c) =>
+          String(c.id) === String(presence.userId)
+            ? { ...c, online: presence.online, activityVisible: presence.visible ?? true }
+            : c
+        )
+      );
+    };
+    window.addEventListener('presence-update', handlePresence);
+    return () => window.removeEventListener('presence-update', handlePresence);
+  }, []);
+
   const open = async (userId) => {
     const { data } = await startConversation(userId);
     navigate(`/messages/${data.id}`);

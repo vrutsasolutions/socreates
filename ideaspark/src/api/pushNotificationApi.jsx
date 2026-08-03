@@ -1,8 +1,6 @@
 // ════════════════════════════════════════════════════════════════════════
 //  Push notifications (FCM device token registration).
-//  Backend: 🚧 Phase 5 — POST /api/device-token doesn't exist yet.
-//  Once it's added (device_tokens table + endpoint), this just works —
-//  nothing on the frontend needs to change.
+//  Backend: ✅ live — POST/DELETE /api/device-token (DeviceTokenController).
 // ════════════════════════════════════════════════════════════════════════
 import api from './axiosInstance';
 

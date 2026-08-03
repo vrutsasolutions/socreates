@@ -9,7 +9,8 @@ import { saveIdeaDraft, takeIdeaDraft, clearIdeaDraft } from '../state/ideaDraft
 import { setEditorInput, takeEditorOutput } from '../state/imageEditorStore';
 import { filesToCompressedDataURLs, dataURLsToFiles } from '../state/ImageCodec';
 import { CATEGORIES } from '../constants/categories';
-import { CATEGORY_COLORS, defaultColor, IdeaIcon } from '../components/common/categoryIcons';
+import { IdeaIcon } from '../components/common/categoryIcons';
+import { CATEGORY_COLORS, defaultColor } from '../components/common/categoryConstants';
 
 const STEPS = ['Details', 'Media', 'Publish'];
 
@@ -49,6 +50,16 @@ function PreviewTile({ src, height = 116, maxWidth = 220, className = '', childr
 // Color system: brand blue (#1565C0 family) throughout — matches the rest of
 // the app exactly. "AI-ness" is communicated through the gradient sheen,
 // sparkle icon, and glow/shadow treatment, NOT through a different hue.
+// Sparkle SVG icon — filled (not stroke-only) so it stays crisp at small sizes
+function SparkleIcon({ size = 16, color = '#fff' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none">
+      <path d="M12 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/>
+      <path d="M5 4l0.9 2.2L8 7l-2.1 0.8L5 10l-0.9-2.2L2 7l2.1-0.8L5 4z" opacity="0.85"/>
+    </svg>
+  );
+}
+
 function AIRefineModal({ original, onAccept, onClose }) {
   // "select" → user picks a mode
   // "loading" → calling API
@@ -78,14 +89,6 @@ function AIRefineModal({ original, onAccept, onClose }) {
   const handleRun = () => callApi(mode);
 
   const handleRerun = () => callApi(mode);
-
-  // Sparkle SVG icon — filled (not stroke-only) so it stays crisp at small sizes
-  const SparkleIcon = ({ size = 16, color = '#fff' }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none">
-      <path d="M12 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/>
-      <path d="M5 4l0.9 2.2L8 7l-2.1 0.8L5 10l-0.9-2.2L2 7l2.1-0.8L5 4z" opacity="0.85"/>
-    </svg>
-  );
 
   return (
     // Full-screen overlay — centered, not bottom-anchored
@@ -470,7 +473,7 @@ export default function AddIdea() {
 
   const [checking,     setChecking]     = useState(false);
   const [publishing,   setPublishing]   = useState(false);
-  const [checkResult,  setCheckResult]  = useState(null);
+  const [_checkResult,  setCheckResult]  = useState(null);
   const [error,        setError]        = useState('');
 
   const inputCls =

@@ -100,9 +100,9 @@ const MENU_SECTIONS = [
         Icon: () => (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3"  y="3"  width="7" height="7" rx="1.5" />
-            <rect x="14" y="3"  width="7" height="7" rx="1.5" />
-            <rect x="3"  y="14" width="7" height="7" rx="1.5" />
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
             <rect x="14" y="14" width="7" height="7" rx="1.5" />
           </svg>
         ),
@@ -160,11 +160,11 @@ function avPalette(name = '') {
 
 /* ── Component ───────────────────────────────────────────── */
 export default function DrawerMenu({ open, onClose }) {
-  const navigate   = useNavigate();
-  const location   = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
-  const drawerRef  = useRef(null);
-  const av         = avPalette(user?.name || '');
+  const drawerRef = useRef(null);
+  const av = avPalette(user?.name || '');
   const creatorPro = hasCreatorPro(user);
 
   useEffect(() => {
@@ -305,15 +305,24 @@ export default function DrawerMenu({ open, onClose }) {
                 {user?.email ?? ''}
               </div>
 
-              {/* Plan badge */}
-              {user?.isPremium ? (
+              {/* Plan badge — tier-specific, matches Profile page badges */}
+              {creatorPro ? (
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7,
                   background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
                   color: '#78350F', fontSize: 10, fontWeight: 800,
                   letterSpacing: '0.05em', padding: '3px 9px', borderRadius: 999,
                 }}>
-                  <StarIcon size={9} /> PREMIUM
+                  <StarIcon size={9} /> CREATOR PRO
+                </div>
+              ) : user?.isPremium ? (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7,
+                  background: 'linear-gradient(135deg,#60A5FA,#3B82F6)',
+                  color: '#fff', fontSize: 10, fontWeight: 800,
+                  letterSpacing: '0.05em', padding: '3px 9px', borderRadius: 999,
+                }}>
+                  <StarIcon size={9} /> READER PREMIUM
                 </div>
               ) : (
                 <div style={{
@@ -352,6 +361,7 @@ export default function DrawerMenu({ open, onClose }) {
                   {section.label}
                 </div>
 
+                {/* eslint-disable-next-line no-unused-vars -- Icon IS used below as a JSX tag; this config lacks eslint-plugin-react, so core no-unused-vars can't see that usage */}
                 {section.items.map(({ to, label, sublabel, badge, Icon, color, bg }) => {
                   const target = (to === '/creator-dashboard' && !creatorPro) ? '/creator-pro' : to;
                   const isActive = location.pathname === target ||

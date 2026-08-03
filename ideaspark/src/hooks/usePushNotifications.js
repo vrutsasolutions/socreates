@@ -37,7 +37,9 @@ export default function usePushNotifications() {
   // listener, so registerDeviceToken() never actually ran. The token would
   // "complete" on the native side but never reach the backend.
   const navigateRef = useRef(navigate);
-  navigateRef.current = navigate;
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
 
   // Avoid re-registering on every re-render — only (re)run the whole flow
   // when we go from "no user" to "user", not on every AuthContext update.
@@ -130,5 +132,11 @@ export default function usePushNotifications() {
       receivedListener.remove();
       actionListener.remove();
     };
+    // Intentionally depends on user?.id (a primitive), not the whole user
+    // object — see the registeredForUserId guard above. Re-running this
+    // effect on every AuthContext update, rather than only on actual
+    // login/logout, would tear down and rebuild all four Capacitor
+    // listeners far more often than intended.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 }

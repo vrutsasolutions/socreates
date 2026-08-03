@@ -132,7 +132,9 @@ export default function FollowCreators() {
       // persisted each follow, so this only matters if an individual call
       // failed silently. Sending the full current set is idempotent.
       if (unflushed.length > 0) await followBulk(unflushed);
-    } catch (_) {}
+    } catch {
+      // ignored
+    }
     navigate('/get-verified');
   };
 

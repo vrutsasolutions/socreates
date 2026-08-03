@@ -282,12 +282,22 @@ export default function UserProfile() {
               {loading ? "\u00A0" : profile?.name}
             </h2>
 
-            {profile?.premium && (
+            {/* Tier badge — matches own Profile & sidebar styling exactly */}
+            {(profile?.isPremium || profile?.premium) && (
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                <span className="inline-flex items-center gap-1 bg-[#FEF3C7] text-[#92400E] text-xs font-bold px-3 py-1 rounded-full">
-                  <Icon name="star" className="w-3.5 h-3.5" />
-                  Premium
-                </span>
+                {profile?.membership?.plan === "creator" || profile?.creatorPro ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm"
+                    style={{ background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', color: '#78350F', letterSpacing: '0.05em' }}>
+                    <Icon name="star" className="w-3.5 h-3.5" />
+                    Creator Pro
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm"
+                    style={{ background: 'linear-gradient(135deg,#60A5FA,#3B82F6)', color: '#fff', letterSpacing: '0.05em' }}>
+                    <Icon name="star" className="w-3.5 h-3.5" />
+                    Reader Premium
+                  </span>
+                )}
               </div>
             )}
 

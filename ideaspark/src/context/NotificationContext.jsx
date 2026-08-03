@@ -294,6 +294,9 @@ export const NotificationProvider = ({ children }) => {
   );
 };
 
+// Colocated context + provider + hook — see the matching note in
+// AuthContext.jsx for why this rule is suppressed here rather than split.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNotifications = () => {
   const ctx = useContext(NotificationContext);
   if (!ctx) throw new Error('useNotifications must be used within NotificationProvider');

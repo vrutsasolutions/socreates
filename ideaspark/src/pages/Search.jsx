@@ -8,7 +8,8 @@ import { SearchSkeleton, SearchResultsSkeleton } from '../components/common/Load
 import { EmptySearch } from '../components/common/EmptyStates.premium';
 import Icon from '../components/common/Icon';
 import { CATEGORIES as ALL_CATEGORIES } from '../constants/categories';
-import { CATEGORY_COLORS, defaultColor, IdeaIcon } from '../components/common/categoryIcons';
+import { IdeaIcon } from '../components/common/categoryIcons';
+import { CATEGORY_COLORS, defaultColor } from '../components/common/categoryConstants';
 
 const CATEGORIES = ['All', ...ALL_CATEGORIES];
 

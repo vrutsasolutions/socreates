@@ -61,3 +61,7 @@ upload_certificate.pem
 
 # Firebase
 Backend/secrets/
+
+#Deployment
+Backend/deploy-bundle.zip
+Backend/deploy-staging/

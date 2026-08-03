@@ -33,7 +33,7 @@ export default function SelectInterests() {
     setLoading(true);
     try {
       await api.post('/users/interests', { categories: selected });
-    } catch (_) {
+    } catch {
       // non-critical — continue anyway
     } finally {
       setLoading(false);

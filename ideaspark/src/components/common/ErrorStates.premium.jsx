@@ -623,7 +623,7 @@ export function AIError({
 
 
 /* ── 9. VALIDATION ERROR — Inline field error ─────────────── */
-export function ValidationError({ error, field }) {
+export function ValidationError({ error }) {
   if (!error) return null;
   return (
     <div

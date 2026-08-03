@@ -35,7 +35,7 @@ export default function Home() {
     try {
       const { data } = await api.get(`/ideas?sort=${activeTab.toLowerCase()}`);
       setIdeas(data);
-    } catch (_) {
+    } catch {
       setIdeas(MOCK_IDEAS);
     } finally {
       setLoading(false);

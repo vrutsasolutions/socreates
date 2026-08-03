@@ -8,7 +8,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/messaging/Avatar';
-import { ChatActionsLayer, handleFor } from '../components/messaging/ChatActions';
+import { ChatActionsLayer } from '../components/messaging/ChatActions';
+import { handleFor } from '../components/messaging/chatHelpers';
 import { fetchConversation, fetchConversationMedia } from '../api/messagingApi';
 
 const SafetyRow = ({ title, subtitle, danger, onClick, children }) => (
@@ -50,6 +51,26 @@ export default function ChatProfile() {
     })();
     return () => { alive = false; };
   }, [id]);
+
+  // Keep the online dot live — mirrors the same listener in Chat.jsx and
+  // Inbox.jsx so that if the other user goes online/offline while this
+  // profile page is open, the Avatar dot updates in real time.
+  useEffect(() => {
+    const handlePresence = (event) => {
+      const presence = event.detail;
+      setConvo((prev) => {
+        if (!prev) return prev;
+        if (String(prev.otherUserId) !== String(presence.userId)) return prev;
+        return {
+          ...prev,
+          online: presence.online,
+          activityVisible: presence.visible ?? true,
+        };
+      });
+    };
+    window.addEventListener('presence-update', handlePresence);
+    return () => window.removeEventListener('presence-update', handlePresence);
+  }, []);
 
   // Real item count for the "Media, Links & Docs" row (replaces the old
   // hardcoded "24 items"). Fails quietly to "0 items" if the request errors.
@@ -95,7 +116,7 @@ export default function ChatProfile() {
         {/* floating identity card */}
         <div className="relative z-10 mt-6">
           <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-5 shadow-md flex flex-col items-center text-center">
-            {convo && <Avatar initial={convo.initial} color={convo.avatarColor} src={convo.profileImage} size={72} online={convo.online} />}
+            {convo && <Avatar initial={convo.initial} color={convo.avatarColor} src={convo.profileImage} size={72} online={convo.activityVisible !== false && convo.online} />}
             <h2 className="mt-3 text-white text-xl font-bold">
               {convo?.name ?? 'Chat'}
               {convo?.isSelf && <span className="font-medium"> (You)</span>}

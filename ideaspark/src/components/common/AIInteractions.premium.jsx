@@ -27,7 +27,7 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 
 /* ─────────────────────────────────────────────────────────────
    SHARED PRIMITIVES
@@ -734,8 +734,8 @@ export function AIPlagiarismResult({ status = 'checking', steps = [], errorMessa
             letterSpacing: '-0.01em',
           }}>
             {status === 'checking' ? 'Checking Originality…' :
-             status === 'ok'       ? 'Originality Verified ✓' :
-                                     'Content Flagged'}
+              status === 'ok' ? 'Originality Verified ✓' :
+                'Content Flagged'}
           </p>
           <p style={{
             fontSize: 11,
@@ -744,15 +744,15 @@ export function AIPlagiarismResult({ status = 'checking', steps = [], errorMessa
             margin: 0,
           }}>
             {status === 'checking' ? 'AI-powered plagiarism analysis' :
-             status === 'ok'       ? 'Your idea is original' :
-                                     'Similar content detected'}
+              status === 'ok' ? 'Your idea is original' :
+                'Similar content detected'}
           </p>
         </div>
       </div>
 
       {/* Steps */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {steps.map(({ label, done, active }, idx) => (
+        {steps.map(({ label, done, active }) => (
           <div key={label} style={{
             display: 'flex', alignItems: 'center', gap: 13,
           }}>
@@ -827,7 +827,7 @@ export function AIOnboardingPrompt({ onTryAI, onDismiss }) {
   return (
     <div style={{
       position: 'relative',
-      marginBottom:'20px',
+      marginBottom: '20px',
       borderRadius: 'var(--sc-radius-2xl)',
       /* Uses the exact same gradient stops as BottomNav.premium.jsx's
          Create button (primary-700 -> primary-500 -> primary-400),

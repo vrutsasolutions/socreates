@@ -9,6 +9,7 @@
 // ════════════════════════════════════════════════════════════════════════
 import { useState } from "react";
 import Avatar from "./Avatar";
+import { handleFor } from "./chatHelpers";
 import {
   deleteConversation,
   blockUser,
@@ -22,9 +23,6 @@ const SHEET_CSS = `
   .sc-pop   { animation: scFadeIn 160ms ease, scSheetUp 0ms; }
   .sc-backdrop { animation: scFadeIn 160ms ease; }
 `;
-
-export const handleFor = (name = "") =>
-  "@" + name.replace(/\./g, "").trim().replace(/\s+/g, ".").toLowerCase();
 
 /* ── Icons ──────────────────────────────────────────────────────────────── */
 const IconProfile = (p) => (

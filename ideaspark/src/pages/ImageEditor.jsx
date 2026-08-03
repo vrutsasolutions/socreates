@@ -445,8 +445,13 @@ export default function ImageEditor() {
   const files = getEditorInput();
   const returnPath = getReturnPath();
 
+  // Runs once on mount only: files/returnPath are a module-level snapshot
+  // (see state/imageEditorStore.js), not props or state, so they can't
+  // meaningfully change while this page is mounted — there's nothing to
+  // react to, and this guard only needs to fire on initial entry.
   useEffect(() => {
     if (!files || files.length === 0) navigate(returnPath, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [edits, setEdits] = useState(() =>
@@ -480,7 +485,10 @@ export default function ImageEditor() {
   const allUrlsRef = useRef([]);
   const displaySizesRef = useRef({});
 
-  // Build object URLs once
+  // Build object URLs once. Intentionally mount-only — files is a
+  // one-time snapshot (see comment above); this effect is not meant to
+  // re-run if it were to change, and re-running it would leak/duplicate
+  // object URLs against the cleanup's revoke-on-unmount contract.
   useEffect(() => {
     const urls = (files || []).map((f) => URL.createObjectURL(f));
     setPreviews(urls);
@@ -489,6 +497,7 @@ export default function ImageEditor() {
       allUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
       allUrlsRef.current = [];
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const measureImg = useCallback(() => {
