@@ -133,4 +133,22 @@ public class NotificationService {
         notifications.forEach(n -> n.setReadStatus(true));
         notificationRepository.saveAll(notifications);
     }
+
+    // Idea-scoped notification types whose referenceId points at an IDEA id
+    // (LIKE/COMMENT/BOOKMARK/NEW_IDEA) — as opposed to FOLLOW/FOLLOW_REQUEST/
+    // PRIVACY_CHANGE, whose referenceId points at a USER id instead. Only
+    // these four are safe to clear when an idea is deleted.
+    private static final List<Notification.NotificationType> IDEA_REFERENCED_TYPES = List.of(
+            Notification.NotificationType.LIKE,
+            Notification.NotificationType.COMMENT,
+            Notification.NotificationType.BOOKMARK,
+            Notification.NotificationType.NEW_IDEA);
+
+    // Called when an idea is deleted. Without this, a "New comment"/"New
+    // like"/"New bookmark"/"New idea" bell entry outlives the idea it points
+    // at, and 404s the instant the recipient taps it.
+    @Transactional
+    public void deleteIdeaReferences(UUID ideaId) {
+        notificationRepository.deleteByReferenceIdAndTypeIn(ideaId, IDEA_REFERENCED_TYPES);
+    }
 }
