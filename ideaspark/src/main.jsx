@@ -48,16 +48,35 @@ const options = {
 }
 
 // The agent loader code executes immediately on instantiation.
-new BrowserAgent(options)
+// Wrap in try-catch: if NewRelic fails (network, invalid config), the app still loads.
+try {
+  new BrowserAgent(options)
+} catch (err) {
+  console.warn('[startup] NewRelic agent initialization failed (non-critical)', err)
+}
 
 
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <GoogleOAuthProvider
-      clientId="783151813830-8dhn46v1dtefsna6r3r1gjqrfarflfjg.apps.googleusercontent.com"
-    >
-      <App />
-    </GoogleOAuthProvider>
-  </React.StrictMode>
-);
+// Verify the root DOM element exists before rendering
+const rootElement = document.getElementById('root')
+if (!rootElement) {
+  console.error('[startup] Fatal: root DOM element not found')
+  document.body.innerHTML = '<div style="color:red;padding:20px;">App initialization failed: missing root element</div>'
+} else {
+  try {
+    console.log('[startup] Initializing React app...')
+    ReactDOM.createRoot(rootElement).render(
+      <React.StrictMode>
+        <GoogleOAuthProvider
+          clientId="783151813830-8dhn46v1dtefsna6r3r1gjqrfarflfjg.apps.googleusercontent.com"
+        >
+          <App />
+        </GoogleOAuthProvider>
+      </React.StrictMode>
+    )
+    console.log('[startup] React app rendered successfully')
+  } catch (err) {
+    console.error('[startup] Failed to render React app:', err)
+    document.body.innerHTML = '<div style="color:red;padding:20px;">App initialization failed: ' + err.message + '</div>'
+  }
+}
