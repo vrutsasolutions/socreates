@@ -1402,31 +1402,21 @@ export default function Chat() {
       } catch (_) { /* empty */ }
 
       if (isNative) {
-        // ✅ Import Permissions API dynamically to keep bundle lightweight
-        // This triggers the native Android OS permission dialog for RECORD_AUDIO
-        const { Permissions } = await import("@capacitor/permissions");
-        
-        // ✅ Step 1: Query current permission state
-        // Returns: 'granted' | 'denied' | 'prompt' (never asked)
-        const permStatus = await Permissions.query({ name: "Microphone" });
-        
-        // ✅ Step 2: If not granted, request it
-        // This shows the native "Allow Microphone Access?" OS dialog on first attempt
-        if (permStatus.state !== "granted") {
-          const requestResult = await Permissions.requestPermissions({
-            permissions: ["Microphone"],
-          });
-          
-          // ✅ Step 3: Check if permission was actually granted
-          // requestResult.permissions.Microphone = 'granted' | 'denied'
-          if (requestResult.permissions.Microphone !== "granted") {
-            // User denied permission. Show error banner with "Open Settings" button.
-            setMicError("mic_denied_native");
-            return;
-          }
-        }
-        // If we reach here, permission is granted. Safe to call getUserMedia.
-      }
+  // Uses @mozartec/capacitor-microphone (already installed) instead of the
+  // nonexistent "@capacitor/permissions" package.
+  const { Microphone } = await import("@mozartec/capacitor-microphone");
+
+  const permStatus = await Microphone.checkPermissions();
+
+  if (permStatus.microphone !== "granted") {
+    const requestResult = await Microphone.requestPermissions();
+
+    if (requestResult.microphone !== "granted") {
+      setMicError("mic_denied_native");
+      return;
+    }
+  }
+}
 
       // ✅ Now getUserMedia will succeed because:
       // - On Android: Permission is already granted (Capacitor Permissions API handled it)

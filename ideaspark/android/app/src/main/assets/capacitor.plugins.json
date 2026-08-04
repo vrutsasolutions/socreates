@@ -12,6 +12,10 @@
 		"classpath": "com.capacitorjs.plugins.share.SharePlugin"
 	},
 	{
+		"pkg": "@mozartec/capacitor-microphone",
+		"classpath": "com.mozartec.capacitor.microphone.MicrophonePlugin"
+	},
+	{
 		"pkg": "@southdevs/capacitor-google-auth",
 		"classpath": "com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth"
 	},

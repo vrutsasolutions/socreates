@@ -11,6 +11,9 @@ project(':capacitor-push-notifications').projectDir = new File('../node_modules/
 include ':capacitor-share'
 project(':capacitor-share').projectDir = new File('../node_modules/@capacitor/share/android')
 
+include ':mozartec-capacitor-microphone'
+project(':mozartec-capacitor-microphone').projectDir = new File('../node_modules/@mozartec/capacitor-microphone/android')
+
 include ':southdevs-capacitor-google-auth'
 project(':southdevs-capacitor-google-auth').projectDir = new File('../node_modules/@southdevs/capacitor-google-auth/android')
 
