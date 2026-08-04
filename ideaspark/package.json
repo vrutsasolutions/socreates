@@ -18,7 +18,7 @@
     "@capacitor/share": "^8.0.1",
     "@newrelic/browser-agent": "^1.319.0",
     "@react-oauth/google": "^0.13.5",
-    "@southdevs/capacitor-google-auth": "^8.1.0",
+    "@southdevs/capacitor-google-auth": "^7.0.0",
     "@stomp/stompjs": "^7.3.0",
     "axios": "^1.13.6",
     "capacitor-native-settings": "^8.1.0",
