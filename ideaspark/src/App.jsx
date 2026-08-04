@@ -20,6 +20,11 @@ export default function App() {
     setShowSplash(false)
   }
 
+  // Log app mount for debugging
+  if (typeof window !== 'undefined') {
+    console.log('[app] App component mounted')
+  }
+
   return (
     <AuthProvider>
       <NotificationProvider>
