@@ -1,9 +1,16 @@
 import axios from "axios";
 
+const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8081/api";
+
+// Log the API configuration for debugging
+if (typeof window !== 'undefined') {
+  console.log('[api] Configured API base URL:', apiBaseURL);
+}
+
 const axiosInstance = axios.create({
   // Env-driven so the app works from a phone on the LAN (set VITE_API_BASE_URL
   // to http://<your-pc-ip>:8081/api). Falls back to localhost for desktop dev.
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8081/api",
+  baseURL: apiBaseURL,
   // The backend now issues the JWT as an httpOnly cookie (see AuthContext.jsx
   // — the app no longer keeps a standing copy in localStorage). withCredentials
   // is what makes the browser actually attach/accept that cookie on requests
@@ -33,6 +40,10 @@ axiosInstance.interceptors.request.use((config) => {
   const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  // Log API requests in development/debug mode
+  if (import.meta.env.DEV || window.__DEBUG_API) {
+    console.log(`[api] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
   }
   return config;
 });
