@@ -18,6 +18,9 @@ import Avatar from "../components/messaging/Avatar";
 import { useSearchParams } from "react-router-dom";
 import { setEditorInput, takeEditorOutput } from "../state/imageEditorStore";
 import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
+// ✅ Permissions API for Android runtime permission requests (microphone, etc.)
+// Required for production Play Store builds to trigger native OS permission dialogs
+// Import is dynamic/lazy inside startRecording() to keep startup lightweight
 
 import {
   ChatActionsLayer,
@@ -1388,6 +1391,46 @@ export default function Chat() {
     }
 
     try {
+      // ✅ FIX: Explicitly request RECORD_AUDIO permission on Android before getUserMedia
+      // In Capacitor v8+, you MUST use the Permissions API to request runtime permissions.
+      // Without this, the native OS permission dialog never appears in production Play Store builds.
+      // On browsers, this is a no-op and getUserMedia handles the permission request.
+      let isNative = false;
+      try {
+        const { Capacitor } = await import("@capacitor/core");
+        isNative = Capacitor.isNativePlatform();
+      } catch (_) { /* empty */ }
+
+      if (isNative) {
+        // ✅ Import Permissions API dynamically to keep bundle lightweight
+        // This triggers the native Android OS permission dialog for RECORD_AUDIO
+        const { Permissions } = await import("@capacitor/permissions");
+        
+        // ✅ Step 1: Query current permission state
+        // Returns: 'granted' | 'denied' | 'prompt' (never asked)
+        const permStatus = await Permissions.query({ name: "Microphone" });
+        
+        // ✅ Step 2: If not granted, request it
+        // This shows the native "Allow Microphone Access?" OS dialog on first attempt
+        if (permStatus.state !== "granted") {
+          const requestResult = await Permissions.requestPermissions({
+            permissions: ["Microphone"],
+          });
+          
+          // ✅ Step 3: Check if permission was actually granted
+          // requestResult.permissions.Microphone = 'granted' | 'denied'
+          if (requestResult.permissions.Microphone !== "granted") {
+            // User denied permission. Show error banner with "Open Settings" button.
+            setMicError("mic_denied_native");
+            return;
+          }
+        }
+        // If we reach here, permission is granted. Safe to call getUserMedia.
+      }
+
+      // ✅ Now getUserMedia will succeed because:
+      // - On Android: Permission is already granted (Capacitor Permissions API handled it)
+      // - On browser: Permission will be handled by browser's native dialog
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       const mimeType =
