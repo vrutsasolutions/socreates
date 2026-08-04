@@ -64,4 +64,18 @@
          without this line the WebView's mic prompt is silently denied every
          time, with no OS dialog ever shown to the user. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- ✅ ROOT-CAUSE FIX: Capacitor's built-in WebChromeClient.onPermissionRequest()
+         (BridgeWebChromeClient.java) bundles BOTH RECORD_AUDIO and
+         MODIFY_AUDIO_SETTINGS together whenever the WebView receives a getUserMedia
+         audio-capture request, and only grants the mic to the page if EVERY
+         permission in that bundle is granted. MODIFY_AUDIO_SETTINGS is a "normal"
+         permission (no runtime dialog needed, auto-granted at install) — but ONLY
+         if it's declared here. Without this line, Android silently reports it as
+         not-granted, so the overall check fails and the WebView calls
+         request.deny() on the mic — even though RECORD_AUDIO itself was already
+         granted via the Microphone plugin above. This is why voice recording still
+         failed on Android despite RECORD_AUDIO being present and permission
+         requests succeeding: two different permission checks were involved, and
+         only one of them was satisfied. -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>
