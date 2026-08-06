@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import BottomNav from '../components/common/BottomNav.premium';
 import NotificationBell from '../components/common/NotificationBell';
 import MessageBell from '../components/common/MessageBell';
 import DrawerMenu from '../components/common/DrawerMenu.premium';
 import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
+import PublishSuccessBanner from '../components/common/PublishSuccessBanner';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
 import { EmptyFeed, EmptyForYou } from '../components/common/EmptyStates.premium';
@@ -24,11 +25,27 @@ const MOCK_IDEAS = [
 
 export default function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('Trending');
   const [ideas, setIdeas] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Shows "Your idea has been published successfully!" for 5s after a
+  // publish redirect (see AddIdea.jsx: navigate('/home', { state: {...} })).
+  const [showPublishBanner, setShowPublishBanner] = useState(
+    Boolean(location.state?.publishSuccess)
+  );
+
+  useEffect(() => {
+    if (location.state?.publishSuccess) {
+      // Clear the router state immediately so refreshing this page or
+      // navigating back to it later doesn't re-trigger the banner.
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchIdeas = useCallback(async () => {
     setLoading(true);
@@ -46,6 +63,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-24">
+
+      <PublishSuccessBanner
+        show={showPublishBanner}
+        onDismiss={() => setShowPublishBanner(false)}
+      />
 
       <DrawerMenu open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
