@@ -120,10 +120,25 @@ const MAX_DOC_SIZE = 10 * 1024 * 1024; // 10 MB
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function Waveform({ color = "#1565C0", animated = false }) {
-  const heights = [8, 16, 10, 22, 14, 26, 12, 18, 9, 20, 13, 24, 11, 17];
+// Fixed-width waveform (not flex-stretching) so the bubble hugs its content
+// tightly instead of leaving blank space if the card ends up wider than
+// its content for any reason. The exact pixel width is exported so the
+// duration/time row underneath can be given the SAME width — guarantees
+// both rows line up and center identically, regardless of block-vs-flex
+// shrink-wrap quirks in any given WebView.
+const WAVEFORM_BAR_COUNT = 22;
+const WAVEFORM_BAR_WIDTH = 3;
+const WAVEFORM_BAR_GAP = 2.5;
+const WAVEFORM_PX_WIDTH =
+  WAVEFORM_BAR_COUNT * WAVEFORM_BAR_WIDTH +
+  (WAVEFORM_BAR_COUNT - 1) * WAVEFORM_BAR_GAP;
+
+function Waveform({ color = "#1565C0", animated = false, barCount = WAVEFORM_BAR_COUNT }) {
+  const heights = Array.from({ length: barCount }, (_, i) =>
+    5 + Math.round(Math.abs(Math.sin(i * 1.35)) * 15),
+  );
   return (
-    <div className="flex items-center gap-[3px] h-7">
+    <div className="flex items-center gap-[2.5px] h-6">
       {heights.map((h, i) => (
         <span
           key={i}
@@ -134,9 +149,160 @@ function Waveform({ color = "#1565C0", animated = false }) {
             borderRadius: 3,
             background: color,
             animationDelay: `${i * 80}ms`,
+            flexShrink: 0,
           }}
         />
       ))}
+    </div>
+  );
+}
+
+// Only one voice message plays at a time (WhatsApp-style) — pausing any
+// previously-playing bubble when a new one starts.
+let activeVoiceAudioEl = null;
+
+// Simple WhatsApp-style voice message player: tap to play/pause, waveform,
+// and a duration label that shows the TOTAL length before/after playback
+// and the LIVE elapsed time while actually playing.
+function VoiceMessagePlayer({ src, mine, totalDuration, trailing }) {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0); // 0..1
+  const [elapsed, setElapsed] = useState(0); // seconds
+  // Fallback duration (seconds) read straight off the audio file itself,
+  // used whenever the backend didn't hand us a `duration` label (e.g. after
+  // a reload — the messages table doesn't persist voice duration today).
+  const [metaDuration, setMetaDuration] = useState(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => {
+      setElapsed(audio.currentTime || 0);
+      if (audio.duration && isFinite(audio.duration)) {
+        setProgress(audio.currentTime / audio.duration);
+      }
+    };
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+      setElapsed(0);
+    };
+    const onLoadedMetadata = () => {
+      if (audio.duration && isFinite(audio.duration)) {
+        setMetaDuration(audio.duration);
+      } else {
+        // Chrome bug: MediaRecorder-produced webm/opus blobs often report
+        // duration = Infinity until you seek — this forces it to compute
+        // the real value, then we snap back to the start.
+        audio.currentTime = 1e101;
+      }
+    };
+    const onDurationChange = () => {
+      if (audio.duration && isFinite(audio.duration)) {
+        setMetaDuration(audio.duration);
+        if (audio.currentTime > 0) audio.currentTime = 0;
+      }
+    };
+
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("durationchange", onDurationChange);
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("durationchange", onDurationChange);
+      if (activeVoiceAudioEl === audio) activeVoiceAudioEl = null;
+    };
+  }, []);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      return;
+    }
+
+    if (activeVoiceAudioEl && activeVoiceAudioEl !== audio) {
+      activeVoiceAudioEl.pause();
+    }
+    activeVoiceAudioEl = audio;
+    audio.play().catch(() => {});
+  };
+
+  const dimColor = mine ? "rgba(255,255,255,0.5)" : "#CFD8DC";
+  const thumbColor = mine ? "#FFFFFF" : "#1565C0";
+  // Prefer the label we already have (set right after recording, in this
+  // session); otherwise fall back to the real duration read off the file.
+  const knownTotal =
+    totalDuration || (metaDuration != null ? fmt(Math.round(metaDuration)) : null);
+  const durationLabel = isPlaying ? fmt(Math.floor(elapsed)) : (knownTotal ?? "");
+
+  return (
+    <div>
+      {/* Row 1: play/pause + waveform, centered against EACH OTHER (not the
+          duration row below) — this is what actually keeps the button level
+          with the waveform instead of drifting down to split the difference
+          with the second row. */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={togglePlay}
+          aria-label={isPlaying ? "Pause voice message" : "Play voice message"}
+          className={`shrink-0 w-8 h-8 p-0 border-0 flex items-center justify-center active:scale-95 transition ${mine ? "text-white" : "text-[#1565C0]"}`}
+        >
+          {isPlaying ? (
+            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="5" width="4" height="14" rx="1" />
+              <rect x="14" y="5" width="4" height="14" rx="1" />
+            </svg>
+          ) : (
+            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </button>
+
+        <div className="relative h-6 flex items-center" style={{ width: WAVEFORM_PX_WIDTH }}>
+          <Waveform color={dimColor} />
+          <span
+            className="absolute top-1/2 w-[12px] h-[12px] rounded-full shadow-sm"
+            style={{
+              left: `calc(${Math.min(Math.max(progress, 0), 1) * 100}% - 6px)`,
+              transform: "translateY(-50%)",
+              background: thumbColor,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Row 2: total/live duration on the left, sent time on the right —
+          same fixed width as the waveform above, offset by the button's
+          width + gap, so it lines up directly under the waveform. */}
+      <div
+        className="flex items-center justify-between mt-1 leading-none"
+        style={{ width: WAVEFORM_PX_WIDTH, marginLeft: 44 }}
+      >
+        <span
+          className={`text-[12px] leading-none tabular-nums ${mine ? "text-white/90" : "text-[#90A4AE]"}`}
+        >
+          {durationLabel}
+        </span>
+        {trailing}
+      </div>
+
+      <audio ref={audioRef} src={src} preload="metadata" className="hidden" />
     </div>
   );
 }
@@ -212,7 +378,7 @@ function ReplyBtn({ onClick }) {
 function TimeMeta({ light, timeLabel, mine, isRead }) {
   if (!timeLabel) return null;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-normal whitespace-nowrap ${light ? "text-white/70" : "text-[#90A4AE]"
+    <span className={`inline-flex items-center gap-0.5 text-[10px] leading-none font-normal whitespace-nowrap ${light ? "text-white/70" : "text-[#90A4AE]"
       }`}>
       <span>{timeLabel}</span>
       {mine && (
@@ -225,6 +391,32 @@ function TimeMeta({ light, timeLabel, mine, isRead }) {
         </span>
       )}
     </span>
+  );
+}
+
+// Profile-photo badge shown inside the voice message card (WhatsApp-style),
+// with a mic glyph pinned to its bottom-right corner. Sits flush against the
+// card's own background — the card's padding is deliberately tight on this
+// side so the badge pokes just past the rounded corner, like the reference.
+function VoiceAvatarBadge({ initial, color, src, size = 46 }) {
+  const badgeSize = Math.max(18, Math.round(size * 0.46));
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <Avatar initial={initial || "?"} color={color || "#1565C0"} src={src} size={size} />
+      <span
+        className="absolute rounded-full bg-[#1565C0] ring-[3px] ring-white flex items-center justify-center"
+        style={{ width: badgeSize, height: badgeSize, right: -4, bottom: -4 }}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="white"
+          style={{ width: badgeSize * 0.56, height: badgeSize * 0.56 }}
+        >
+          <path d="M12 14a3 3 0 003-3V6a3 3 0 10-6 0v5a3 3 0 003 3z" />
+          <path d="M19 11a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7 7 0 006 6.93V20H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07A7 7 0 0019 11z" />
+        </svg>
+      </span>
+    </div>
   );
 }
 
@@ -241,7 +433,9 @@ function Bubble({
   onReact,
   onOpenIdea,
   onOpenProfile,
+  otherAvatar,
 }) {
+  const { user } = useAuth();
   const pressTimer = useRef(null);
   const startPress = () => {
     if (selectMode) return;
@@ -359,39 +553,53 @@ function Bubble({
       audioSrc.startsWith("http") || audioSrc.startsWith("blob:");
     content = (
       <div
-        className={`flex flex-col gap-2 rounded-[18px] px-4 py-3 max-w-[260px] ${mine ? "bg-[#1565C0]" : "bg-white shadow-sm"}`}
+        className={`flex items-center gap-3 rounded-[18px] pl-4 pr-2.5 pt-3.5 pb-2.5 w-fit max-w-[320px] ${mine ? "bg-[#1565C0]" : "bg-white shadow-sm"}`}
       >
-        <div className="flex items-center gap-3">
-          <span
-            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${mine ? "bg-white/20 text-white" : "bg-[#1565C0] text-white"}`}
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </span>
-          <Waveform color={mine ? "#FFFFFF" : "#1565C0"} />
-          {m.duration && (
-            <span
-              className={`text-[12px] shrink-0 ${mine ? "text-white" : "text-[#90A4AE]"}`}
-            >
-              {m.duration}
-            </span>
-          )}
-        </div>
-        {hasAudio && (
-          <audio
+        {hasAudio ? (
+          <VoiceMessagePlayer
             src={audioSrc}
-            controls
-            className="w-full h-8"
-            style={{
-              filter: mine ? "invert(1) hue-rotate(180deg)" : "none",
-              opacity: 0.85,
-            }}
+            mine={mine}
+            totalDuration={
+              m.duration ||
+              (m.durationSeconds != null ? fmt(m.durationSeconds) : null)
+            }
+            trailing={
+              <TimeMeta light={mine} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
+            }
           />
+        ) : (
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${mine ? "bg-white/20 text-white" : "bg-[#1565C0] text-white"}`}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+            <Waveform color={mine ? "#FFFFFF" : "#1565C0"} />
+            {m.duration && (
+              <span
+                className={`text-[12px] shrink-0 ${mine ? "text-white" : "text-[#90A4AE]"}`}
+              >
+                {m.duration}
+              </span>
+            )}
+            <div className="pl-1">
+              <TimeMeta light={mine} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
+            </div>
+          </div>
         )}
-        <div className="flex justify-end">
-          <TimeMeta light={mine} timeLabel={timeLabel} mine={mine} isRead={m.isRead || m.read} />
-        </div>
+
+        <VoiceAvatarBadge
+          initial={
+            mine
+              ? user?.name?.trim()?.charAt(0)?.toUpperCase()
+              : otherAvatar?.initial
+          }
+          color={mine ? user?.avatarColor : otherAvatar?.color}
+          src={mine ? user?.profileImage : otherAvatar?.src}
+          size={46}
+        />
       </div>
     );
   } else if (m.type === "idea") {
@@ -759,6 +967,7 @@ export default function Chat() {
   // ── Load conversation + messages ────────────────────────────────────────
   useEffect(() => {
     let alive = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     (async () => {
       try {
@@ -876,6 +1085,7 @@ export default function Chat() {
   // ── Clean up mic on unmount ─────────────────────────────────────────────
   useEffect(() => {
     return () => {
+      // eslint-disable-next-line react-hooks/immutability
       stopTimer();
       try {
         mediaRecorderRef.current?.stream?.getTracks().forEach((t) => t.stop());
@@ -893,6 +1103,7 @@ export default function Chat() {
     if (edited?.length) {
       const croppedFile = edited[0];
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCaption("");
 
       setCompose({
@@ -931,6 +1142,7 @@ export default function Chat() {
   const pushSent = async (payload) => {
     const now = new Date();
     const optimistic = {
+      // eslint-disable-next-line react-hooks/purity
       id: "tmp-" + Date.now(),
       conversationId: id,
       fromMe: true,
@@ -1270,6 +1482,7 @@ export default function Chat() {
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       const tmpId =
+        // eslint-disable-next-line react-hooks/purity
         "tmp-" + Date.now() + "-" + Math.random().toString(36).slice(2);
       // Optimistic bubble using the local blob preview (fine for the sender's
       // own screen only — never persisted or sent to the backend/receiver).
@@ -1346,6 +1559,7 @@ export default function Chat() {
     }
     for (const f of files) {
       const tmpId =
+        // eslint-disable-next-line react-hooks/purity
         "tmp-" + Date.now() + "-" + Math.random().toString(36).slice(2);
       setMessages((prev) => [
         ...prev.filter((m) => m.type !== "typing"),
@@ -1399,6 +1613,7 @@ export default function Chat() {
       try {
         const { Capacitor } = await import("@capacitor/core");
         isNative = Capacitor.isNativePlatform();
+      // eslint-disable-next-line no-unused-vars
       } catch (_) { /* empty */ }
 
       if (isNative) {
@@ -1488,7 +1703,8 @@ export default function Chat() {
     const recorder = mediaRecorderRef.current;
     if (!recorder) return;
 
-    const durationLabel = fmt(seconds || 1);
+    const durationSecondsAtSend = seconds || 1;
+    const durationLabel = fmt(durationSecondsAtSend);
     stopTimer();
     setRecordingState("uploading");
 
@@ -1506,6 +1722,7 @@ export default function Chat() {
           type: "voice",
           content: url,
           duration: durationLabel,
+          durationSeconds: durationSecondsAtSend,
           replyTo: replySnippet(),
         });
         setReplyTo(null);
@@ -1936,6 +2153,11 @@ export default function Chat() {
                     onToggleSelect={toggleSelect}
                     onLongPress={enterSelect}
                     reaction={reactions[m.id]}
+                    otherAvatar={{
+                      initial: convo?.initial,
+                      color: convo?.avatarColor,
+                      src: convo?.profileImage,
+                    }}
                     showReactionBar={
                       selectMode &&
                       selectedIds.length === 1 &&

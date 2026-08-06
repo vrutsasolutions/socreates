@@ -44,6 +44,26 @@ public class SecurityConfig {
             .formLogin(fl -> fl.disable())
             .httpBasic(hb -> hb.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // ═══════════════════════════════════════════════════════════════════════
+            // ✅ CSP HEADER - Allow Cloudflare R2 media files
+            // ═══════════════════════════════════════════════════════════════════════
+            .headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives(
+                        "default-src 'self'; " +
+                        "media-src 'self' https://*.r2.dev; " +
+                        "connect-src 'self' https://*.r2.dev; " +
+                        "img-src 'self' https://*.r2.dev data:; " +
+                        "script-src 'self'; " +
+                        "style-src 'self' 'unsafe-inline'; " +
+                        "font-src 'self'; " +
+                        "frame-ancestors 'none'; " +
+                        "base-uri 'self'; " +
+                        "form-action 'self'"
+                    )
+                )
+            )
+            // ═══════════════════════════════════════════════════════════════════════
             .sessionManagement(sm ->
                 sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
@@ -86,9 +106,9 @@ public class SecurityConfig {
     .requestMatchers("/api/creator/**").authenticated()
     // Authenticated endpoints
     .requestMatchers("/api/notifications/**").authenticated()
-    .requestMatchers("/api/follow/**").authenticated()  // ✅ Added
-    .requestMatchers("/api/ideas/*/like").authenticated()  // ✅ Added
-    .requestMatchers("/api/ideas/*/unlike").authenticated()  // ✅ Added
+    .requestMatchers("/api/follow/**").authenticated()
+    .requestMatchers("/api/ideas/*/like").authenticated()
+    .requestMatchers("/api/ideas/*/unlike").authenticated()
     // All other endpoints require authentication
     .anyRequest().authenticated()
 )
