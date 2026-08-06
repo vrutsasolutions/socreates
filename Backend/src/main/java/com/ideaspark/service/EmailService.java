@@ -19,7 +19,10 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${app.frontend-url:http://localhost:5173}")
+    // Falls back to production if APP_FRONTEND_URL isn't set on the
+    // environment — a missing env var should fail safe to the real site,
+    // not silently point every email link at localhost.
+    @Value("${app.frontend-url:https://socreate.in}")
     private String frontendUrl;
 
     // Send OTP email for registration
