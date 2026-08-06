@@ -592,7 +592,7 @@ export default function AddIdea() {
       await api.post('/ideas', fd);
 
       clearIdeaDraft();
-      navigate('/home');
+      navigate('/home', { state: { publishSuccess: true } });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to publish.');
     } finally {
