@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.socreate.app",
+      "sha256_cert_fingerprints": [
+        "6B:D1:4D:BB:32:BC:D1:5F:6B:B8:78:26:D8:E8:AA:F5:F2:40:EB:63:33:C6:0A:3D:9F:9A:EE:39:02:B3:FE:D1"
+      ]
+    }
+  }
+]
