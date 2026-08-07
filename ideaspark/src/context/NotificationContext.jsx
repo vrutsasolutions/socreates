@@ -135,6 +135,7 @@ export const NotificationProvider = ({ children }) => {
   // window below — without this, an item wouldn't drop out of the dropdown
   // until *some other* state change (a new notification, a mark-as-read)
   // happened to trigger a re-render, even after it had aged past 2 days.
+  // eslint-disable-next-line react-hooks/purity
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 5 * 60 * 1000);
@@ -233,6 +234,7 @@ export const NotificationProvider = ({ children }) => {
   const onMessageRef = useRef(null);
   const onReconnectRef = useRef(null);
 
+  // eslint-disable-next-line react-hooks/refs
   onMessageRef.current = (n) => {
     setItems((prev) => {
       if (prev.some((x) => x.id === n.id)) return prev; // dedupe
@@ -244,11 +246,13 @@ export const NotificationProvider = ({ children }) => {
   // On reconnect, re-fetch the full list via REST to fill the gap.
   // This replaces the entire items array (REST returns everything),
   // so any notifications pushed during the disconnect are now present.
+  // eslint-disable-next-line react-hooks/refs
   onReconnectRef.current = load;
 
   // ── Wire up only when logged in ───────────────────────────────────────
   useEffect(() => {
     if (!user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setItems([]);
       setToasts([]);
       return;
@@ -265,8 +269,15 @@ export const NotificationProvider = ({ children }) => {
       Object.values(toastTimers.current).forEach(clearTimeout);
       toastTimers.current = {};
     };
+    // Depend on the stable id, not the whole `user` object — AuthContext
+    // replaces `user` with a new object reference on its background
+    // /auth/me refresh (see AuthContext.jsx), even when the identity
+    // hasn't changed. Depending on the object itself was tearing down and
+    // reopening this WebSocket connection on every page load as soon as
+    // that refresh landed (visible as a canceled /ws/info request + an
+    // immediate reconnect in the console/network tab).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user?.id]);
 
   // Mark all message-type notifications as read (call when user opens /messages)
   const clearMessageNotifications = useCallback(async () => {
