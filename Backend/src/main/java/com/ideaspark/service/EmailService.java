@@ -234,7 +234,8 @@ public class EmailService {
             String toEmail,
             String creatorName,
             String ideaTitle,
-            int likeCount
+            int likeCount,
+            java.util.UUID ideaId
     ) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -258,7 +259,8 @@ public class EmailService {
                     buildLikeMilestoneHtml(
                             creatorName,
                             ideaTitle,
-                            likeCount
+                            likeCount,
+                            ideaId
                     ),
                     true
             );
@@ -323,7 +325,8 @@ public class EmailService {
     private String buildLikeMilestoneHtml(
             String creatorName,
             String ideaTitle,
-            int likeCount
+            int likeCount,
+            java.util.UUID ideaId
     ) {
         return """
                 <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; padding: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(21,101,192,0.12);">
@@ -381,7 +384,7 @@ public class EmailService {
                     </p>
 
                     <div style="text-align: center;">
-                      <a href="%s/home"
+                      <a href="%s/ideas/%s"
                          style="display: inline-block; background: #1565C0; color: #fff; text-decoration: none; padding: 14px 36px; border-radius: 8px; font-size: 15px; font-weight: 700;">
                         View Your Idea
                       </a>
@@ -398,7 +401,8 @@ public class EmailService {
                 creatorName,
                 ideaTitle,
                 likeCount,
-                frontendUrl
+                frontendUrl,
+                ideaId
         );
     }
 
