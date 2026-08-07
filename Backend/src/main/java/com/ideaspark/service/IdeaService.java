@@ -727,7 +727,8 @@ public class IdeaService {
                                 creator.getEmail(),
                                 creator.getName() != null ? creator.getName() : "Creator",
                                 idea.getTitle(),
-                                newLikeCount);
+                                newLikeCount,
+                                idea.getId());
                     }
                 } catch (Exception e) {
                     log.warn("Like milestone email failed: {}", e.getMessage(), e);
