@@ -24,6 +24,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- App Links: lets Android open www.socreate.in / socreate.in
+                 links directly in this app instead of a browser, with no
+                 chooser dialog — but ONLY once Android has verified we
+                 actually control the domain via the assetlinks.json file
+                 hosted at https://www.socreate.in/.well-known/assetlinks.json
+                 (see that file for the required SHA-256 signing fingerprint).
+                 android:autoVerify="true" is what triggers that verification
+                 on install. If verification hasn't succeeded yet (file
+                 missing/wrong fingerprint) or the app isn't installed at
+                 all, Android falls through to opening the link in the
+                 browser as normal — no extra code needed for that case. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.socreate.in" />
+                <data android:scheme="https" android:host="socreate.in" />
+            </intent-filter>
+
         </activity>
 
         <!-- FCM: default notification channel (must match MainActivity's CHANNEL_ID) -->
