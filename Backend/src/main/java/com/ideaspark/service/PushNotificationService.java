@@ -98,12 +98,21 @@ public class PushNotificationService {
         String link = buildLink(notification);
 
         for (DeviceToken deviceToken : tokens) {
+            // Build the visible notification — attach the image only when we
+            // actually have a publicly reachable HTTPS URL; FCM silently
+            // ignores a null/blank image and falls back to text-only.
+            var notifBuilder = com.google.firebase.messaging.Notification.builder()
+                    .setTitle(title)
+                    .setBody(notification.getMessage());
+
+            String imageUrl = notification.getImageUrl();
+            if (imageUrl != null && !imageUrl.isBlank()) {
+                notifBuilder.setImage(imageUrl);
+            }
+
             Message message = Message.builder()
                     .setToken(deviceToken.getDeviceToken())
-                    .setNotification(com.google.firebase.messaging.Notification.builder()
-                            .setTitle(title)
-                            .setBody(notification.getMessage())
-                            .build())
+                    .setNotification(notifBuilder.build())
                     // Sent alongside the visible notification — this is what
                     // usePushNotifications.js reads on tap
                     // (action.notification.data.link) to navigate.
