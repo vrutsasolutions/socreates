@@ -87,6 +87,7 @@ public class NotificationService {
                 .referenceId(request.getReferenceId())
                 .type(request.getType() != null ? request.getType() : Notification.NotificationType.SYSTEM)
                 .conversationId(request.getConversationId())
+                .imageUrl(request.getImageUrl())
                 .readStatus(false)
                 .build();
 

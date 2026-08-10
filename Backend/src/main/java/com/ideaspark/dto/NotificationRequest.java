@@ -12,4 +12,5 @@ public class NotificationRequest {
     private UUID referenceId;       // optional, e.g. idea id
     private Notification.NotificationType type;
     private UUID conversationId;    // optional, only for MESSAGE type
+    private String imageUrl;        // optional — shown as the push notification's image (Android big-picture)
 }
