@@ -31,6 +31,17 @@ public class IdeaService {
     private final IdeaReadRepository ideaReadRepository;
     private final MembershipRepository membershipRepository;
 
+    // ── Push-notification image helper ────────────────────────────────────────
+    // Returns the best cover image for an idea (first gallery image, or the
+    // legacy single imageUrl), or null if the idea has no images at all.
+    private static String ideaCoverUrl(Idea idea) {
+        if (idea.getImageUrls() != null && !idea.getImageUrls().isEmpty()) {
+            return idea.getImageUrls().get(0);
+        }
+        String single = idea.getImageUrl();
+        return (single != null && !single.isBlank()) ? single : null;
+    }
+
     // ── Free-plan PREMIUM read cap ──────────────────────────────────────────
     // Normal (non-premium) ideas have NO read limit at all for a signed-in
     // free user — unlimited, always full access, nothing tracked.
@@ -488,6 +499,7 @@ public class IdeaService {
                             .readStatus(false)
                             .type(Notification.NotificationType.NEW_IDEA)
                             .referenceId(savedIdea.getId())
+                            .imageUrl(ideaCoverUrl(savedIdea))
                             .createdAt(java.time.LocalDateTime.now())
                             .user(follower)
                             .build();
@@ -567,6 +579,7 @@ public class IdeaService {
                         .readStatus(false)
                         .type(Notification.NotificationType.BOOKMARK)
                         .referenceId(idea.getId())
+                        .imageUrl(ideaCoverUrl(idea))
                         .createdAt(java.time.LocalDateTime.now())
                         .user(idea.getCreator())
                         .build();
@@ -747,6 +760,7 @@ public class IdeaService {
                             .readStatus(false)
                             .type(Notification.NotificationType.LIKE)
                             .referenceId(idea.getId())
+                            .imageUrl(ideaCoverUrl(idea))
                             .createdAt(java.time.LocalDateTime.now())
                             .user(idea.getCreator())
                             .build();
@@ -811,6 +825,7 @@ public class IdeaService {
                         .readStatus(false)
                         .type(Notification.NotificationType.COMMENT)
                         .referenceId(idea.getId())
+                        .imageUrl(ideaCoverUrl(idea))
                         .createdAt(java.time.LocalDateTime.now())
                         .user(idea.getCreator())
                         .build();

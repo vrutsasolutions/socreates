@@ -200,6 +200,7 @@ public class ProfilePrivacyService {
                     .message(String.format(PRIVACY_ON_FOLLOWER_NOTICE, displayName))
                     .type(Notification.NotificationType.PRIVACY_CHANGE)
                     .referenceId(owner.getId())
+                    .imageUrl(owner.getProfileImage())
                     .readStatus(false)
                     .createdAt(now)
                     .build());

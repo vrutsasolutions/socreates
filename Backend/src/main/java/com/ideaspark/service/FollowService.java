@@ -142,6 +142,7 @@ public class FollowService {
                     .readStatus(false)
                     .type(Notification.NotificationType.FOLLOW)
                     .referenceId(follower.getId()) // ✅ lets the frontend deep-link to the follower's profile
+                    .imageUrl(follower.getProfileImage())
                     .createdAt(LocalDateTime.now())
                     .user(target)
                     .build();
@@ -184,6 +185,7 @@ public class FollowService {
                     .readStatus(false)
                     .type(Notification.NotificationType.FOLLOW_REQUEST)
                     .referenceId(requester.getId())
+                    .imageUrl(requester.getProfileImage())
                     .createdAt(LocalDateTime.now())
                     .user(target)
                     .build();
