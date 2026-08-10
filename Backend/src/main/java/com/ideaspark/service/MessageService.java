@@ -356,13 +356,20 @@ public class MessageService {
                     (content.length() > 40 ? content.substring(0, 40) + "…" : content);
         };
 
+        // For a photo message, show the actual photo that was sent instead
+        // of the sender's profile picture, so it renders in the push
+        // notification (Android big-picture image).
+        String notificationImageUrl = type == MessageType.IMAGE
+                ? content
+                : me.getProfileImage();
+
         Notification notification = Notification.builder()
                 .user(recipient)
                 .message(preview)
                 .readStatus(false)
                 .type(Notification.NotificationType.MESSAGE)
                 .conversationId(conv.getId())
-                .imageUrl(me.getProfileImage())
+                .imageUrl(notificationImageUrl)
                 .createdAt(LocalDateTime.now())
                 .build();
 
