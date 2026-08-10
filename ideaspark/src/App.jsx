@@ -26,13 +26,20 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        {showSplash && <SplashScreen onFinish={finishSplash} />}
-        <ErrorBoundary>
-          <AppRouter />
-        </ErrorBoundary>
-      </NotificationProvider>
-    </AuthProvider>
+    // Outer boundary — catches crashes in AuthProvider / NotificationProvider
+    // (e.g. corrupt localStorage blowing up before the app even renders).
+    <ErrorBoundary>
+      <AuthProvider>
+        <NotificationProvider>
+          {showSplash && <SplashScreen onFinish={finishSplash} />}
+          {/* Inner boundary — catches page-level crashes without tearing
+              down auth/notification state, so the error screen can still
+              offer "go home" or "log out". */}
+          <ErrorBoundary>
+            <AppRouter />
+          </ErrorBoundary>
+        </NotificationProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
