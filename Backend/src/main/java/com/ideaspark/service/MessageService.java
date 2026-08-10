@@ -362,6 +362,7 @@ public class MessageService {
                 .readStatus(false)
                 .type(Notification.NotificationType.MESSAGE)
                 .conversationId(conv.getId())
+                .imageUrl(me.getProfileImage())
                 .createdAt(LocalDateTime.now())
                 .build();
 
