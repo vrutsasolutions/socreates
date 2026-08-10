@@ -45,6 +45,14 @@ public class Notification {
     @Column(name = "conversation_id")
     private UUID conversationId;
 
+    // Optional image shown in the FCM push notification (Android big-picture
+    // style). For idea-related types (LIKE/COMMENT/BOOKMARK/NEW_IDEA) this
+    // is the idea's cover image; for people-related types (FOLLOW/
+    // FOLLOW_REQUEST/MESSAGE/PRIVACY_CHANGE) it's the actor's profile pic.
+    // Null is fine — PushNotificationService simply omits the image if unset.
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
