@@ -5,10 +5,26 @@ import { logoutUser } from '../api/authApi'
 
 const AuthContext = createContext(null)
 
+// Guard against corrupt JSON left in localStorage after a Play Store
+// update (root cause of the blank white screen). If the parse blows up,
+// wipe the bad value and start logged-out rather than crashing the entire
+// React tree before ErrorBoundary can even mount.
+function readCachedUser() {
+  try {
+    const raw = localStorage.getItem('user')
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    // Extra sanity: must be a real object with at least an id
+    return parsed && typeof parsed === 'object' && parsed.id ? parsed : null
+  } catch (err) {
+    console.error('[auth] corrupt user cache in localStorage — clearing', err)
+    try { localStorage.removeItem('user') } catch { /* ignore */ }
+    return null
+  }
+}
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem('user')) || null
-  )
+  const [user, setUser] = useState(readCachedUser)
 
   // The cached `user` in localStorage is only ever written at login/payment
   // time and never touched again — so if membership state changes on the
