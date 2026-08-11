@@ -13,7 +13,8 @@ import { useAuth } from '../../context/AuthContext';
 import { hasCreatorPro, isVerified } from '../../api/paymentApi';
 
 /* ── Menu data ────────────────────────────────────────────── */
-const MENU_SECTIONS = [
+function buildMenuSections(isAdmin) {
+  return [
   {
     label: 'Discover',
     items: [
@@ -141,9 +142,27 @@ const MENU_SECTIONS = [
           </svg>
         ),
       },
+      // Admin-only: creator payout accounts with full decrypted details
+      ...(isAdmin ? [{
+        to: '/admin/payout-accounts',
+        label: 'Creator Payouts',
+        sublabel: 'View all payout details',
+        badge: 'ADMIN',
+        color: '#B91C1C',
+        bg: '#FEE2E2',
+        Icon: () => (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="6" width="20" height="13" rx="3" />
+            <path d="M2 10h20" />
+            <path d="M6 15h4" strokeWidth={2.2} />
+          </svg>
+        ),
+      }] : []),
     ],
   },
 ];
+}
 
 /* ── Deterministic avatar colour ─────────────────────────── */
 const AV_PALETTES = [
@@ -166,6 +185,7 @@ export default function DrawerMenu({ open, onClose }) {
   const drawerRef = useRef(null);
   const av = avPalette(user?.name || '');
   const creatorPro = hasCreatorPro(user);
+  const menuSections = buildMenuSections(!!user?.isAdmin);
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -362,7 +382,7 @@ export default function DrawerMenu({ open, onClose }) {
           flexDirection: 'column',
         }}>
           <nav style={{ flex: 1, padding: '16px 12px 8px' }} aria-label="Main navigation">
-            {MENU_SECTIONS.map((section, si) => (
+            {menuSections.map((section, si) => (
               <div key={si} style={{ marginBottom: 6 }}>
                 {/* Section label — same style as page section labels */}
                 <div style={{

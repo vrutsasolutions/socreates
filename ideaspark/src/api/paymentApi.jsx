@@ -170,24 +170,12 @@ export const getPayoutDetails = () =>
 /**
  * Creates or replaces a payout destination.
  *
- * Common required payload:
+ * Payload:
  * {
- *   method,
  *   legalName,
  *   mobileNumber,
  *   panNumber,
- *   ownershipConfirmed
- * }
- *
- * VPA:
- * {
- *   ...common,
- *   vpa
- * }
- *
- * Bank:
- * {
- *   ...common,
+ *   ownershipConfirmed,
  *   accountHolderName,
  *   accountNumber,
  *   confirmAccountNumber,
@@ -206,10 +194,13 @@ export const savePayoutDetails = (payload) =>
 export const distributeRevenue = (month) =>
   api.post(`/admin/pools/${month}/distribute`);
 
-function mockSavePayoutDetails(payload) {
-  const isBank =
-    payload.method === "bank_account";
+/**
+ * Admin — fetch all Creator Pro subscribers with their payout details.
+ */
+export const getAdminPayoutAccounts = () =>
+  api.get("/admin/payout-accounts");
 
+function mockSavePayoutDetails(payload) {
   const accountNumber =
     String(payload.accountNumber ?? "");
 
@@ -219,20 +210,17 @@ function mockSavePayoutDetails(payload) {
   const panNumber =
     String(payload.panNumber ?? "").toUpperCase();
 
-  const destination = isBank
-    ? `${payload.bankName || "BANK"} ****${accountNumber.slice(-4)}`
-    : maskVpa(payload.vpa);
+  const destination =
+    `${payload.bankName || "BANK"} ****${accountNumber.slice(-4)}`;
 
   return mockResponse({
     configured: true,
-    method: payload.method,
+    method: "bank_account",
     accountHolderName:
       payload.accountHolderName ||
       payload.legalName ||
       null,
-    bankName: isBank
-      ? payload.bankName || null
-      : null,
+    bankName: payload.bankName || null,
     destination,
     maskedPan: maskPan(panNumber),
     maskedMobile: maskMobile(mobileNumber),
@@ -266,26 +254,4 @@ function maskMobile(mobile) {
   }
 
   return `${"*".repeat(digits.length - 4)}${digits.slice(-4)}`;
-}
-
-function maskVpa(vpa) {
-  if (!vpa) {
-    return null;
-  }
-
-  const atIndex = vpa.indexOf("@");
-
-  if (atIndex <= 0) {
-    return vpa;
-  }
-
-  const prefix = vpa.slice(0, atIndex);
-  const provider = vpa.slice(atIndex);
-
-  const visiblePrefix =
-    prefix.length <= 2
-      ? prefix.slice(0, 1)
-      : prefix.slice(0, 2);
-
-  return `${visiblePrefix}***${provider}`;
 }

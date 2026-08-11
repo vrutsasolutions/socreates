@@ -455,7 +455,6 @@ public class ScheduledPayoutRunner {
                 method.trim().toUpperCase(Locale.ROOT);
 
         return switch (normalized) {
-            case "VPA", "UPI" -> "UPI";
             default -> "IMPS";
         };
     }

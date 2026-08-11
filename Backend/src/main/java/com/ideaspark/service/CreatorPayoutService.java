@@ -9,6 +9,7 @@ import com.ideaspark.repository.CreatorEarningRepository;
 import com.ideaspark.repository.PayoutAccountRepository;
 import com.ideaspark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.util.List;
  * Monthly earnings are paid by ScheduledPayoutRunner after revenue
  * distribution schedules the earning.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CreatorPayoutService {
@@ -99,10 +101,46 @@ public class CreatorPayoutService {
                 previousAccount
         );
 
-        String newFundAccountId = createFundAccount(
-                contactId,
-                details
-        );
+        String newFundAccountId;
+
+        try {
+            newFundAccountId = createFundAccount(
+                    contactId,
+                    details
+            );
+        } catch (Exception firstAttempt) {
+            /*
+             * If the reused contact ID is stale (deleted or expired on
+             * RazorpayX), the API returns "The id provided does not exist".
+             * Recover by creating a brand-new contact and retrying.
+             */
+            String msg = firstAttempt.getMessage();
+
+            if (msg != null && msg.toLowerCase()
+                    .contains("does not exist")) {
+
+                log.warn(
+                        "Stale RazorpayX contact {} for user {} — "
+                                + "creating a fresh contact and retrying. "
+                                + "Original error: {}",
+                        contactId,
+                        user.getEmail(),
+                        msg
+                );
+
+                contactId = razorpayX.createContact(
+                        user.getName(),
+                        user.getEmail()
+                );
+
+                newFundAccountId = createFundAccount(
+                        contactId,
+                        details
+                );
+            } else {
+                throw firstAttempt;
+            }
+        }
 
         /*
          * Create the new Razorpay fund account before disabling the previous
@@ -321,9 +359,33 @@ public class CreatorPayoutService {
             return;
         }
 
-        razorpayX.deactivateFundAccount(
-                previousFundAccountId
-        );
+        try {
+            razorpayX.deactivateFundAccount(
+                    previousFundAccountId
+            );
+        } catch (Exception e) {
+            /*
+             * If the old fund account no longer exists on RazorpayX
+             * (stale/deleted/expired), skip deactivation gracefully.
+             * The new fund account is already created and valid.
+             */
+            String msg = e.getMessage();
+
+            if (msg != null && msg.toLowerCase()
+                    .contains("does not exist")) {
+
+                log.warn(
+                        "Stale RazorpayX fund account {} — "
+                                + "skipping remote deactivation: {}",
+                        previousFundAccountId,
+                        msg
+                );
+
+                return;
+            }
+
+            throw e;
+        }
     }
 
     // ── Local persistence ────────────────────────────────────────────────────
@@ -363,6 +425,7 @@ public class CreatorPayoutService {
                 .bankName(details.bankName())
                 .payoutAccountName(details.accountHolderName())
                 .payoutAccountNumberLast4(lastFour)
+                .payoutAccountNumber(details.accountNumber())
                 .payoutIfsc(details.ifscCode())
                 .payoutMethod("bank_account")
                 .razorpayContactId(contactId)

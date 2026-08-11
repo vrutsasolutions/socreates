@@ -57,6 +57,7 @@ import AIAssistant from "../pages/AIAssistant";
 import ImageEditor from "../pages/ImageEditor";
 import BlockedUsers from "../pages/BlockedUsers";
 import FollowRequests from "../pages/FollowRequests";
+import AdminPayoutAccounts from "../pages/AdminPayoutAccounts";
 
 
 function PrivateRoute({ children }) {
@@ -154,6 +155,10 @@ export default function AppRouter() {
         <Route path="/refund" element={<RefundPolicy />} />
         <Route path="/child-safety" element={<ChildSafety />} />
         <Route path="/create-premium" element={<PrivateRoute><CreatePremiumIdea /></PrivateRoute>} />
+
+        {/* Admin pages — backend enforces ROLE_ADMIN; frontend
+            also guards via user.isAdmin on the page component. */}
+        <Route path="/admin/payout-accounts" element={<PrivateRoute><AdminPayoutAccounts /></PrivateRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

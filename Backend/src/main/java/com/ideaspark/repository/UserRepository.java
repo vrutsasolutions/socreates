@@ -34,4 +34,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
            "  AND u.showActivityStatus = true " +
            "  AND c.status = 'ACCEPTED'")
     List<User> findOnlineContacts(@Param("me") User me);
+
+    // ── Payout-setup reminder ─────────────────────────────────────────
+    // All verified creators (active Creator Pro subscribers).
+    List<User> findByIsVerifiedTrue();
 }

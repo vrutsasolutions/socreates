@@ -19,7 +19,7 @@ public class PayoutDetailsResponse {
     private boolean configured;
 
     /**
-     * bank_account | vpa
+     * bank_account
      */
     private String method;
 

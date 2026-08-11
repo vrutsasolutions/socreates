@@ -94,33 +94,6 @@ public class RazorpayXService {
 
     // ── Fund accounts ────────────────────────────────────────────────────────
 
-    public String createVpaFundAccount(
-            String contactId,
-            String vpa
-    ) throws Exception {
-
-        requireApiCredentials();
-        requireText(contactId, "Razorpay contact ID");
-        requireText(vpa, "UPI/VPA address");
-
-        JSONObject body = new JSONObject()
-                .put("contact_id", contactId.trim())
-                .put("account_type", "vpa")
-                .put(
-                        "vpa",
-                        new JSONObject()
-                                .put("address", vpa.trim())
-                );
-
-        JSONObject response = post(
-                "/fund_accounts",
-                body,
-                null
-        );
-
-        return extractFundAccountId(response);
-    }
-
     public String createBankFundAccount(
             String contactId,
             String beneficiaryName,

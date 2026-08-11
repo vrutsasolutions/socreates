@@ -35,7 +35,7 @@ public class CreatorEarningDTO {
     /** When the payout actually completed (ISO-8601 date-time, null until paid). */
     private String paidAt;
 
-    /** Masked payout destination shown at time of payout, e.g. "HDFC ****4321" or a UPI VPA. Null if none. */
+    /** Masked payout destination shown at time of payout, e.g. "HDFC ****4321". Null if none. */
     private String destination;
 
     /** Reason the last attempt failed, if status is Failed or Setup_Missing. */

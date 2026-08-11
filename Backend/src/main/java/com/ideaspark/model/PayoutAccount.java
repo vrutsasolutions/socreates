@@ -1,4 +1,5 @@
 package com.ideaspark.model;
+import com.ideaspark.util.AccountNumberCryptoConverter;
 import com.ideaspark.util.PanCryptoConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -46,14 +47,15 @@ public class PayoutAccount {
     @Column(name = "payout_account_number_last4")
     private String payoutAccountNumberLast4;
 
+    @Convert(converter = AccountNumberCryptoConverter.class)
+    @Column(name = "payout_account_number", length = 255)
+    private String payoutAccountNumber;
+
     @Column(name = "payout_ifsc")
     private String payoutIfsc;
 
     @Column(name = "payout_method")
     private String payoutMethod;
-// You can uncomment the following lines if you want to support UPI/VPA payouts in the future. For now, they are commented out as per the current requirements.
-    // @Column(name = "payout_vpa")
-    // private String payoutVpa;
 
     @Column(name = "razorpay_contact_id")
     private String razorpayContactId;

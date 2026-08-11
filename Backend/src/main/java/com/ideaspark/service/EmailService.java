@@ -1009,7 +1009,7 @@ public class EmailService {
 
                         <p style="color:#444; line-height:1.6;">
                             Please open your creator payout settings and verify
-                            your bank account or UPI details.
+                            your bank account details.
                         </p>
 
                         <p style="color:#444; line-height:1.6;">
@@ -1027,6 +1027,111 @@ public class EmailService {
                 escapeHtml(month),
                 amountRupees,
                 safeReason
+        );
+    }
+
+    // ── Payout-setup reminder ──────────────────────────────────────────
+
+    /**
+     * Monthly nudge sent on the 10th to verified creators who haven't
+     * set up their payout details yet.
+     */
+    @Async
+    public void sendPayoutSetupReminderEmail(
+            String toEmail,
+            String creatorName
+    ) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(
+                    "vrutsasolutions@gmail.com",
+                    "SoCreate"
+            );
+
+            helper.setTo(toEmail);
+            helper.setSubject(
+                    "Set up your payout details — SoCreate"
+            );
+
+            helper.setText(
+                    buildPayoutSetupReminderHtml(creatorName),
+                    true
+            );
+
+            mailSender.send(message);
+
+            log.info(
+                    "Payout-setup reminder email sent to: {}",
+                    toEmail
+            );
+
+        } catch (MessagingException
+                 | java.io.UnsupportedEncodingException e) {
+            log.warn(
+                    "Payout-setup reminder email failed for {}: {}",
+                    toEmail,
+                    e.getMessage(),
+                    e
+            );
+        }
+    }
+
+    private String buildPayoutSetupReminderHtml(
+            String creatorName
+    ) {
+        return """
+                <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(21,101,192,0.12);">
+
+                    <div style="background: linear-gradient(135deg, #1565C0 0%%, #1976D2 100%%); padding: 36px 28px; text-align: center;">
+                        <h1 style="color:#ffffff; margin:0; font-size:26px;">
+                            Set Up Your Payouts
+                        </h1>
+
+                        <p style="color:rgba(255,255,255,0.88); margin:8px 0 0;">
+                            Start receiving your creator earnings
+                        </p>
+                    </div>
+
+                    <div style="background:#f4f7ff; padding:32px;">
+                        <p style="color:#333; font-size:16px;">
+                            Hello <strong>%s</strong>,
+                        </p>
+
+                        <p style="color:#444; line-height:1.6;">
+                            You're a verified Creator Pro member on SoCreate —
+                            but you haven't set up your payout details yet.
+                            Without them, we can't send you your earnings.
+                        </p>
+
+                        <p style="color:#444; line-height:1.6;">
+                            It only takes a minute — add your bank account and
+                            PAN details so your earnings are deposited directly
+                            to your account.
+                        </p>
+
+                        <div style="text-align:center; margin:28px 0;">
+                            <a href="%s/payout-setup"
+                               style="display:inline-block; background:#1565C0; color:#ffffff; text-decoration:none; padding:14px 36px; border-radius:12px; font-size:15px; font-weight:bold;">
+                                Set up payout details
+                            </a>
+                        </div>
+
+                        <p style="color:#999; font-size:13px; line-height:1.5;">
+                            If you've already set up your details, you can
+                            ignore this email.
+                        </p>
+
+                        <p style="color:#999; font-size:12px; margin-top:28px;">
+                            — Team SoCreate
+                        </p>
+                    </div>
+                </div>
+                """.formatted(
+                escapeHtml(creatorName),
+                frontendUrl
         );
     }
 

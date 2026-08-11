@@ -278,7 +278,7 @@ export default function CreatorDashboard() {
               </h2>
               <p className="text-white/80 text-xs mt-1.5 leading-relaxed">
                 Creator Pro is active on your account, but we don't have
-                your bank or UPI details yet. Add them once and we'll take
+                your bank details yet. Add them once and we'll take
                 care of the rest.
               </p>
             </div>
@@ -294,7 +294,7 @@ export default function CreatorDashboard() {
               </div>
               <div className="flex items-start gap-2.5">
                 <CheckIcon />
-                <span>PAN + bank/UPI needed per RBI norms</span>
+                <span>PAN + bank details needed per RBI norms</span>
               </div>
             </div>
 
