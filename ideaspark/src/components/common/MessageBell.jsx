@@ -36,7 +36,15 @@ export default function MessageBell() {
   const wrapRef = useRef(null);
   const pos = useAnchoredPosition(open, wrapRef, PANEL_WIDTH, 10);
 
-  const toggle = () => setOpen((o) => !o);
+  // If there are no unread messages, skip the dropdown entirely and
+  // navigate straight to /messages (one-tap inbox access).
+  const toggle = () => {
+    if (unreadMessages === 0) {
+      navigate('/messages');
+      return;
+    }
+    setOpen((o) => !o);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -102,7 +110,7 @@ export default function MessageBell() {
                 onClick={goToInbox}
                 className="text-[12px] font-semibold text-[#1565C0] hover:text-[#0D47A1] transition-colors"
               >
-                See all
+                Go to Inbox →
               </button>
             </div>
 
