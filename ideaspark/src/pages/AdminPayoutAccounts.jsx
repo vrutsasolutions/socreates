@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getAdminPayoutAccounts } from '../api/paymentApi';
+import * as XLSX from 'xlsx';
 
 /**
  * Admin-only page: /admin/payout-accounts
@@ -81,6 +82,50 @@ export default function AdminPayoutAccounts() {
   const configuredCount = accounts.filter((a) => a.payoutConfigured).length;
   const pendingCount = accounts.length - configuredCount;
 
+  // ── Excel export ──────────────────────────────────────────────────
+  const downloadExcel = () => {
+    const rows = filtered.map((a) => ({
+      'Name': a.creatorName || '—',
+      'Username': a.creatorUsername || '—',
+      'Email': a.creatorEmail || '—',
+      'Status': a.payoutConfigured ? 'Configured' : 'Pending',
+      'Legal Name': a.legalName || '—',
+      'PAN Number': a.panNumber || '—',
+      'Mobile': a.mobileNumber || '—',
+      'Bank Name': a.bankName || '—',
+      'Account Holder': a.accountHolderName || '—',
+      'Account Number': a.accountNumber
+        ? a.accountNumber
+        : a.accountNumberLast4
+          ? `XXXX${a.accountNumberLast4}`
+          : '—',
+      'IFSC': a.ifscCode || '—',
+      'Method': a.payoutMethod || '—',
+      'RazorpayX Contact ID': a.razorpayContactId || '—',
+      'RazorpayX Fund Account ID': a.razorpayFundAccountId || '—',
+      'Created': fmtDate(a.createdAt),
+      'Updated': fmtDate(a.updatedAt),
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Auto-fit column widths based on content
+    const colWidths = Object.keys(rows[0] || {}).map((key) => {
+      const maxLen = Math.max(
+        key.length,
+        ...rows.map((r) => String(r[key] || '').length)
+      );
+      return { wch: Math.min(maxLen + 2, 35) };
+    });
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Creator Pro Subscribers');
+
+    const today = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `SoCreate_Creator_Payouts_${today}.xlsx`);
+  };
+
   // ── Render ────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#F4F7FF] pb-12">
@@ -95,12 +140,23 @@ export default function AdminPayoutAccounts() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold text-white">Creator Pro subscribers</h1>
             <p className="text-white/60 text-xs mt-0.5">
               {accounts.length} creator{accounts.length !== 1 ? 's' : ''} · {configuredCount} configured · {pendingCount} pending
             </p>
           </div>
+          {accounts.length > 0 && (
+            <button
+              onClick={downloadExcel}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 text-white text-xs font-semibold hover:bg-white/25 active:scale-95 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Excel
+            </button>
+          )}
         </div>
       </header>
 
