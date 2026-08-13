@@ -2,19 +2,18 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-/* ══════════════════════════════════════════════════════════════════════
-   Onboarding — 4-step knowledge carousel
-   Flow: Splash → Onboarding → Membership Intro → Welcome
-   Swipe-enabled, Skip/Next footer, progress dots, image placeholders.
-   ══════════════════════════════════════════════════════════════════════ */
+/* Illustrations — custom branded 3D artwork per step. */
+import discoverImg from '../assets/onboarding/discover.png';
+import createImg from '../assets/onboarding/create.png';
+import connectImg from '../assets/onboarding/connect.png';
+import growImg from '../assets/onboarding/grow.png';
 
-/* ── Step data ──────────────────────────────────────────────────────── */
 const STEPS = [
   {
     label: 'Discover',
     badgeColor: '#FB8C00',
     imageCaption: 'Discover Ideas',
-    image: null, // TODO: drop in the "people sharing idea cards" illustration here
+    illustration: discoverImg,
     title: 'Discover ideas worth exploring',
     description:
       'Explore original thoughts, stories, knowledge, and perspectives shared by people from different backgrounds.',
@@ -23,7 +22,7 @@ const STEPS = [
     label: 'Create',
     badgeColor: '#8E24AA',
     imageCaption: 'Create & Publish',
-    image: null,
+    illustration: createImg,
     title: 'Turn your ideas into something real',
     description:
       'Have an idea, story, experience, or knowledge to share? Create and publish it on SoCreate.',
@@ -32,7 +31,7 @@ const STEPS = [
     label: 'Connect',
     badgeColor: '#00BCD4',
     imageCaption: 'Connect & Engage',
-    image: null,
+    illustration: connectImg,
     title: 'Ideas become better together',
     description:
       'React, like, comment, save, and connect with creators. Discover different perspectives.',
@@ -41,7 +40,7 @@ const STEPS = [
     label: 'Grow',
     badgeColor: '#43A047',
     imageCaption: 'Grow With Your Ideas',
-    image: null,
+    illustration: growImg,
     title: 'Your ideas can go further',
     description:
       'Build your audience, understand how your content performs, and earn from the ideas you create.',
@@ -51,54 +50,6 @@ const STEPS = [
 
 const ONBOARDING_SEEN_KEY = 'sc_onboarding_seen';
 
-/* ── Image placeholder box ─────────────────────────────────────────── */
-function ImagePlaceholder({ step }) {
-  return (
-    <div className="absolute inset-0">
-      {/* Badge — swap for a real illustration/photo per step later */}
-      {step.badgeColor && (
-        <div
-          className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center
-                     justify-center text-white shadow-lg z-10"
-          style={{ background: step.badgeColor }}
-        >
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 3l1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8L12 3z" />
-          </svg>
-        </div>
-      )}
-
-      {step.image ? (
-        /* Real illustration/photo for this step — covers the full white area */
-        <img
-          src={step.image}
-          alt={step.label}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        /* Placeholder — no image supplied yet for this step */
-        <div
-          className="w-full h-full border-2 border-dashed border-[#CFE0F5]
-                     bg-[#F4F8FF] flex flex-col items-center justify-center gap-2 px-6 text-center"
-        >
-          <div className="w-10 h-10 rounded-xl bg-[#1565C0] flex items-center justify-center text-white">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
-          </div>
-          <p className="text-[#37474F] text-sm font-bold">Image placeholder</p>
-          <p className="text-[#90A4AE] text-xs italic">
-            "{step.imageCaption}" illustration goes here
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Main component ─────────────────────────────────────────────────── */
 export default function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -108,14 +59,10 @@ export default function Onboarding() {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    // Logged-in users never need onboarding — straight to the app.
     if (user) {
       navigate('/home', { replace: true });
       return;
     }
-    // Anyone who has already stepped through onboarding before (this
-    // device/browser) is treated as an "existing" visitor and skips
-    // straight to Welcome instead of seeing the slides again.
     if (localStorage.getItem(ONBOARDING_SEEN_KEY)) {
       navigate('/welcome', { replace: true });
     }
@@ -124,14 +71,10 @@ export default function Onboarding() {
   const total = STEPS.length;
   const isLast = step === total - 1;
 
-  // Mark onboarding as seen so it never shows again on this device once
-  // the person has skipped or gone through it.
   const markSeen = () => {
     try {
       localStorage.setItem(ONBOARDING_SEEN_KEY, '1');
-    } catch {
-      /* storage unavailable (private mode etc.) — non-fatal */
-    }
+    } catch {}
   };
 
   const next = () => {
@@ -148,14 +91,13 @@ export default function Onboarding() {
     navigate('/membership-intro');
   };
 
-  /* ── Touch swipe ─────────────────────────────────── */
   const onTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
   const onTouchEnd = (e) => {
     touchEndX.current = e.changedTouches[0].screenX;
     const diff = touchStartX.current - touchEndX.current;
     if (Math.abs(diff) > 50) {
-      if (diff > 0) next();                          // swipe left → next
-      else setStep((s) => Math.max(s - 1, 0));       // swipe right → prev
+      if (diff > 0) next();
+      else setStep((s) => Math.max(s - 1, 0));
     }
   };
 
@@ -164,45 +106,73 @@ export default function Onboarding() {
   return (
     <div
       ref={containerRef}
-      className="min-h-screen bg-[#1565C0] flex flex-col relative overflow-hidden select-none"
+      className="min-h-screen relative select-none overflow-hidden bg-[#0B1E3C]"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Decorative circles */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute w-72 h-72 rounded-full border-[40px] border-white/[0.04] -top-32 -right-20" />
-        <div className="absolute w-56 h-56 rounded-full border-[32px] border-white/[0.04] -bottom-20 -left-16" />
-      </div>
-
-      {/* ── Step label + heading (top, on blue) ───────────── */}
-      <p className="relative z-10 text-blue-200/80 text-[11px] font-bold tracking-widest
-                    uppercase text-center pt-12 px-8">
-        Step {step + 1} of {total} · {current.label}
-      </p>
-
-      <h2 className="relative z-10 text-white text-2xl font-bold leading-tight
-                     text-center px-8 pt-3 pb-6">
-        {current.title}
-      </h2>
-
-      {/* ── Image card, floating on the blue background ──── */}
-      <div
-        key={step}
-        className="relative z-10 flex-1 flex items-center justify-center px-8 pb-6"
-        style={{ animation: 'sc-slide-up 0.35s cubic-bezier(0,0,0.2,1) both' }}
-      >
-        <div className="relative w-full max-w-xs aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-black/20">
-          <ImagePlaceholder step={current} />
+      {/* ── The illustration IS the screen ───────────────────────────
+          Each step still cross-fades two layers of the same artwork,
+          but the sharp layer is now sized to 78vh instead of 100vh and
+          centered vertically. object-contain inside that shorter box
+          means the image is displayed larger relative to the box, so
+          it fills nearly all of it edge to edge — the blur only has to
+          cover the remaining ~11vh strip top and bottom, instead of
+          whatever gap was left over a full 100vh box. Nothing is
+          cropped: this is still "shrink the box", not "crop the
+          image" — nudge the 78vh number up/down to trade off blur-strip
+          thickness vs. how much of the image reads as "zoomed in". ── */}
+      {STEPS.map((s, i) => (
+        <div
+          key={s.label}
+          className={`absolute inset-0 transition-opacity duration-500 ease-out
+                      ${i === step ? 'opacity-100' : 'opacity-0'}`}
+        >
+          {/* No blur layer needed anymore — the band below sits on the
+              plain navy bg (bg-[#0B1E3C] on the outer container), which
+              already matches the gradient scrims above/below it, so
+              there's no visible seam. Shrinking the band's height (vs.
+              the full screen) is what buys back most of the width crop:
+              a shorter band needs a less extreme width-to-height ratio
+              to stay proportional, so far less of each side card gets
+              cut off than a full-screen cover would need. Tune
+              top-[18vh]/h-[62vh] together — shrink h-[…vh] for even
+              less side-crop, at the cost of more plain navy showing
+              above/below the image. */}
+          <div className="absolute inset-x-0 top-[18vh] h-[62vh]">
+            <img
+              src={s.illustration}
+              alt={s.imageCaption}
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
+      ))}
+
+      <div
+        className="absolute inset-x-0 top-0 pt-8 pb-16 px-8 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(11,30,60,0.85) 0%, rgba(11,30,60,0.5) 55%, rgba(11,30,60,0) 100%)',
+        }}
+      >
+        <h2 className="text-white text-2xl font-black leading-tight text-center
+                       drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
+          {current.title}
+        </h2>
       </div>
 
-      {/* ── Description + progress + nav (bottom, on blue) ── */}
-      <div className="relative z-10 px-8 pb-8">
-        <p className="text-blue-100/80 text-sm leading-relaxed max-w-xs mx-auto mb-6 text-center">
+      <div
+        className="absolute inset-x-0 bottom-0 pt-24 pb-8 px-8"
+        style={{
+          background:
+            'linear-gradient(to top, rgba(11,30,60,0.92) 0%, rgba(11,30,60,0.6) 55%, rgba(11,30,60,0) 100%)',
+        }}
+      >
+        <p className="text-blue-100/90 text-sm leading-relaxed max-w-xs mx-auto mb-6 text-center
+                      drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
           {current.description}
         </p>
 
-        {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-6">
           {Array.from({ length: total }).map((_, i) => (
             <div
@@ -212,18 +182,17 @@ export default function Onboarding() {
                             ? 'w-8 bg-white'
                             : i < step
                               ? 'w-4 bg-white/50'
-                              : 'w-4 bg-white/20'}`}
+                              : 'w-4 bg-white/25'}`}
             />
           ))}
         </div>
 
-        {/* Footer: Skip / Next / Get Started */}
         {current.cta ? (
           <button
             onClick={() => { markSeen(); navigate('/membership-intro'); }}
             className="w-full bg-white text-[#1565C0] font-bold py-4
                        rounded-2xl text-sm active:scale-95 transition-all
-                       shadow-lg shadow-black/10"
+                       shadow-lg shadow-black/20"
           >
             Get Started →
           </button>
@@ -231,7 +200,7 @@ export default function Onboarding() {
           <div className="flex items-center justify-between">
             <button
               onClick={skip}
-              className="text-white/60 text-sm font-medium hover:text-white/90 transition-colors
+              className="text-white/70 text-sm font-medium hover:text-white transition-colors
                          py-2 px-1 active:scale-95"
             >
               Skip
@@ -239,7 +208,7 @@ export default function Onboarding() {
             <button
               onClick={next}
               className="w-11 h-11 rounded-full bg-white text-[#1565C0] flex items-center
-                         justify-center shadow-lg shadow-black/10 active:scale-95 transition-all"
+                         justify-center shadow-lg shadow-black/20 active:scale-95 transition-all"
               aria-label="Next"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24"
