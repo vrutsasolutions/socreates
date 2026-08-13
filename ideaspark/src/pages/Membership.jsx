@@ -388,7 +388,6 @@ const BENEFITS = [
 
 function ActiveMembership({ user, loading, error, onCancel, navigate }) {
   const m       = user?.membership ?? {};
-  const stats   = m.stats ?? { read: 0, saved: 0, shared: 0 };
   const billing = m.billing === 'monthly' ? 'Monthly' : 'Yearly';
   const planRow = `${billing}${m.price ? ' — ' + m.price : ''}`;
 
@@ -445,13 +444,6 @@ function ActiveMembership({ user, loading, error, onCancel, navigate }) {
           <div className="bg-white border border-[#DBEAFE] rounded-3xl
                           shadow-sm px-4 pt-5 pb-6 space-y-6">
 
-            {/* Quick stats */}
-            <div className="grid grid-cols-3 gap-3">
-              <StatBox value={stats.read}   label="Ideas Read" />
-              <StatBox value={stats.saved}  label="Saved" />
-              <StatBox value={stats.shared} label="Shared" />
-            </div>
-
             {/* Plan details */}
             <div>
               <h2 className="text-[#0D2137] font-bold text-base mb-2">
@@ -507,15 +499,6 @@ function ActiveMembership({ user, loading, error, onCancel, navigate }) {
         </div>
       </div>
 
-    </div>
-  );
-}
-
-function StatBox({ value, label }) {
-  return (
-    <div className="bg-[#F4F7FF] border border-[#DBEAFE] rounded-2xl py-4 text-center">
-      <div className="text-[#1565C0] text-2xl font-extrabold">{value}</div>
-      <div className="text-[#90A4AE] text-xs mt-0.5">{label}</div>
     </div>
   );
 }
