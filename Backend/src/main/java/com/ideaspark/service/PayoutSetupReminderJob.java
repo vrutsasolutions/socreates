@@ -61,8 +61,11 @@ public class PayoutSetupReminderJob {
         sendReminders(true);
     }
 
-    // ── 13th of month, 10:10 AM IST — Lock payout details ────────────
-    // Change back to "0 0 20 13 * *" (8:00 PM) after testing
+    // ── 13th of month, 8:00 PM IST — Lock payout details ──────────────
+    // CONFIRMED PRODUCTION VALUE — cron below fires at 20:00 (8 PM) on
+    // the 13th, matching the timeline doc-comment above and the lock
+    // window shown in the admin UI. Do not change without also
+    // updating the admin-panel banner copy and this class's javadoc.
 
     @Scheduled(
             cron = "0 0 20 13 * *",
@@ -123,6 +126,13 @@ public class PayoutSetupReminderJob {
     }
 
     // ── Shared reminder logic ─────────────────────────────────────────
+    //
+    // NOTE: this intentionally starts from ALL verified creators, not
+    // from PayoutAccountRepository — so creators who have never opened
+    // payout setup (no PayoutAccount row at all, and therefore never
+    // eligible to be locked by lockPayoutDetails() below) still get
+    // reminded. Do not rewrite this to iterate payout accounts instead,
+    // or those creators will silently stop receiving reminders.
 
     private void sendReminders(boolean isFinalReminder) {
         List<User> verifiedCreators =
