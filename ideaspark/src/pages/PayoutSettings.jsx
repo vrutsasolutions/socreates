@@ -97,6 +97,7 @@ export default function PayoutSettings() {
           <PageSkeleton />
         ) : isPayoutComplete(details) ? (
           <>
+
             {/* Status row — Creator Pro + Verified */}
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
@@ -113,6 +114,20 @@ export default function PayoutSettings() {
                 </span>
               )}
             </div>
+
+            {details.locked && (
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">Payout details are locked</p>
+                  <p className="text-xs text-amber-600 mt-0.5 leading-relaxed">
+                    Payout details are locked for this month's payout cycle and cannot be changed right now. They will be editable again after the 20th.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Personal details */}
             <Section title="Personal details" icon={<PersonIcon />}>
@@ -141,9 +156,14 @@ export default function PayoutSettings() {
 
             <button
               onClick={() => { setJustUpdated(false); setShowUpdateModal(true); }}
-              className="w-full border border-[#E3F2FD] bg-white text-[#0D2137] hover:bg-[#F8FAFF] active:scale-95 font-bold rounded-xl py-3.5 transition-all shadow-sm"
+              disabled={details.locked}
+              className={`w-full border font-bold rounded-xl py-3.5 transition-all shadow-sm ${
+                details.locked
+                  ? 'border-amber-200 bg-amber-50 text-amber-600 cursor-not-allowed opacity-70'
+                  : 'border-[#E3F2FD] bg-white text-[#0D2137] hover:bg-[#F8FAFF] active:scale-95'
+              }`}
             >
-              Change bank account
+              {details.locked ? 'Locked until the 20th' : 'Change bank account'}
             </button>
           </>
         ) : (
@@ -158,11 +178,26 @@ export default function PayoutSettings() {
             <p className="text-[#90A4AE] text-sm mb-4 leading-relaxed">
               Add your bank account details so we know where to send your monthly earnings.
             </p>
+            {details?.locked && (
+              <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-4 text-left">
+                <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  Payout setup is locked for this month's payout cycle. You can set up after the 20th.
+                </p>
+              </div>
+            )}
             <button
               onClick={() => navigate('/payout-setup')}
-              className="w-full bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 text-white font-bold rounded-xl py-3 transition-all"
+              disabled={details?.locked}
+              className={`w-full font-bold rounded-xl py-3 transition-all ${
+                details?.locked
+                  ? 'bg-amber-100 text-amber-600 cursor-not-allowed opacity-70'
+                  : 'bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 text-white'
+              }`}
             >
-              Set up payout details
+              {details?.locked ? 'Locked until the 20th' : 'Set up payout details'}
             </button>
           </div>
         )}
