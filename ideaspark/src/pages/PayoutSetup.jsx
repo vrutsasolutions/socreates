@@ -35,6 +35,7 @@ export default function PayoutSetup() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [ifscLookupBusy, setIfscLookupBusy] = useState(false);
+  const [locked, setLocked] = useState(false);
 
   const [form, setForm] = useState({
     legalName: "",
@@ -70,6 +71,7 @@ export default function PayoutSetup() {
       // Settings page's "Set up payout details" button, since both sides
       // thought the other should handle it.
       const { data } = await getPayoutDetails();
+      if (data?.locked) setLocked(true);
       if (isPayoutComplete(data) && !fromPurchase) {
         navigate("/payout-settings", { replace: true });
         return;
@@ -251,6 +253,20 @@ export default function PayoutSetup() {
                   </div>
                 )}
 
+                {locked && (
+                  <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                    <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800">Payout details are locked</p>
+                      <p className="text-xs text-amber-600 mt-0.5 leading-relaxed">
+                        Payout details are locked for this month's payout cycle and cannot be edited right now. They will be editable again after the 20th.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Personal details ──────────────────────────────── */}
                 <div>
                   <h2 className="text-[#0D2137] text-sm lg:text-base font-bold mb-3">
@@ -262,8 +278,9 @@ export default function PayoutSetup() {
                         value={form.legalName}
                         onChange={set("legalName")}
                         placeholder="As per your government ID"
-                        className={inputCls}
-                        autoFocus
+                        className={`${inputCls} ${locked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={locked}
+                        autoFocus={!locked}
                       />
                     </Field>
                     <Field label="Email *">
@@ -280,7 +297,8 @@ export default function PayoutSetup() {
                         inputMode="numeric"
                         maxLength={10}
                         placeholder="10-digit mobile number"
-                        className={inputCls}
+                        className={`${inputCls} ${locked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={locked}
                       />
                     </Field>
                   </div>
@@ -311,7 +329,8 @@ export default function PayoutSetup() {
                           onChange={set("accountNumber")}
                           inputMode="numeric"
                           placeholder="Enter your account number"
-                          className={inputCls}
+                          className={`${inputCls} ${locked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={locked}
                         />
                       </Field>
                       <Field label="Confirm account number *">
@@ -320,7 +339,8 @@ export default function PayoutSetup() {
                           onChange={set("confirmAccountNumber")}
                           inputMode="numeric"
                           placeholder="Re-enter your account number"
-                          className={inputCls}
+                          className={`${inputCls} ${locked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={locked}
                         />
                       </Field>
                       <Field label="IFSC code *">
@@ -329,7 +349,8 @@ export default function PayoutSetup() {
                           onChange={set("ifsc")}
                           placeholder="e.g. HDFC0001234"
                           maxLength={11}
-                          className={`${inputCls} uppercase`}
+                          className={`${inputCls} uppercase ${locked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={locked}
                         />
                       </Field>
                       <Field label="Bank name">
@@ -338,7 +359,8 @@ export default function PayoutSetup() {
                             value={form.bankName}
                             onChange={set("bankName")}
                             placeholder="Auto-fills from IFSC"
-                            className={`${inputCls} bg-[#F4F2ED]`}
+                            className={`${inputCls} bg-[#F4F2ED] ${locked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={locked}
                           />
                           {ifscLookupBusy && (
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-[#BBDEFB] border-t-[#1565C0] rounded-full animate-spin" />
@@ -362,15 +384,17 @@ export default function PayoutSetup() {
                         onChange={set("pan")}
                         placeholder="e.g. ABCDE1234F"
                         maxLength={10}
-                        className={`${inputCls} uppercase`}
+                        className={`${inputCls} uppercase ${locked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={locked}
                       />
                     </Field>
 
-                    <label className="flex items-start gap-2.5 pt-1 cursor-pointer">
+                    <label className={`flex items-start gap-2.5 pt-1 ${locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                       <input
                         type="checkbox"
                         checked={form.confirmOwnership}
                         onChange={set("confirmOwnership")}
+                        disabled={locked}
                         className="mt-0.5 w-4 h-4 rounded border-[#BBDEFB] text-[#1565C0] focus:ring-[#1565C0]"
                       />
                       <span className="text-[#546E7A] text-sm leading-snug">
@@ -382,10 +406,10 @@ export default function PayoutSetup() {
 
                 <button
                   onClick={handleSubmit}
-                  disabled={busy}
-                  className="w-full lg:w-auto lg:px-14 bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 disabled:opacity-50 text-white font-bold rounded-xl py-3.5 transition-all"
+                  disabled={busy || locked}
+                  className="w-full lg:w-auto lg:px-14 bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl py-3.5 transition-all"
                 >
-                  {busy ? "Saving…" : "Save & continue"}
+                  {locked ? "Locked until the 20th" : busy ? "Saving…" : "Save & continue"}
                 </button>
               </div>
             )}
