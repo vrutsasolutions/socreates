@@ -207,6 +207,13 @@ export const getAdminPayoutAccounts = () =>
 export const adminUnlockPayoutAccount = (userId) =>
   api.post(`/admin/payout-accounts/${userId}/unlock`);
 
+/**
+ * Admin — unlock every currently-locked payout account in one call,
+ * instead of unlocking creators one at a time.
+ */
+export const adminUnlockAllPayoutAccounts = () =>
+  api.post(`/admin/payout-accounts/unlock-all`);
+
 function mockSavePayoutDetails(payload) {
   const accountNumber =
     String(payload.accountNumber ?? "");
