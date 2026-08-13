@@ -286,15 +286,34 @@ where `renewsAt` has passed and revokes `isPremium`.
 
 ### Payout details
 
-`PayoutDetailsRequest` = `{ accountName, accountNumber, ifsc }`
-(bank-only; UPI/VPA not supported)
+`PayoutDetailsRequest` = `{ legalName, mobileNumber, panNumber, accountHolderName, accountNumber, confirmAccountNumber, ifscCode, bankName, ownershipConfirmed }`
+(bank-only; UPI/VPA not supported. `legalName`, `mobileNumber`, `panNumber`,
+and `accountHolderName` are `@NotBlank`. `ownershipConfirmed` must be `true`.)
 
 Saving creates a RazorpayX contact + fund account server-side and persists
-their IDs on the user (`razorpay_contact_id`, `razorpay_fund_account_id`).
+their IDs on the payout account (`razorpay_contact_id`, `razorpay_fund_account_id`).
 
-`PayoutDetails` (response) = `{ configured, method, destination, accountName }`
+`PayoutDetailsResponse` = `{ configured, method, accountHolderName, bankName, destination, maskedPan, maskedMobile, active, verified, locked }`
 - `configured: false` when nothing saved yet
-- `destination` — masked, e.g. `"HDFC ****4321"`
+- `destination` — masked, e.g. `"XXXX XXXX 4321"`
+- `maskedPan` — e.g. `"ABCDE****F"`
+- `maskedMobile` — e.g. `"******7890"`
+- `locked: true` during payout processing window (13th 8 PM – 20th 12 AM IST).
+  PUT is rejected with 503 while locked. Frontend should disable the edit button.
+
+### Payout details lock cycle
+
+Each month, payout details follow a lock/unlock cycle to prevent mid-cycle changes:
+
+1. **10th 10 AM IST** — Early reminder email to unconfigured creators
+2. **13th 10 AM IST** — Final/urgent reminder ("fill by 8 PM today")
+3. **13th 8 PM IST** — All active payout accounts locked (`payout_locked = true`).
+   `PUT /api/creator/payout-details` returns 503 during lock window.
+4. **15th 1 AM IST** — Payout scheduling runs against locked details
+5. **20th 12 AM IST** — All payout accounts unlocked (`payout_locked = false`)
+
+Admin can override the lock for individual creators via
+`POST /api/admin/payout-accounts/{userId}/unlock`.
 
 ### Automated payouts
 
@@ -461,6 +480,23 @@ All admin endpoints require `ROLE_ADMIN` (`@PreAuthorize`).
 |---|---|---|---|
 | DELETE | `/{id}` | `{ reason }` | `{ message }` (ban + permanent delete + email blocklist) |
 
+### Payout accounts  `/api/admin/payout-accounts`
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | `/` | — | `AdminPayoutDetailsDTO[]` |
+| POST | `/{userId}/unlock` | — | `{ message, userId, creatorName, creatorEmail }` |
+
+Returns all verified Creator Pro subscribers with full decrypted payout details.
+
+`AdminPayoutDetailsDTO` = `{ userId, creatorName, creatorEmail, creatorUsername, profileImage, payoutConfigured, payoutLocked, payoutAccountId, legalName, panNumber, mobileNumber, bankName, accountHolderName, accountNumber, accountNumberLast4, ifscCode, payoutMethod, razorpayContactId, razorpayFundAccountId, active, createdAt, updatedAt }`
+
+`payoutConfigured` = `true` only when method is `bank_account` and all KYC + bank
+fields are filled. Unconfigured creators have payout fields as `null`.
+
+`payoutLocked` = `true` between the 13th 8 PM IST and the 20th 12 AM IST each
+month. Admin can unlock individual accounts via `POST /{userId}/unlock`.
+
 ### Revenue & payouts  `/api/admin/pools`
 
 | Method | Path | Request | Response |
@@ -507,6 +543,10 @@ All admin endpoints require `ROLE_ADMIN` (`@PreAuthorize`).
 | Payout scheduling | 15th of month, 1:00 AM IST | `RevenueDistributionService` |
 | Payout processing + retry | Daily, 2:00 AM IST | `ScheduledPayoutRunner` |
 | Membership expiry | Daily, 2:30 AM IST | `MembershipExpiryService` |
+| Payout setup reminder | 10th of month, 10:00 AM IST | `PayoutSetupReminderJob` |
+| Payout setup FINAL reminder | 13th of month, 10:00 AM IST | `PayoutSetupReminderJob` |
+| Payout details LOCK | 13th of month, 8:00 PM IST | `PayoutSetupReminderJob` |
+| Payout details UNLOCK | 20th of month, 12:00 AM IST | `PayoutSetupReminderJob` |
 | Rate limiter cleanup | Hourly | `RateLimiterService` |
 
 All scheduled jobs run in-process on the single backend instance. Horizontal
