@@ -1,124 +1,99 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import scLogo from '../assets/sc-logo.png';
 
 /* ══════════════════════════════════════════════════════════════════════
    Onboarding — 4-step knowledge carousel
    Flow: Splash → Onboarding → Membership Intro → Welcome
-   Swipe-enabled, Skip/Next footer, progress dots, SoCreate branding.
+   Swipe-enabled, Skip/Next footer, progress dots, image placeholders.
    ══════════════════════════════════════════════════════════════════════ */
-
-/* ── Step icons (inline SVG to keep it self-contained) ──────────────── */
-const StepIcon = ({ step }) => {
-  const icons = {
-    0: (
-      /* diamond / spark */
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 3h12l3 6-9 12L3 9z" />
-        <path d="M3 9h18" />
-        <path d="M9 3l-1.5 6L12 21l4.5-12L15 3" />
-      </svg>
-    ),
-    1: (
-      /* swap / read-build */
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 1l4 4-4 4" />
-        <path d="M3 11V9a4 4 0 014-4h14" />
-        <path d="M7 23l-4-4 4-4" />
-        <path d="M21 13v2a4 4 0 01-4 4H3" />
-      </svg>
-    ),
-    2: (
-      /* glasses / reader */
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="6" cy="15" r="4" />
-        <circle cx="18" cy="15" r="4" />
-        <path d="M10 15h4" />
-        <path d="M2 15V9" />
-        <path d="M22 15V9" />
-      </svg>
-    ),
-    3: (
-      /* rocket / creator */
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z" />
-        <path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z" />
-        <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
-        <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-      </svg>
-    ),
-  };
-  return (
-    <div className="w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-sm border border-white/15
-                    flex items-center justify-center text-white mb-8">
-      {icons[step]}
-    </div>
-  );
-};
 
 /* ── Step data ──────────────────────────────────────────────────────── */
 const STEPS = [
   {
-    title: 'Great ideas need a stage',
+    label: 'Discover',
+    badgeColor: '#FB8C00',
+    imageCaption: 'Discover Ideas',
+    image: null, // TODO: drop in the "people sharing idea cards" illustration here
+    title: 'Discover ideas worth exploring',
     description:
-      'SoCreate is where creators publish original ideas, get real feedback from readers, and earn from the content they create.',
-    content: null,
+      'Explore original thoughts, stories, knowledge, and perspectives shared by people from different backgrounds.',
   },
   {
-    title: 'Read, or publish',
+    label: 'Create',
+    badgeColor: '#8E24AA',
+    imageCaption: 'Create & Publish',
+    image: null,
+    title: 'Turn your ideas into something real',
     description:
-      'Every membership works two ways — explore and save ideas as a reader, or publish your own as a creator. Choose the path that fits you.',
-    content: 'tabs',
+      'Have an idea, story, experience, or knowledge to share? Create and publish it on SoCreate.',
   },
   {
-    title: 'As a Reader',
-    description: 'Discover ideas from creators around the world and build your own library of inspiration.',
-    bullets: [
-      'Unlock unlimited premium ideas',
-      'Save and revisit ideas anytime',
-      'Send messages directly to creators',
-    ],
+    label: 'Connect',
+    badgeColor: '#00BCD4',
+    imageCaption: 'Connect & Engage',
+    image: null,
+    title: 'Ideas become better together',
+    description:
+      'React, like, comment, save, and connect with creators. Discover different perspectives.',
   },
   {
-    title: 'As a Creator',
+    label: 'Grow',
+    badgeColor: '#43A047',
+    imageCaption: 'Grow With Your Ideas',
+    image: null,
+    title: 'Your ideas can go further',
     description:
-      'Publish your ideas, track how they perform, and earn from the content you create.',
-    bullets: [
-      'Publish ideas to a real audience',
-      'Track performance with Creator Analytics',
-      'Earn through Revenue Pool Sharing',
-    ],
+      'Build your audience, understand how your content performs, and earn from the ideas you create.',
     cta: true,
   },
 ];
 
-/* ── Reader / Creator tabs for Step 2 ──────────────────────────────── */
-function RoleToggle() {
-  const [role, setRole] = useState('reader');
+const ONBOARDING_SEEN_KEY = 'sc_onboarding_seen';
+
+/* ── Image placeholder box ─────────────────────────────────────────── */
+function ImagePlaceholder({ step }) {
   return (
-    <div className="mt-6 w-full max-w-xs mx-auto">
-      {/* Toggle */}
-      <div className="relative flex bg-white/10 backdrop-blur-sm border border-white/15
-                      rounded-2xl p-1">
-        <span
-          className="absolute top-1 bottom-1 w-1/2 rounded-xl bg-white shadow-md
-                     transition-transform duration-300"
-          style={{ transform: role === 'creator' ? 'translateX(100%)' : 'translateX(0)' }}
+    <div className="absolute inset-0">
+      {/* Badge — swap for a real illustration/photo per step later */}
+      {step.badgeColor && (
+        <div
+          className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center
+                     justify-center text-white shadow-lg z-10"
+          style={{ background: step.badgeColor }}
+        >
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3l1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8L12 3z" />
+          </svg>
+        </div>
+      )}
+
+      {step.image ? (
+        /* Real illustration/photo for this step — covers the full white area */
+        <img
+          src={step.image}
+          alt={step.label}
+          className="w-full h-full object-cover"
         />
-        {['reader', 'creator'].map((r) => (
-          <button key={r} onClick={() => setRole(r)}
-                  className={`relative z-10 flex-1 py-2.5 rounded-xl text-sm
-                              font-bold capitalize transition-colors
-                              ${role === r ? 'text-[#1565C0]' : 'text-white/70'}`}>
-            {r === 'reader' ? 'Reader' : 'Creator'}
-          </button>
-        ))}
-      </div>
+      ) : (
+        /* Placeholder — no image supplied yet for this step */
+        <div
+          className="w-full h-full border-2 border-dashed border-[#CFE0F5]
+                     bg-[#F4F8FF] flex flex-col items-center justify-center gap-2 px-6 text-center"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#1565C0] flex items-center justify-center text-white">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+          </div>
+          <p className="text-[#37474F] text-sm font-bold">Image placeholder</p>
+          <p className="text-[#90A4AE] text-xs italic">
+            "{step.imageCaption}" illustration goes here
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -133,21 +108,45 @@ export default function Onboarding() {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    if (user) navigate('/home', { replace: true });
+    // Logged-in users never need onboarding — straight to the app.
+    if (user) {
+      navigate('/home', { replace: true });
+      return;
+    }
+    // Anyone who has already stepped through onboarding before (this
+    // device/browser) is treated as an "existing" visitor and skips
+    // straight to Welcome instead of seeing the slides again.
+    if (localStorage.getItem(ONBOARDING_SEEN_KEY)) {
+      navigate('/welcome', { replace: true });
+    }
   }, [user, navigate]);
 
   const total = STEPS.length;
   const isLast = step === total - 1;
 
+  // Mark onboarding as seen so it never shows again on this device once
+  // the person has skipped or gone through it.
+  const markSeen = () => {
+    try {
+      localStorage.setItem(ONBOARDING_SEEN_KEY, '1');
+    } catch {
+      /* storage unavailable (private mode etc.) — non-fatal */
+    }
+  };
+
   const next = () => {
     if (isLast) {
+      markSeen();
       navigate('/membership-intro');
     } else {
       setStep((s) => Math.min(s + 1, total - 1));
     }
   };
 
-  const skip = () => navigate('/membership-intro');
+  const skip = () => {
+    markSeen();
+    navigate('/membership-intro');
+  };
 
   /* ── Touch swipe ─────────────────────────────────── */
   const onTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
@@ -171,109 +170,84 @@ export default function Onboarding() {
     >
       {/* Decorative circles */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute w-72 h-72 rounded-full border-[40px] border-white/[0.03] -top-32 -right-20" />
-        <div className="absolute w-56 h-56 rounded-full border-[32px] border-white/[0.03] -bottom-20 -left-16" />
-        <div className="absolute w-40 h-40 rounded-full border-[24px] border-white/[0.04] top-1/3 -right-10" />
+        <div className="absolute w-72 h-72 rounded-full border-[40px] border-white/[0.04] -top-32 -right-20" />
+        <div className="absolute w-56 h-56 rounded-full border-[32px] border-white/[0.04] -bottom-20 -left-16" />
       </div>
 
-      {/* ── SoCreate branding (centered, matches Welcome) ── */}
-      <div className="relative z-10 flex flex-col items-center pt-12 pb-2">
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-md
-                        border border-white/20 rounded-3xl mb-4 shadow-xl">
-          <img src={scLogo} alt="SoCreate" className="w-14 h-14 object-contain" />
-        </div>
-        <h1 className="text-white text-2xl font-black tracking-tight">SoCreate</h1>
-      </div>
+      {/* ── Step label + heading (top, on blue) ───────────── */}
+      <p className="relative z-10 text-blue-200/80 text-[11px] font-bold tracking-widest
+                    uppercase text-center pt-12 px-8">
+        Step {step + 1} of {total} · {current.label}
+      </p>
 
-      {/* ── Step content ───────────────────────────────── */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 pb-8">
-        <div
-          key={step}
-          className="flex flex-col items-center text-center"
-          style={{ animation: 'sc-slide-up 0.35s cubic-bezier(0,0,0.2,1) both' }}
-        >
-          <StepIcon step={step} />
+      <h2 className="relative z-10 text-white text-2xl font-bold leading-tight
+                     text-center px-8 pt-3 pb-6">
+        {current.title}
+      </h2>
 
-          <h2 className="text-white text-2xl font-bold leading-tight mb-4 tracking-tight">
-            {current.title}
-          </h2>
-
-          <p className="text-blue-100/80 text-sm leading-relaxed max-w-xs mb-4">
-            {current.description}
-          </p>
-
-          {/* Reader/Creator toggle for step 2 */}
-          {current.content === 'tabs' && <RoleToggle />}
-
-          {/* Bullet points for steps 3 & 4 */}
-          {current.bullets && (
-            <div className="mt-4 text-left w-full max-w-xs space-y-3">
-              {current.bullets.map((b, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center
-                                  shrink-0 mt-0.5">
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="text-white/85 text-sm leading-snug">{b}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* CTA on last step */}
-          {current.cta && (
-            <button
-              onClick={() => navigate('/membership-intro')}
-              className="mt-8 w-full max-w-xs bg-white text-[#1565C0] font-bold py-4
-                         rounded-2xl text-sm active:scale-95 transition-all
-                         shadow-lg shadow-black/10"
-            >
-              Get Started
-            </button>
-          )}
+      {/* ── Image card, floating on the blue background ──── */}
+      <div
+        key={step}
+        className="relative z-10 flex-1 flex items-center justify-center px-8 pb-6"
+        style={{ animation: 'sc-slide-up 0.35s cubic-bezier(0,0,0.2,1) both' }}
+      >
+        <div className="relative w-full max-w-xs aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-black/20">
+          <ImagePlaceholder step={current} />
         </div>
       </div>
 
-      {/* ── Progress dots ──────────────────────────────── */}
-      <div className="relative z-10 flex justify-center gap-2 pb-4 px-6">
-        {Array.from({ length: total }).map((_, i) => (
-          <div
-            key={i}
-            className={`h-1 rounded-full transition-all duration-300
-                        ${i === step
-                          ? 'w-8 bg-white'
-                          : i < step
-                            ? 'w-4 bg-white/50'
-                            : 'w-4 bg-white/20'}`}
-          />
-        ))}
-      </div>
+      {/* ── Description + progress + nav (bottom, on blue) ── */}
+      <div className="relative z-10 px-8 pb-8">
+        <p className="text-blue-100/80 text-sm leading-relaxed max-w-xs mx-auto mb-6 text-center">
+          {current.description}
+        </p>
 
-      {/* ── Footer: Skip / Next ────────────────────────── */}
-      <div className="relative z-10 flex items-center justify-between px-8 pb-10">
-        <button
-          onClick={skip}
-          className="text-white/50 text-sm font-medium hover:text-white/80 transition-colors
-                     py-2 px-1 active:scale-95"
-        >
-          Skip
-        </button>
+        {/* Progress dots */}
+        <div className="flex justify-center gap-2 mb-6">
+          {Array.from({ length: total }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full transition-all duration-300
+                          ${i === step
+                            ? 'w-8 bg-white'
+                            : i < step
+                              ? 'w-4 bg-white/50'
+                              : 'w-4 bg-white/20'}`}
+            />
+          ))}
+        </div>
 
-        {!isLast && (
+        {/* Footer: Skip / Next / Get Started */}
+        {current.cta ? (
           <button
-            onClick={next}
-            className="text-white text-sm font-bold flex items-center gap-1.5
-                       py-2 px-1 active:scale-95 transition-all hover:gap-2.5"
+            onClick={() => { markSeen(); navigate('/membership-intro'); }}
+            className="w-full bg-white text-[#1565C0] font-bold py-4
+                       rounded-2xl text-sm active:scale-95 transition-all
+                       shadow-lg shadow-black/10"
           >
-            Next
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"
-                 stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+            Get Started →
           </button>
+        ) : (
+          <div className="flex items-center justify-between">
+            <button
+              onClick={skip}
+              className="text-white/60 text-sm font-medium hover:text-white/90 transition-colors
+                         py-2 px-1 active:scale-95"
+            >
+              Skip
+            </button>
+            <button
+              onClick={next}
+              className="w-11 h-11 rounded-full bg-white text-[#1565C0] flex items-center
+                         justify-center shadow-lg shadow-black/10 active:scale-95 transition-all"
+              aria-label="Next"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                   stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
     </div>
