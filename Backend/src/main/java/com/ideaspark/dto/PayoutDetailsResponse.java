@@ -62,4 +62,14 @@ public class PayoutDetailsResponse {
      * (Currently always true after successful Razorpay setup.)
      */
     private boolean verified;
+
+    /**
+     * Whether the payout account is currently locked for edits.
+     * True from the 13th 8 PM IST until the 20th 12:00 AM IST
+     * each month during the payout processing window.
+     *
+     * Frontend should disable the "Edit" / "Update" button and
+     * show a message explaining the lock period.
+     */
+    private boolean locked;
 }
