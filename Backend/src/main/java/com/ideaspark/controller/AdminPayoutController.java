@@ -5,6 +5,7 @@ import com.ideaspark.model.PayoutAccount;
 import com.ideaspark.model.User;
 import com.ideaspark.repository.PayoutAccountRepository;
 import com.ideaspark.repository.UserRepository;
+import com.ideaspark.util.PayoutLockWindow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -118,6 +119,44 @@ public class AdminPayoutController {
         ));
     }
 
+    // ── Unlock every locked account in one go ────────────────────────
+
+    /**
+     * Admin override to unlock every currently-locked payout account
+     * at once, instead of clicking "Unlock" one creator at a time.
+     * Same effect as PayoutSetupReminderJob.unlockPayoutDetails(),
+     * just triggered on demand rather than waiting for the 20th.
+     */
+    @PostMapping("/unlock-all")
+    @Transactional
+    public ResponseEntity<?> unlockAllPayoutAccounts() {
+
+        List<PayoutAccount> lockedAccounts =
+                payoutAccountRepository.findAllByIsActiveTrue()
+                        .stream()
+                        .filter(a -> Boolean.TRUE.equals(a.getPayoutLocked()))
+                        .toList();
+
+        for (PayoutAccount account : lockedAccounts) {
+            account.setPayoutLocked(false);
+        }
+        payoutAccountRepository.saveAll(lockedAccounts);
+
+        log.info(
+                "Admin bulk-unlocked {} payout account(s)",
+                lockedAccounts.size()
+        );
+
+        return ResponseEntity.ok(Map.of(
+                "message",
+                "Unlocked " + lockedAccounts.size() + " payout account(s)",
+                "unlockedCount", lockedAccounts.size(),
+                "unlockedUserIds", lockedAccounts.stream()
+                        .map(a -> a.getUser().getId())
+                        .toList()
+        ));
+    }
+
     // ── Mapping ─────────────────────────────────────────────────────
 
     private AdminPayoutDetailsDTO toAdminDTO(User user) {
@@ -163,7 +202,7 @@ public class AdminPayoutController {
                             Boolean.TRUE.equals(account.getIsActive())
                     )
                     .payoutLocked(
-                            Boolean.TRUE.equals(
+                            PayoutLockWindow.isEffectivelyLocked(
                                     account.getPayoutLocked()
                             )
                     )
