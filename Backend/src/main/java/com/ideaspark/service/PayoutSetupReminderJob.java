@@ -8,22 +8,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Monthly reminder for verified creators who haven't fully set up
- * their payout details (bank account + KYC).
+ * Monthly payout-details reminder, lock, and unlock scheduler.
+ *
+ * Timeline (every month):
+ *   10th  10:00 AM IST — Early reminder email to unconfigured creators
+ *   13th  10:00 AM IST — Final/urgent reminder ("fill by 8 PM today")
+ *   13th   8:00 PM IST — Lock all active payout accounts (edits rejected)
+ *   15th   1:00 AM IST — Payout scheduling runs (existing job)
+ *   20th  12:00 AM IST — Unlock all payout accounts (edits allowed again)
  *
  * "Not configured" means:
  *   - No active payout account at all, OR
- *   - Active account but method is VPA (not bank_account), OR
+ *   - Active account but method is not bank_account, OR
  *   - Active bank_account but missing required fields
  *     (legalName, panNumber, mobileNumber, bankName,
  *      accountHolderName, accountNumber/last4, ifscCode)
- *
- * Runs on the 10th of every month at 10:00 AM IST.
  */
 @Slf4j
 @Component
@@ -34,15 +39,92 @@ public class PayoutSetupReminderJob {
     private final PayoutAccountRepository payoutAccountRepository;
     private final EmailService emailService;
 
+    // ── 10th of month, 10:00 AM IST — Early reminder ──────────────────
+
     @Scheduled(
             cron = "0 0 10 10 * *",
             zone = "Asia/Kolkata"
     )
-    public void sendPayoutSetupReminders() {
-        log.info(
-                "Starting monthly payout-setup reminder check"
-        );
+    public void sendEarlyReminder() {
+        log.info("Starting early payout-setup reminder (10th)");
+        sendReminders(false);
+    }
 
+    // ── 13th of month, 10:00 AM IST — Final/urgent reminder ──────────
+
+    @Scheduled(
+            cron = "0 0 10 13 * *",
+            zone = "Asia/Kolkata"
+    )
+    public void sendFinalReminder() {
+        log.info("Starting final payout-setup reminder (13th)");
+        sendReminders(true);
+    }
+
+    // ── 13th of month, 10:10 AM IST — Lock payout details ────────────
+    // Change back to "0 0 20 13 * *" (8:00 PM) after testing
+
+    @Scheduled(
+            cron = "0 0 20 13 * *",
+            zone = "Asia/Kolkata"
+    )
+    @Transactional
+    public void lockPayoutDetails() {
+        log.info("Locking all active payout accounts");
+
+        List<PayoutAccount> activeAccounts =
+                payoutAccountRepository.findAllByIsActiveTrue();
+
+        int locked = 0;
+
+        for (PayoutAccount account : activeAccounts) {
+            if (!Boolean.TRUE.equals(account.getPayoutLocked())) {
+                account.setPayoutLocked(true);
+                payoutAccountRepository.save(account);
+                locked++;
+            }
+        }
+
+        log.info(
+                "Payout lock completed. locked={}, already_locked={}",
+                locked,
+                activeAccounts.size() - locked
+        );
+    }
+
+    // ── 20th of month, 12:00 AM IST — Unlock payout details ──────────
+
+    @Scheduled(
+            cron = "0 0 0 20 * *",
+            zone = "Asia/Kolkata"
+    )
+    @Transactional
+    public void unlockPayoutDetails() {
+        log.info("Unlocking all payout accounts");
+
+        List<PayoutAccount> activeAccounts =
+                payoutAccountRepository.findAllByIsActiveTrue();
+
+        int unlocked = 0;
+
+        for (PayoutAccount account : activeAccounts) {
+            if (Boolean.TRUE.equals(account.getPayoutLocked())) {
+                account.setPayoutLocked(false);
+                payoutAccountRepository.save(account);
+                unlocked++;
+            }
+        }
+
+        log.info(
+                "Payout unlock completed. unlocked={}, already_unlocked={}",
+                unlocked,
+                activeAccounts.size() - unlocked
+        );
+    }
+
+    // ── Shared reminder logic ─────────────────────────────────────────
+
+    private void sendReminders(boolean isFinalReminder) {
         List<User> verifiedCreators =
                 userRepository.findByIsVerifiedTrue();
 
@@ -55,7 +137,6 @@ public class PayoutSetupReminderJob {
         int skipped = 0;
 
         for (User creator : verifiedCreators) {
-            // Check if they have a fully configured bank payout
             Optional<PayoutAccount> activePayout =
                     payoutAccountRepository
                             .findByUserAndIsActiveTrue(creator);
@@ -66,7 +147,6 @@ public class PayoutSetupReminderJob {
                 continue;
             }
 
-            // Skip if no usable email
             if (creator.getEmail() == null
                     || creator.getEmail().isBlank()) {
                 log.warn(
@@ -83,10 +163,17 @@ public class PayoutSetupReminderJob {
                         ? creator.getName()
                         : "Creator";
 
-                emailService.sendPayoutSetupReminderEmail(
-                        creator.getEmail(),
-                        name
-                );
+                if (isFinalReminder) {
+                    emailService.sendPayoutSetupFinalReminderEmail(
+                            creator.getEmail(),
+                            name
+                    );
+                } else {
+                    emailService.sendPayoutSetupReminderEmail(
+                            creator.getEmail(),
+                            name
+                    );
+                }
 
                 sent++;
             } catch (Exception e) {
@@ -99,8 +186,9 @@ public class PayoutSetupReminderJob {
         }
 
         log.info(
-                "Payout-setup reminder job completed. "
+                "Payout-setup reminder job completed (final={}). "
                         + "sent={}, skipped={}",
+                isFinalReminder,
                 sent,
                 skipped
         );
