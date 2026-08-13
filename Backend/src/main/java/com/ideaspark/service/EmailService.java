@@ -1135,6 +1135,125 @@ public class EmailService {
         );
     }
 
+    // ── Payout-setup FINAL reminder (13th — urgent) ───────────────────
+
+    /**
+     * Final/urgent reminder sent on the 13th at 10 AM IST.
+     * Warns the creator that payout details will be locked at 8 PM today.
+     */
+    @Async
+    public void sendPayoutSetupFinalReminderEmail(
+            String toEmail,
+            String creatorName
+    ) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(
+                    "vrutsasolutions@gmail.com",
+                    "SoCreate"
+            );
+
+            helper.setTo(toEmail);
+            helper.setSubject(
+                    "\u26A0\uFE0F Last chance: Set up payout details "
+                            + "by 8 PM today \u2014 SoCreate"
+            );
+
+            helper.setText(
+                    buildPayoutSetupFinalReminderHtml(creatorName),
+                    true
+            );
+
+            mailSender.send(message);
+
+            log.info(
+                    "Final payout-setup reminder email sent to: {}",
+                    toEmail
+            );
+
+        } catch (MessagingException
+                 | java.io.UnsupportedEncodingException e) {
+            log.warn(
+                    "Final payout-setup reminder email failed "
+                            + "for {}: {}",
+                    toEmail,
+                    e.getMessage(),
+                    e
+            );
+        }
+    }
+
+    private String buildPayoutSetupFinalReminderHtml(
+            String creatorName
+    ) {
+        return """
+                <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(211,47,47,0.15);">
+
+                    <div style="background: linear-gradient(135deg, #D32F2F 0%%, #E53935 100%%); padding: 36px 28px; text-align: center;">
+                        <h1 style="color:#ffffff; margin:0; font-size:26px;">
+                            \u26A0\uFE0F Last Chance \u2014 8 PM Today
+                        </h1>
+
+                        <p style="color:rgba(255,255,255,0.92); margin:8px 0 0;">
+                            Payout details will be locked after 8 PM IST
+                        </p>
+                    </div>
+
+                    <div style="background:#fff8f8; padding:32px;">
+                        <p style="color:#333; font-size:16px;">
+                            Hello <strong>%s</strong>,
+                        </p>
+
+                        <p style="color:#444; line-height:1.6;">
+                            This is a final reminder \u2014 you haven't set up
+                            your payout details yet. <strong>Payout details
+                            will be locked at 8:00 PM IST today</strong> for
+                            this month's payout processing cycle.
+                        </p>
+
+                        <div style="background:#FFEBEE; border-left:4px solid #D32F2F; padding:16px 20px; border-radius:0 8px 8px 0; margin:20px 0;">
+                            <p style="color:#C62828; margin:0; font-weight:bold; font-size:14px;">
+                                If you miss this deadline:
+                            </p>
+
+                            <p style="color:#D32F2F; margin:8px 0 0; font-size:13px; line-height:1.5;">
+                                Your earnings for this month will be marked as
+                                "Setup Missing" and cannot be processed until
+                                you complete your payout setup after the 20th.
+                            </p>
+                        </div>
+
+                        <p style="color:#444; line-height:1.6;">
+                            It only takes a minute \u2014 add your bank account
+                            and PAN details now.
+                        </p>
+
+                        <div style="text-align:center; margin:28px 0;">
+                            <a href="%s/payout-setup"
+                               style="display:inline-block; background:#D32F2F; color:#ffffff; text-decoration:none; padding:14px 36px; border-radius:12px; font-size:15px; font-weight:bold;">
+                                Set up payout details now
+                            </a>
+                        </div>
+
+                        <p style="color:#999; font-size:13px; line-height:1.5;">
+                            If you've already set up your details, you can
+                            safely ignore this email.
+                        </p>
+
+                        <p style="color:#999; font-size:12px; margin-top:28px;">
+                            \u2014 Team SoCreate
+                        </p>
+                    </div>
+                </div>
+                """.formatted(
+                escapeHtml(creatorName),
+                frontendUrl
+        );
+    }
+
     /**
      * Escapes user-controlled text before inserting it into an HTML email.
      */
