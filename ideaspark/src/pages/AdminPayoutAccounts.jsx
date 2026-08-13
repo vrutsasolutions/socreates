@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getAdminPayoutAccounts, adminUnlockPayoutAccount } from '../api/paymentApi';
+import {
+  getAdminPayoutAccounts,
+  adminUnlockPayoutAccount,
+  adminUnlockAllPayoutAccounts,
+} from '../api/paymentApi';
 import * as XLSX from 'xlsx';
 
 /**
@@ -23,6 +27,23 @@ export default function AdminPayoutAccounts() {
   const [filter, setFilter] = useState('all'); // 'all' | 'configured' | 'pending' | 'locked'
   const [expanded, setExpanded] = useState(null);
   const [unlocking, setUnlocking] = useState(null); // userId being unlocked
+  const [unlockingAll, setUnlockingAll] = useState(false);
+
+  // A creator's status is one of three things, not two:
+  //  - 'configured'   → payoutConfigured = true
+  //  - 'pending'       → has an active PayoutAccount row (a.active) but
+  //                      it's missing required fields — this is the
+  //                      one that CAN show "Locked" during the freeze
+  //                      window, since there's data to protect.
+  //  - 'not_started'   → no PayoutAccount row exists yet at all. Can
+  //                      never be locked (nothing to lock), so it will
+  //                      never show a Locked badge even during the
+  //                      freeze window — that's expected, not a bug.
+  const getStatus = (a) => {
+    if (a.payoutConfigured) return 'configured';
+    if (a.active) return 'pending';
+    return 'not_started';
+  };
 
   useEffect(() => {
     if (!user?.isAdmin) return;
@@ -39,6 +60,37 @@ export default function AdminPayoutAccounts() {
         setError('Failed to load creator accounts.');
       })
       .finally(() => setLoading(false));
+  };
+
+  // ── Bulk unlock handler ───────────────────────────────────────────
+  const handleUnlockAll = async () => {
+    if (
+      !window.confirm(
+        `Unlock all ${lockedCount} locked account${lockedCount !== 1 ? 's' : ''}? Creators will be able to edit their payout details again immediately.`
+      )
+    ) {
+      return;
+    }
+    setUnlockingAll(true);
+    try {
+      const res = await adminUnlockAllPayoutAccounts();
+      const unlockedIds = new Set(res?.data?.unlockedUserIds || []);
+      setAccounts((prev) =>
+        prev.map((a) =>
+          unlockedIds.has(a.userId) || a.payoutLocked
+            ? { ...a, payoutLocked: false }
+            : a
+        )
+      );
+    } catch (err) {
+      console.error('[admin-unlock-all]', err);
+      alert(
+        err?.response?.data?.message ||
+          'Failed to unlock all payout accounts.'
+      );
+    } finally {
+      setUnlockingAll(false);
+    }
   };
 
   // ── Unlock handler ──────────────────────────────────────────────
@@ -108,6 +160,9 @@ export default function AdminPayoutAccounts() {
 
   const configuredCount = accounts.filter((a) => a.payoutConfigured).length;
   const pendingCount = accounts.length - configuredCount;
+  const notStartedCount = accounts.filter(
+    (a) => !a.payoutConfigured && !a.active
+  ).length;
   const lockedCount = accounts.filter((a) => a.payoutLocked).length;
 
   // ── Excel export ──────────────────────────────────────────────────
@@ -116,7 +171,12 @@ export default function AdminPayoutAccounts() {
       'Name': a.creatorName || '—',
       'Username': a.creatorUsername || '—',
       'Email': a.creatorEmail || '—',
-      'Status': a.payoutConfigured ? 'Configured' : 'Pending',
+      'Status':
+        a.payoutConfigured
+          ? 'Configured'
+          : a.active
+            ? 'Pending (incomplete)'
+            : 'Not started',
       'Locked': a.payoutLocked ? 'Yes' : 'No',
       'Legal Name': a.legalName || '—',
       'PAN Number': a.panNumber || '—',
@@ -172,6 +232,7 @@ export default function AdminPayoutAccounts() {
             <h1 className="text-xl font-bold text-white">Creator Pro subscribers</h1>
             <p className="text-white/60 text-xs mt-0.5">
               {accounts.length} creator{accounts.length !== 1 ? 's' : ''} · {configuredCount} configured · {pendingCount} pending
+              {notStartedCount > 0 && ` (${notStartedCount} not started)`}
               {lockedCount > 0 && ` · ${lockedCount} locked`}
             </p>
           </div>
@@ -196,14 +257,28 @@ export default function AdminPayoutAccounts() {
             <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-semibold text-amber-800">
                 Payout details locked
               </p>
               <p className="text-xs text-amber-600 mt-0.5 leading-relaxed">
                 {lockedCount} account{lockedCount !== 1 ? 's are' : ' is'} locked for this month's payout cycle (13th 8 PM – 20th 12 AM IST).
-                You can unlock individual creators below.
+                Only creators who had already started payout setup can be locked — accounts that never started show "Not started" instead and are unaffected.
               </p>
+              <button
+                onClick={handleUnlockAll}
+                disabled={unlockingAll}
+                className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {unlockingAll ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                )}
+                Unlock all {lockedCount}
+              </button>
             </div>
           </div>
         )}
@@ -287,7 +362,9 @@ export default function AdminPayoutAccounts() {
                     ? 'border-amber-300'
                     : a.payoutConfigured
                       ? 'border-[#E0E0E0]'
-                      : 'border-orange-200'
+                      : a.active
+                        ? 'border-orange-200'
+                        : 'border-[#E0E0E0]'
                 }`}
               >
                 {/* ── Collapsed header ────────────────────────────── */}
@@ -334,15 +411,28 @@ export default function AdminPayoutAccounts() {
                         Locked
                       </span>
                     )}
-                    {a.payoutConfigured ? (
-                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                        Configured
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
-                        Pending
-                      </span>
-                    )}
+                    {(() => {
+                      const status = getStatus(a);
+                      if (status === 'configured') {
+                        return (
+                          <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                            Configured
+                          </span>
+                        );
+                      }
+                      if (status === 'pending') {
+                        return (
+                          <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+                            Pending
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="text-[10px] font-bold text-[#78909C] bg-[#ECEFF1] px-2 py-0.5 rounded-full">
+                          Not started
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <svg
@@ -443,9 +533,13 @@ export default function AdminPayoutAccounts() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                           </svg>
                         </div>
-                        <p className="text-sm font-semibold text-[#546E7A]">Payout not set up</p>
+                        <p className="text-sm font-semibold text-[#546E7A]">
+                          {a.active ? 'Payout setup incomplete' : 'Payout not set up'}
+                        </p>
                         <p className="text-xs text-[#90A4AE] mt-1">
-                          This creator hasn't configured their bank details yet.
+                          {a.active
+                            ? "This creator started payout setup but is missing required fields (PAN, mobile, bank details, etc.)."
+                            : "This creator hasn't opened payout setup yet — nothing has been saved, so there's no data to lock."}
                         </p>
                       </div>
                     )}
