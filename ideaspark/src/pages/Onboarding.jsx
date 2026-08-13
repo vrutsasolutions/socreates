@@ -80,7 +80,7 @@ export default function Onboarding() {
   const next = () => {
     if (isLast) {
       markSeen();
-      navigate('/membership-intro');
+      navigate('/welcome');
     } else {
       setStep((s) => Math.min(s + 1, total - 1));
     }
@@ -88,7 +88,7 @@ export default function Onboarding() {
 
   const skip = () => {
     markSeen();
-    navigate('/membership-intro');
+    navigate('/welcome');
   };
 
   const onTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
@@ -138,7 +138,7 @@ export default function Onboarding() {
               top-[18vh]/h-[62vh] together — shrink h-[…vh] for even
               less side-crop, at the cost of more plain navy showing
               above/below the image. */}
-          <div className="absolute inset-x-0 top-[18vh] h-[62vh]">
+          <div className="absolute inset-0">
             <img
               src={s.illustration}
               alt={s.imageCaption}
@@ -189,7 +189,7 @@ export default function Onboarding() {
 
         {current.cta ? (
           <button
-            onClick={() => { markSeen(); navigate('/membership-intro'); }}
+            onClick={() => { markSeen(); navigate('/welcome'); }}
             className="w-full bg-white text-[#1565C0] font-bold py-4
                        rounded-2xl text-sm active:scale-95 transition-all
                        shadow-lg shadow-black/20"

@@ -12,7 +12,6 @@ import usePushNotifications from "../hooks/usePushNotifications";
 
 import Welcome from "../pages/Welcome";
 import Onboarding from "../pages/Onboarding";
-import MembershipIntro from "../pages/MembershipIntro";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import VerifyOtp from "../pages/VerifyOtp";
@@ -99,7 +98,7 @@ export default function AppRouter() {
 
       <Routes>
         <Route path="/" element={<Onboarding />} />
-        <Route path="/membership-intro" element={<PublicOnly><MembershipIntro /></PublicOnly>} />
+        
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
         <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
