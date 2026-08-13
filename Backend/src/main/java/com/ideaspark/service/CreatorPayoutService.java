@@ -8,6 +8,7 @@ import com.ideaspark.model.User;
 import com.ideaspark.repository.CreatorEarningRepository;
 import com.ideaspark.repository.PayoutAccountRepository;
 import com.ideaspark.repository.UserRepository;
+import com.ideaspark.util.PayoutLockWindow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -98,10 +99,14 @@ public class CreatorPayoutService {
         User user = requireUser(email);
 
         // ── Lock check ────────────────────────────────────────────
+        // Uses the real-time window, not just the stored flag — a
+        // stuck-true flag from a stray job run should never block
+        // edits outside the actual 13th-8PM-to-20th-12AM window.
+        // See PayoutLockWindow for why.
         PayoutAccount existingAccount = resolveActiveAccount(user);
 
         if (existingAccount != null
-                && Boolean.TRUE.equals(
+                && PayoutLockWindow.isEffectivelyLocked(
                         existingAccount.getPayoutLocked()
                 )) {
             throw new IllegalStateException(
@@ -513,7 +518,7 @@ public class CreatorPayoutService {
                                 )
                 )
                 .locked(
-                        Boolean.TRUE.equals(
+                        PayoutLockWindow.isEffectivelyLocked(
                                 account.getPayoutLocked()
                         )
                 )
