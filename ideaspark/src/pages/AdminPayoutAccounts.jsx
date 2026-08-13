@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getAdminPayoutAccounts } from '../api/paymentApi';
+import { getAdminPayoutAccounts, adminUnlockPayoutAccount } from '../api/paymentApi';
 import * as XLSX from 'xlsx';
 
 /**
@@ -9,7 +9,8 @@ import * as XLSX from 'xlsx';
  *
  * Shows every Creator Pro subscriber (isVerified = true) with their
  * payout details — or flags them as "Not configured" if they haven't
- * set up yet.
+ * set up yet. Includes lock/unlock controls for the monthly payout
+ * freeze window (13th 8 PM – 20th 12 AM IST).
  */
 export default function AdminPayoutAccounts() {
   const navigate = useNavigate();
@@ -19,11 +20,16 @@ export default function AdminPayoutAccounts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all'); // 'all' | 'configured' | 'pending'
+  const [filter, setFilter] = useState('all'); // 'all' | 'configured' | 'pending' | 'locked'
   const [expanded, setExpanded] = useState(null);
+  const [unlocking, setUnlocking] = useState(null); // userId being unlocked
 
   useEffect(() => {
     if (!user?.isAdmin) return;
+    loadAccounts();
+  }, [user]);
+
+  const loadAccounts = () => {
     setLoading(true);
     setError('');
     getAdminPayoutAccounts()
@@ -33,7 +39,29 @@ export default function AdminPayoutAccounts() {
         setError('Failed to load creator accounts.');
       })
       .finally(() => setLoading(false));
-  }, [user]);
+  };
+
+  // ── Unlock handler ──────────────────────────────────────────────
+  const handleUnlock = async (userId) => {
+    setUnlocking(userId);
+    try {
+      await adminUnlockPayoutAccount(userId);
+      // Update local state to reflect the unlock
+      setAccounts((prev) =>
+        prev.map((a) =>
+          a.userId === userId ? { ...a, payoutLocked: false } : a
+        )
+      );
+    } catch (err) {
+      console.error('[admin-unlock]', err);
+      alert(
+        err?.response?.data?.message ||
+          'Failed to unlock payout account.'
+      );
+    } finally {
+      setUnlocking(null);
+    }
+  };
 
   // ── Guard ─────────────────────────────────────────────────────────
   if (!user?.isAdmin) {
@@ -62,11 +90,10 @@ export default function AdminPayoutAccounts() {
   const q = search.trim().toLowerCase();
 
   const filtered = accounts.filter((a) => {
-    // Filter by payout status
     if (filter === 'configured' && !a.payoutConfigured) return false;
     if (filter === 'pending' && a.payoutConfigured) return false;
+    if (filter === 'locked' && !a.payoutLocked) return false;
 
-    // Search
     if (!q) return true;
     return (
       (a.creatorName || '').toLowerCase().includes(q) ||
@@ -81,6 +108,7 @@ export default function AdminPayoutAccounts() {
 
   const configuredCount = accounts.filter((a) => a.payoutConfigured).length;
   const pendingCount = accounts.length - configuredCount;
+  const lockedCount = accounts.filter((a) => a.payoutLocked).length;
 
   // ── Excel export ──────────────────────────────────────────────────
   const downloadExcel = () => {
@@ -89,6 +117,7 @@ export default function AdminPayoutAccounts() {
       'Username': a.creatorUsername || '—',
       'Email': a.creatorEmail || '—',
       'Status': a.payoutConfigured ? 'Configured' : 'Pending',
+      'Locked': a.payoutLocked ? 'Yes' : 'No',
       'Legal Name': a.legalName || '—',
       'PAN Number': a.panNumber || '—',
       'Mobile': a.mobileNumber || '—',
@@ -109,7 +138,6 @@ export default function AdminPayoutAccounts() {
 
     const ws = XLSX.utils.json_to_sheet(rows);
 
-    // Auto-fit column widths based on content
     const colWidths = Object.keys(rows[0] || {}).map((key) => {
       const maxLen = Math.max(
         key.length,
@@ -144,6 +172,7 @@ export default function AdminPayoutAccounts() {
             <h1 className="text-xl font-bold text-white">Creator Pro subscribers</h1>
             <p className="text-white/60 text-xs mt-0.5">
               {accounts.length} creator{accounts.length !== 1 ? 's' : ''} · {configuredCount} configured · {pendingCount} pending
+              {lockedCount > 0 && ` · ${lockedCount} locked`}
             </p>
           </div>
           {accounts.length > 0 && (
@@ -161,6 +190,24 @@ export default function AdminPayoutAccounts() {
       </header>
 
       <div className="px-4 mt-4 space-y-3">
+        {/* ── Lock status banner ────────────────────────────────────── */}
+        {lockedCount > 0 && (
+          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">
+                Payout details locked
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5 leading-relaxed">
+                {lockedCount} account{lockedCount !== 1 ? 's are' : ' is'} locked for this month's payout cycle (13th 8 PM – 20th 12 AM IST).
+                You can unlock individual creators below.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── Search ───────────────────────────────────────────────── */}
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#90A4AE]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -176,18 +223,23 @@ export default function AdminPayoutAccounts() {
         </div>
 
         {/* ── Filter tabs ──────────────────────────────────────────── */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-0.5">
           {[
             { key: 'all', label: `All (${accounts.length})` },
             { key: 'configured', label: `Configured (${configuredCount})` },
             { key: 'pending', label: `Pending (${pendingCount})` },
+            ...(lockedCount > 0
+              ? [{ key: 'locked', label: `Locked (${lockedCount})` }]
+              : []),
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
-              className={`text-xs font-semibold px-3 py-2 rounded-xl border transition-all ${
+              className={`text-xs font-semibold px-3 py-2 rounded-xl border transition-all whitespace-nowrap ${
                 filter === tab.key
-                  ? 'bg-[#1565C0] text-white border-[#1565C0]'
+                  ? tab.key === 'locked'
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-[#1565C0] text-white border-[#1565C0]'
                   : 'bg-white text-[#546E7A] border-[#E0E0E0] hover:border-[#1565C0]'
               }`}
             >
@@ -196,23 +248,24 @@ export default function AdminPayoutAccounts() {
           ))}
         </div>
 
-        {/* ── States ───────────────────────────────────────────────── */}
+        {/* ── Loading / Error / Empty ──────────────────────────────── */}
         {loading && (
-          <div className="flex justify-center py-16">
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <div className="w-8 h-8 border-3 border-[#1565C0] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-[#78909C]">Loading creators...</p>
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+        {error && !loading && (
+          <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 text-center">
             {error}
           </div>
         )}
 
         {!loading && !error && filtered.length === 0 && (
-          <div className="text-center py-16">
-            <svg className="w-12 h-12 text-[#B0BEC5] mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <svg className="w-10 h-10 text-[#CFD8DC]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
             <p className="text-[#78909C] text-sm font-medium">
               {q ? 'No creators match your search.' : 'No creators found.'}
@@ -224,14 +277,17 @@ export default function AdminPayoutAccounts() {
         {!loading &&
           filtered.map((a) => {
             const isExpanded = expanded === a.userId;
+            const isUnlocking = unlocking === a.userId;
 
             return (
               <div
                 key={a.userId + (a.payoutAccountId || '')}
                 className={`bg-white rounded-2xl border overflow-hidden transition-all ${
-                  a.payoutConfigured
-                    ? 'border-[#E0E0E0]'
-                    : 'border-orange-200'
+                  a.payoutLocked
+                    ? 'border-amber-300'
+                    : a.payoutConfigured
+                      ? 'border-[#E0E0E0]'
+                      : 'border-orange-200'
                 }`}
               >
                 {/* ── Collapsed header ────────────────────────────── */}
@@ -268,16 +324,26 @@ export default function AdminPayoutAccounts() {
                     </p>
                   </div>
 
-                  {/* Status badge */}
-                  {a.payoutConfigured ? (
-                    <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full shrink-0">
-                      Configured
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full shrink-0">
-                      Pending
-                    </span>
-                  )}
+                  {/* Status badges */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {a.payoutLocked && (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                        </svg>
+                        Locked
+                      </span>
+                    )}
+                    {a.payoutConfigured ? (
+                      <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                        Configured
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+                        Pending
+                      </span>
+                    )}
+                  </div>
 
                   <svg
                     className={`w-4 h-4 text-[#90A4AE] shrink-0 transition-transform ${
@@ -299,6 +365,37 @@ export default function AdminPayoutAccounts() {
                 {/* ── Expanded details ────────────────────────────── */}
                 {isExpanded && (
                   <div className="border-t border-[#ECEFF1] px-4 py-3 space-y-3">
+                    {/* ── Lock/Unlock control ──────────────────────── */}
+                    {a.payoutLocked && (
+                      <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                          </svg>
+                          <span className="text-xs font-medium text-amber-800">
+                            Editing locked until the 20th
+                          </span>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnlock(a.userId);
+                          }}
+                          disabled={isUnlocking}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isUnlocking ? (
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                            </svg>
+                          )}
+                          Unlock
+                        </button>
+                      </div>
+                    )}
+
                     {a.payoutConfigured ? (
                       <>
                         {/* KYC */}
