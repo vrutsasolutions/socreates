@@ -614,15 +614,33 @@ public class IdeaService {
                 .toList();
     }
 
+    // Preset category names — kept in sync with the frontend's categories.js.
+    // When the user filters by "Other" we find ideas whose category is NOT in
+    // this list (i.e. user-typed custom categories).
+    private static final List<String> PRESET_CATEGORIES = List.of(
+        "Technology", "Artificial Intelligence", "Healthcare", "Education",
+        "Finance", "Business & Startups", "Agriculture", "Environment",
+        "Energy", "Transportation", "Security & Safety", "Smart Cities",
+        "Social Impact", "Entertainment", "Music", "Gaming", "Sports",
+        "Travel", "Lifestyle", "Food & Nutrition", "Fashion & Beauty",
+        "Real Estate", "Science & Research", "Communication", "E-commerce",
+        "Government", "Robotics & IoT", "Pets & Animal Care", "Arts & Creativity"
+    );
+
     public List<IdeaDTO> search(String q, String category, String userEmail) {
         List<Idea> ideas;
+        boolean isOther = "Other".equalsIgnoreCase(category);
 
         if (q != null && !q.isBlank() && category != null && !category.isBlank()) {
-            ideas = ideaRepository.searchIdeasWithCategory(q, category);
+            ideas = isOther
+                    ? ideaRepository.searchIdeasWithOtherCategory(q, PRESET_CATEGORIES)
+                    : ideaRepository.searchIdeasWithCategory(q, category);
         } else if (q != null && !q.isBlank()) {
             ideas = ideaRepository.searchIdeas(q);
         } else if (category != null && !category.isBlank()) {
-            ideas = ideaRepository.findByCategoryOrderByCreatedAtDesc(category);
+            ideas = isOther
+                    ? ideaRepository.findByOtherCategoryOrderByCreatedAtDesc(PRESET_CATEGORIES)
+                    : ideaRepository.findByCategoryOrderByCreatedAtDesc(category);
         } else {
             ideas = ideaRepository.findAllByOrderByCreatedAtDesc();
         }

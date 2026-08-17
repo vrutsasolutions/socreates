@@ -1,22 +1,56 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { CATEGORIES } from '../constants/categories';
 import { IdeaIcon } from '../components/common/categoryIcons';
 import { CATEGORY_COLORS, defaultColor } from '../components/common/categoryConstants';
 
-// Use all real categories (exclude 'Other' — it's a catch-all, not a genuine interest)
-const INTEREST_CATEGORIES = CATEGORIES.filter((c) => c !== 'Other');
-
 export default function SelectInterests() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState([]);
   const [loading, setLoading]   = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const customInputRef = useRef(null);
 
-  const toggle = (cat) =>
+  useEffect(() => {
+    if (showCustomInput && customInputRef.current) customInputRef.current.focus();
+  }, [showCustomInput]);
+
+  const isCustom = (cat) => !CATEGORIES.includes(cat);
+
+  const toggle = (cat) => {
+    // Special handling for "Other"
+    if (cat === 'Other') {
+      if (showCustomInput) {
+        setShowCustomInput(false);
+        setCustomCategory('');
+        setSelected((prev) => prev.filter((c) => !isCustom(c)));
+      } else {
+        setShowCustomInput(true);
+      }
+      return;
+    }
     setSelected((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
     );
+  };
+
+  const addCustomCategory = () => {
+    const trimmed = customCategory.trim();
+    if (!trimmed) return;
+    const alreadyExists =
+      CATEGORIES.some((c) => c.toLowerCase() === trimmed.toLowerCase()) ||
+      selected.some((c) => c.toLowerCase() === trimmed.toLowerCase());
+    if (alreadyExists) { setCustomCategory(''); return; }
+    setSelected((prev) => [...prev.filter((c) => !isCustom(c)), trimmed]);
+    setCustomCategory('');
+    setShowCustomInput(false);
+  };
+
+  const handleCustomKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addCustomCategory(); }
+  };
 
   const handleContinue = async () => {
     if (selected.length < 3) return;
@@ -64,9 +98,11 @@ export default function SelectInterests() {
           <div className="px-4 flex flex-col flex-1">
 
             {/* Category Grid */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {INTEREST_CATEGORIES.map((cat) => {
-                const active = selected.includes(cat);
+            <div className="grid grid-cols-3 gap-3 mb-6 max-h-[55vh] overflow-y-auto pr-1">
+              {CATEGORIES.map((cat) => {
+                const active = cat === 'Other'
+                  ? showCustomInput || selected.some(isCustom)
+                  : selected.includes(cat);
                 const colors = CATEGORY_COLORS[cat] || defaultColor;
                 return (
                   <button
@@ -97,6 +133,67 @@ export default function SelectInterests() {
               })}
             </div>
 
+            {/* Custom category input — appears when "Other" is tapped */}
+            {showCustomInput && (
+              <div className="mb-4 bg-gradient-to-br from-[#EAF2FF] to-[#F4F7FF] border border-[#BBDEFB] rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#1565C0]/10">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565C0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </span>
+                  <span className="text-xs font-bold text-[#0D2137]">Add your own category</span>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <input
+                    ref={customInputRef}
+                    type="text"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    onKeyDown={handleCustomKeyDown}
+                    placeholder="e.g. Blockchain, Astronomy…"
+                    maxLength={50}
+                    className="flex-1 border border-[#BBDEFB] rounded-xl px-4 py-2.5 text-sm bg-white text-[#0D2137] placeholder:text-[#90A4AE] focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition shadow-sm"
+                  />
+                  <button
+                    onClick={addCustomCategory}
+                    disabled={!customCategory.trim()}
+                    className="bg-[#1565C0] hover:bg-[#0D47A1] text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 transition active:scale-95 shrink-0 shadow-sm shadow-blue-200/50"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Custom category chips */}
+            {selected.filter(isCustom).length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {selected.filter(isCustom).map((cat) => (
+                  <span
+                    key={cat}
+                    className="inline-flex items-center gap-2 bg-[#1565C0] text-white pl-3 pr-2 py-2 rounded-xl text-xs font-semibold shadow-sm shadow-blue-200/50"
+                  >
+                    <span className="flex items-center justify-center w-5 h-5 rounded-md bg-white/20">
+                      <IdeaIcon category={cat} color="#fff" size={12} />
+                    </span>
+                    {cat}
+                    <button
+                      onClick={() => {
+                        setSelected((prev) => prev.filter((c) => c !== cat));
+                        setShowCustomInput(false);
+                      }}
+                      className="ml-1 w-5 h-5 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 transition"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
             {/* Footer */}
             <div className="mt-auto pb-10 sticky bottom-0 bg-white pt-3">
               <div className="flex items-center justify-between mb-4">
@@ -106,7 +203,7 @@ export default function SelectInterests() {
                     <span className="text-[#90A4AE]"> · need {3 - selected.length} more</span>
                   )}
                 </span>
-                <button onClick={() => setSelected([])}
+                <button onClick={() => { setSelected([]); setShowCustomInput(false); setCustomCategory(''); }}
                   className="text-[#90A4AE] text-xs hover:text-[#1565C0] transition-colors">
                   Clear all
                 </button>
