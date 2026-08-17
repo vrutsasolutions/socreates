@@ -23,6 +23,7 @@ export default function FollowCreators() {
   const [loading, setLoading]       = useState(true);
   // Map of userId → ideaCount, loaded separately so the list renders fast
   const [ideaCounts, setIdeaCounts] = useState({});
+  const [failedImgs, setFailedImgs] = useState(new Set()); // ids whose profile image failed to load
   const pollRef                     = useRef(null);
 
   /* ── Fetch idea count for a single creator ─────────────────────────── */
@@ -204,8 +205,9 @@ export default function FollowCreators() {
 
                       {/* Avatar */}
                       <div className="relative shrink-0">
-                        {creator.profileImage ? (
-                          <img src={creator.profileImage} alt={creator.name}
+                        {creator.profileImage && !failedImgs.has(creator.id) ? (
+                          <img src={creator.profileImage} alt=""
+                            onError={() => setFailedImgs((prev) => new Set(prev).add(creator.id))}
                             className="w-12 h-12 rounded-full object-cover border-2 border-[#BBDEFB]" />
                         ) : (
                           <div className="w-12 h-12 rounded-full bg-[#1565C0] flex items-center justify-center text-white font-bold text-lg">
