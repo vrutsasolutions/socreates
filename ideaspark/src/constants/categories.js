@@ -33,7 +33,6 @@ export const CATEGORIES = [
   'E-commerce',
   'Government',
   'Robotics & IoT',
-  'Pets & Animal Care',
   'Arts & Creativity',
   'Other',
 ];
