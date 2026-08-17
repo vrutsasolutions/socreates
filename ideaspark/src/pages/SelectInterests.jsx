@@ -1,31 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
-import Icon from '../components/common/Icon';
+import { CATEGORIES } from '../constants/categories';
+import { IdeaIcon } from '../components/common/categoryIcons';
+import { CATEGORY_COLORS, defaultColor } from '../components/common/categoryConstants';
 
-const INTERESTS = [
-  { id: 'tech',      label: 'Technology', icon: 'cpu' },
-  { id: 'design',    label: 'Design',     icon: 'palette' },
-  { id: 'business',  label: 'Business',   icon: 'briefcase' },
-  { id: 'science',   label: 'Science',    icon: 'flask' },
-  { id: 'art',       label: 'Art',        icon: 'image' },
-  { id: 'health',    label: 'Health',     icon: 'heart-pulse' },
-  { id: 'education', label: 'Education',  icon: 'graduation-cap' },
-  { id: 'finance',   label: 'Finance',    icon: 'dollar-sign' },
-  { id: 'music',     label: 'Music',      icon: 'music' },
-  { id: 'travel',    label: 'Travel',     icon: 'plane' },
-  { id: 'food',      label: 'Food',       icon: 'utensils' },
-  { id: 'sports',    label: 'Sports',     icon: 'dumbbell' },
-];
+// Use all real categories (exclude 'Other' — it's a catch-all, not a genuine interest)
+const INTEREST_CATEGORIES = CATEGORIES.filter((c) => c !== 'Other');
 
 export default function SelectInterests() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState([]);
   const [loading, setLoading]   = useState(false);
 
-  const toggle = (id) =>
+  const toggle = (cat) =>
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
     );
 
   const handleContinue = async () => {
@@ -69,18 +59,19 @@ export default function SelectInterests() {
       </div>
 
       {/* Content wrapper — matches Home's rounded-t-[32px] white card */}
-      <div className="bg-[#1565C0]">
+      <div className="bg-[#1565C0] flex-1 flex flex-col">
         <div className="bg-white rounded-t-[32px] pt-6 flex flex-col flex-1">
           <div className="px-4 flex flex-col flex-1">
 
             {/* Category Grid */}
             <div className="grid grid-cols-3 gap-3 mb-6">
-              {INTERESTS.map(({ id, label, icon }) => {
-                const active = selected.includes(id);
+              {INTEREST_CATEGORIES.map((cat) => {
+                const active = selected.includes(cat);
+                const colors = CATEGORY_COLORS[cat] || defaultColor;
                 return (
                   <button
-                    key={id}
-                    onClick={() => toggle(id)}
+                    key={cat}
+                    onClick={() => toggle(cat)}
                     className={`relative flex flex-col items-center justify-center gap-2 py-4 px-2 rounded-2xl border transition-all duration-200 active:scale-95 cursor-pointer
                       ${active
                         ? 'bg-[#EAF2FF] border-[#1565C0] shadow-lg shadow-blue-300/40'
@@ -93,9 +84,13 @@ export default function SelectInterests() {
                         </svg>
                       </div>
                     )}
-                    <Icon name={icon} className={`w-7 h-7 ${active ? 'text-[#1565C0]' : 'text-[#546E7A]'}`} />
-                    <span className={`text-xs font-semibold text-center leading-tight ${active ? 'text-[#1565C0]' : 'text-[#0D2137]'}`}>
-                      {label}
+                    <IdeaIcon
+                      category={cat}
+                      color={active ? '#1565C0' : colors.dot}
+                      size={28}
+                    />
+                    <span className={`text-[11px] font-semibold text-center leading-tight ${active ? 'text-[#1565C0]' : 'text-[#0D2137]'}`}>
+                      {cat}
                     </span>
                   </button>
                 );
@@ -103,7 +98,7 @@ export default function SelectInterests() {
             </div>
 
             {/* Footer */}
-            <div className="mt-auto pb-10">
+            <div className="mt-auto pb-10 sticky bottom-0 bg-white pt-3">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[#546E7A] text-sm">
                   {selected.length} selected
