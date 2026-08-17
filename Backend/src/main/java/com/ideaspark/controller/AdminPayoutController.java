@@ -5,17 +5,23 @@ import com.ideaspark.model.PayoutAccount;
 import com.ideaspark.model.User;
 import com.ideaspark.repository.PayoutAccountRepository;
 import com.ideaspark.repository.UserRepository;
+import com.ideaspark.util.PayoutLockWindow;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
- * Admin-only endpoint for viewing all Creator Pro subscribers
- * and their payout details (full decrypted PAN + account number).
+ * Admin-only endpoints for viewing all Creator Pro subscribers
+ * and their payout details (full decrypted PAN + account number),
+ * and for unlocking individual payout accounts mid-cycle.
  *
  * A creator is considered "configured" only when they have an active
  * payout account with method = bank_account AND all required fields
@@ -24,6 +30,7 @@ import java.util.Optional;
  *
  * VPA-only accounts or accounts with missing fields show as "Pending".
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/admin/payout-accounts")
 @RequiredArgsConstructor
@@ -32,6 +39,8 @@ public class AdminPayoutController {
 
     private final UserRepository userRepository;
     private final PayoutAccountRepository payoutAccountRepository;
+
+    // ── List all creator payout details ──────────────────────────────
 
     @GetMapping
     public ResponseEntity<List<AdminPayoutDetailsDTO>> getAllCreatorPayoutDetails() {
@@ -44,6 +53,108 @@ public class AdminPayoutController {
                 .toList();
 
         return ResponseEntity.ok(dtos);
+    }
+
+    // ── Unlock a specific creator's payout account ──────────────────
+
+    /**
+     * Admin override to unlock a creator's payout account during the
+     * lock window (13th 8 PM – 20th 12 AM IST) so they can fix
+     * incorrect bank details.
+     */
+    @PostMapping("/{userId}/unlock")
+    @Transactional
+    public ResponseEntity<?> unlockPayoutAccount(
+            @PathVariable UUID userId
+    ) {
+        Optional<User> userOpt = userRepository.findById(userId);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        User user = userOpt.get();
+
+        Optional<PayoutAccount> accountOpt =
+                payoutAccountRepository
+                        .findByUserAndIsActiveTrue(user);
+
+        if (accountOpt.isEmpty()) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "message",
+                            "No active payout account found "
+                                    + "for this creator"
+                    ));
+        }
+
+        PayoutAccount account = accountOpt.get();
+
+        if (!Boolean.TRUE.equals(account.getPayoutLocked())) {
+            return ResponseEntity.ok(Map.of(
+                    "message",
+                    "Payout account is already unlocked",
+                    "userId", userId
+            ));
+        }
+
+        account.setPayoutLocked(false);
+        payoutAccountRepository.save(account);
+
+        log.info(
+                "Admin unlocked payout account for user {} ({})",
+                user.getEmail(),
+                userId
+        );
+
+        return ResponseEntity.ok(Map.of(
+                "message",
+                "Payout account unlocked successfully",
+                "userId", userId,
+                "creatorName", user.getName() != null
+                        ? user.getName() : "",
+                "creatorEmail", user.getEmail() != null
+                        ? user.getEmail() : ""
+        ));
+    }
+
+    // ── Unlock every locked account in one go ────────────────────────
+
+    /**
+     * Admin override to unlock every currently-locked payout account
+     * at once, instead of clicking "Unlock" one creator at a time.
+     * Same effect as PayoutSetupReminderJob.unlockPayoutDetails(),
+     * just triggered on demand rather than waiting for the 20th.
+     */
+    @PostMapping("/unlock-all")
+    @Transactional
+    public ResponseEntity<?> unlockAllPayoutAccounts() {
+
+        List<PayoutAccount> lockedAccounts =
+                payoutAccountRepository.findAllByIsActiveTrue()
+                        .stream()
+                        .filter(a -> Boolean.TRUE.equals(a.getPayoutLocked()))
+                        .toList();
+
+        for (PayoutAccount account : lockedAccounts) {
+            account.setPayoutLocked(false);
+        }
+        payoutAccountRepository.saveAll(lockedAccounts);
+
+        log.info(
+                "Admin bulk-unlocked {} payout account(s)",
+                lockedAccounts.size()
+        );
+
+        return ResponseEntity.ok(Map.of(
+                "message",
+                "Unlocked " + lockedAccounts.size() + " payout account(s)",
+                "unlockedCount", lockedAccounts.size(),
+                "unlockedUserIds", lockedAccounts.stream()
+                        .map(a -> a.getUser().getId())
+                        .toList()
+        ));
     }
 
     // ── Mapping ─────────────────────────────────────────────────────
@@ -90,6 +201,11 @@ public class AdminPayoutController {
                     .active(
                             Boolean.TRUE.equals(account.getIsActive())
                     )
+                    .payoutLocked(
+                            PayoutLockWindow.isEffectivelyLocked(
+                                    account.getPayoutLocked()
+                            )
+                    )
                     .createdAt(account.getCreatedAt())
                     .updatedAt(account.getUpdatedAt())
                     .build();
@@ -103,6 +219,7 @@ public class AdminPayoutController {
                 .creatorUsername(user.getUsername())
                 .profileImage(user.getProfileImage())
                 .payoutConfigured(false)
+                .payoutLocked(false)
                 .active(false)
                 .build();
     }

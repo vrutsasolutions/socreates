@@ -8,6 +8,7 @@ import com.ideaspark.model.User;
 import com.ideaspark.repository.CreatorEarningRepository;
 import com.ideaspark.repository.PayoutAccountRepository;
 import com.ideaspark.repository.UserRepository;
+import com.ideaspark.util.PayoutLockWindow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,10 @@ import java.util.List;
  * Creators no longer request individual withdrawals manually.
  * Monthly earnings are paid by ScheduledPayoutRunner after revenue
  * distribution schedules the earning.
+ *
+ * Payout details are locked from the 13th 8 PM IST until the 20th
+ * 12:00 AM IST each month to prevent mid-cycle changes during
+ * payout processing.
  */
 @Slf4j
 @Service
@@ -49,6 +54,7 @@ public class CreatorPayoutService {
                     .configured(false)
                     .active(false)
                     .verified(false)
+                    .locked(false)
                     .build();
         }
 
@@ -62,14 +68,15 @@ public class CreatorPayoutService {
      *
      * Process:
      *
-     * 1. Validate the request.
-     * 2. Reuse the existing Razorpay contact when possible.
-     * 3. Create a new Razorpay fund account.
-     * 4. Deactivate the previous Razorpay fund account.
-     * 5. Mark the previous local account inactive.
-     * 6. Create a new local payout-account history row.
-     * 7. Point User.activePayoutAccount to the new row.
-     * 8. Reschedule eligible Setup_Missing earnings.
+     * 1. Check payout lock — reject if locked.
+     * 2. Validate the request.
+     * 3. Reuse the existing Razorpay contact when possible.
+     * 4. Create a new Razorpay fund account.
+     * 5. Deactivate the previous Razorpay fund account.
+     * 6. Mark the previous local account inactive.
+     * 7. Create a new local payout-account history row.
+     * 8. Point User.activePayoutAccount to the new row.
+     * 9. Reschedule eligible Setup_Missing earnings.
      */
     @Transactional
     public PayoutDetailsResponse savePayoutDetails(
@@ -91,14 +98,30 @@ public class CreatorPayoutService {
 
         User user = requireUser(email);
 
-        ValidatedPayoutDetails details = validate(request);
+        // ── Lock check ────────────────────────────────────────────
+        // Uses the real-time window, not just the stored flag — a
+        // stuck-true flag from a stray job run should never block
+        // edits outside the actual 13th-8PM-to-20th-12AM window.
+        // See PayoutLockWindow for why.
+        PayoutAccount existingAccount = resolveActiveAccount(user);
 
-        PayoutAccount previousAccount =
-                resolveActiveAccount(user);
+        if (existingAccount != null
+                && PayoutLockWindow.isEffectivelyLocked(
+                        existingAccount.getPayoutLocked()
+                )) {
+            throw new IllegalStateException(
+                    "Payout details are locked for this month's "
+                            + "payout cycle. They will be editable "
+                            + "again after the 20th."
+            );
+        }
+        // ──────────────────────────────────────────────────────────
+
+        ValidatedPayoutDetails details = validate(request);
 
         String contactId = resolveContactId(
                 user,
-                previousAccount
+                existingAccount
         );
 
         String newFundAccountId;
@@ -149,7 +172,7 @@ public class CreatorPayoutService {
          */
         try {
             deactivatePreviousRemoteAccount(
-                    previousAccount,
+                    existingAccount,
                     newFundAccountId
             );
         } catch (Exception exception) {
@@ -168,7 +191,7 @@ public class CreatorPayoutService {
             throw exception;
         }
 
-        deactivatePreviousLocalAccount(previousAccount);
+        deactivatePreviousLocalAccount(existingAccount);
 
         PayoutAccount newAccount = createLocalPayoutAccount(
                 user,
@@ -267,11 +290,15 @@ public class CreatorPayoutService {
     }
     private String normalizeMobile(String value) {
         String mobile = normalize(value)
-                .replaceAll("[^0-9]", "");
+                .replaceAll("[^0-9+]", "");
 
-        if (!mobile.matches("\\d{10,15}")) {
+        if (mobile.startsWith("+91")) {
+            mobile = mobile.substring(3);
+        }
+
+        if (!mobile.matches("\\d{10}")) {
             throw new IllegalArgumentException(
-                    "Enter a valid mobile number."
+                    "Enter a valid 10-digit mobile number."
             );
         }
 
@@ -279,42 +306,31 @@ public class CreatorPayoutService {
     }
 
     private String normalizePan(String value) {
-        String pan = normalize(value).toUpperCase();
+        String pan = normalize(value)
+                .toUpperCase()
+                .replaceAll("[^A-Z0-9]", "");
 
         if (!pan.matches("[A-Z]{5}[0-9]{4}[A-Z]")) {
             throw new IllegalArgumentException(
-                    "Enter a valid PAN number."
+                    "Enter a valid PAN (e.g. ABCDE1234F)."
             );
         }
 
         return pan;
     }
 
-    // ── Razorpay setup ───────────────────────────────────────────────────────
+    // ── RazorpayX helpers ────────────────────────────────────────────────────
 
     private String resolveContactId(
             User user,
             PayoutAccount previousAccount
     ) throws Exception {
-
         if (previousAccount != null
-                && notBlank(previousAccount.getRazorpayContactId())) {
+                && notBlank(
+                        previousAccount.getRazorpayContactId()
+                )) {
 
             return previousAccount.getRazorpayContactId();
-        }
-
-        /*
-         * The active pointer may be empty while historical payout accounts
-         * still contain the creator's reusable Razorpay contact ID.
-         */
-        List<PayoutAccount> history =
-                payoutAccountRepository
-                        .findByUserOrderByCreatedAtDesc(user);
-
-        for (PayoutAccount account : history) {
-            if (notBlank(account.getRazorpayContactId())) {
-                return account.getRazorpayContactId();
-            }
         }
 
         return razorpayX.createContact(
@@ -327,12 +343,11 @@ public class CreatorPayoutService {
             String contactId,
             ValidatedPayoutDetails details
     ) throws Exception {
-
         return razorpayX.createBankFundAccount(
                 contactId,
                 details.accountHolderName(),
-                details.ifscCode(),
-                details.accountNumber()
+                details.accountNumber(),
+                details.ifscCode()
         );
     }
 
@@ -340,7 +355,6 @@ public class CreatorPayoutService {
             PayoutAccount previousAccount,
             String newFundAccountId
     ) throws Exception {
-
         if (previousAccount == null) {
             return;
         }
@@ -352,9 +366,6 @@ public class CreatorPayoutService {
             return;
         }
 
-        /*
-         * Defensive guard in case Razorpay returns/reuses the same ID.
-         */
         if (previousFundAccountId.equals(newFundAccountId)) {
             return;
         }
@@ -364,19 +375,15 @@ public class CreatorPayoutService {
                     previousFundAccountId
             );
         } catch (Exception e) {
-            /*
-             * If the old fund account no longer exists on RazorpayX
-             * (stale/deleted/expired), skip deactivation gracefully.
-             * The new fund account is already created and valid.
-             */
             String msg = e.getMessage();
 
             if (msg != null && msg.toLowerCase()
                     .contains("does not exist")) {
 
                 log.warn(
-                        "Stale RazorpayX fund account {} — "
-                                + "skipping remote deactivation: {}",
+                        "Previous RazorpayX fund account {} "
+                                + "no longer exists — skipping "
+                                + "deactivation. Original error: {}",
                         previousFundAccountId,
                         msg
                 );
@@ -431,6 +438,7 @@ public class CreatorPayoutService {
                 .razorpayContactId(contactId)
                 .razorpayFundAccountId(fundAccountId)
                 .isActive(true)
+                .payoutLocked(false)
                 .build();
     }
 
@@ -508,6 +516,11 @@ public class CreatorPayoutService {
                                 && notBlank(
                                         account.getRazorpayFundAccountId()
                                 )
+                )
+                .locked(
+                        PayoutLockWindow.isEffectivelyLocked(
+                                account.getPayoutLocked()
+                        )
                 )
                 .build();
     }

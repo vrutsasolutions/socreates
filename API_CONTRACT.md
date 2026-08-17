@@ -34,9 +34,9 @@ Legend: ✅ implemented · ⏳ planned/stub
 | POST | `/forgot-password/verify-otp` | `{ email, otp }` | `{ message, resetToken }` |
 | POST | `/forgot-password/reset` | `{ email, newPassword, resetToken }` | `{ message }` |
 
-`user` = `{ id, name, email, username, bio, profileImage, interests[], isPremium, isVerified, membership }`
+`user` = `UserDTO` (see §2).
 
-`/register`, `/login`, and `/google` embed the full `membership` shape (see §8)
+`/register`, `/login`, and `/google` embed the full `membership` shape (see §10)
 or `null` when no active membership exists. `isPremium` + `membership` survive
 logout → login cycles.
 
@@ -67,8 +67,37 @@ Login is rate-limited per email address (429 on excess attempts).
 | GET | `/search?q=` | — | `UserDTO[]` |
 | GET | `/{id}` | — | `UserDTO` |
 
-`PrivacyPreferencesDTO` = `{ activityStatus, privateProfile }`
-`NotificationPreferencesDTO` = `{ likesEnabled, commentsEnabled, followsEnabled, messagesEnabled, newIdeaAlertsEnabled }`
+### UserDTO
+
+```
+{
+  id, name, username, email, profileImage, bio, authProvider,
+  isPremium, isAdmin, ideasCount, likesCount, savedCount,
+  membership,        // membership shape (see §10) or null
+  isOnline,          // masked false when activity status is off
+  activityStatusVisible  // whether to show online/offline text at all
+}
+```
+
+`isAdmin` is a UI hint (server still independently checks `ROLE_ADMIN` on
+admin endpoints). `ideasCount`, `likesCount`, `savedCount` are aggregate
+counts populated on `GET /me` and `GET /{id}`.
+
+### PrivacyPreferencesDTO
+
+```
+{ showActivityStatus, publicProfile }
+```
+
+Note: `publicProfile` (not `privateProfile`) — `true` = public, `false` = private.
+
+### NotificationPreferencesDTO
+
+```
+{ newIdeas, likes, comments }
+```
+
+Three simple booleans matching the Settings → Notifications toggles.
 
 ---
 
@@ -83,16 +112,19 @@ Uses `X-User-Id` header (current user's UUID) on mutating/stats calls.
 | DELETE | `/followers/{followerUserId}` | — | `{ message }` (remove a follower) |
 | GET | `/{userId}/followers` | — | `FollowResponse[]` |
 | GET | `/{userId}/following` | — | `FollowResponse[]` |
-| GET | `/{targetUserId}/stats` | `X-User-Id` | `FollowStats` |
-| GET | `/requests` | — | `FollowRequest[]` (pending follow requests for private accounts) |
+| GET | `/{targetUserId}/stats` | `X-User-Id` | `FollowStatsResponse` |
+| GET | `/requests` | — | `FollowRequestDTO[]` (pending follow requests for private accounts) |
 | GET | `/requests/count` | — | `{ count }` |
 | POST | `/requests/{requestId}/accept` | — | `{ message }` |
 | POST | `/requests/{requestId}/decline` | — | `{ message }` |
 
 `FollowResponse` = `{ userId, name, username, profileImage }`
-`FollowStats` = `{ followersCount, followingCount, isFollowing }`
 
-When a target user has `privateProfile: true`, `POST /{targetUserId}` creates a
+`FollowStatsResponse` = `{ followersCount, followingCount, isFollowing, requestPending, isPublicProfile, canViewIdeas }`
+
+`FollowRequestDTO` = `{ id, userId, name, username, profileImage, bio, createdAt }`
+
+When a target user has `publicProfile: false`, `POST /{targetUserId}` creates a
 pending `FollowRequest` instead of a direct follow. The target sees it in
 `GET /requests` and can accept/decline.
 
@@ -102,26 +134,39 @@ pending `FollowRequest` instead of a direct follow. The target sees it in
 
 | Method | Path | Request | Response |
 |---|---|---|---|
-| GET | `/?sort=&category=&page=` | — | `Idea[]` |
-| GET | `/of-the-day` | — | `Idea` |
-| GET | `/premium` | — | `Idea[]` |
-| GET | `/mine` | — | `Idea[]` |
-| GET | `/saved` | — | `Idea[]` |
-| GET | `/by-user/{userId}` | — | `Idea[]` |
-| GET | `/{id}` | — | `Idea` |
-| POST | `/` | multipart: `idea` (JSON blob) + optional `images` (1–5 files) | `Idea` |
+| GET | `/?sort=&category=&page=` | — | `IdeaDTO[]` |
+| GET | `/of-the-day` | — | `IdeaDTO` |
+| GET | `/premium` | — | `IdeaDTO[]` |
+| GET | `/mine` | — | `IdeaDTO[]` |
+| GET | `/saved` | — | `IdeaDTO[]` |
+| GET | `/by-user/{userId}` | — | `IdeaDTO[]` |
+| GET | `/{id}` | — | `IdeaDTO` |
+| POST | `/` | multipart: `idea` (JSON blob) + optional `images` (1–5 files) | `IdeaDTO` |
 | DELETE | `/{id}` | — | 204 |
 | POST | `/{id}/save` | — | `{ message }` |
 | DELETE | `/{id}/save` | — | `{ message }` |
 | POST | `/{id}/like` | — | `{ message }` |
 | DELETE | `/{id}/like` | — | `{ message }` |
-| POST | `/{id}/comments` | `{ content }` | `Comment` |
-| GET | `/{id}/comments` | — | `Comment[]` |
+| POST | `/{id}/comments` | `{ content }` | `CommentDTO` |
+| GET | `/{id}/comments` | — | `CommentDTO[]` |
 | DELETE | `/comments/{commentId}` | — | 204 |
 
-`Idea` = `{ id, title, description, category, isPremium, likeCount, creatorName, creatorId, createdAt, imageUrl, imageUrls[], savedByCurrentUser, likedByCurrentUser }`
+### IdeaDTO
 
-`Comment` = `{ id, content, userId, userName, userImage, createdAt }`
+```
+{
+  id, title, description, imageUrl, imageUrls[],
+  creatorId, creatorName, creatorImage, category,
+  isPremium, likeCount, readCount, commentCount,
+  savedByCurrentUser, likedByCurrentUser, createdAt,
+  // Premium-read cap fields (set by GET /{id} only)
+  locked, lockReason, freeReadsUsed, freeReadsLimit, previewText
+}
+```
+
+`lockReason` ∈ `premium | read_limit | already_read`
+
+`CommentDTO` = `{ id, content, userId, userName, userImage, createdAt }`
 
 Multi-image: the create form sends every selected file as a repeated `images`
 part (max 5). `imageUrl` = cover image (`imageUrls[0]`), kept for backward
@@ -137,7 +182,7 @@ Free-plan users can fully read a limited number of distinct premium ideas
 
 | Method | Path | Request | Response |
 |---|---|---|---|
-| GET | `/?q=&category=&sort=` | — | `Idea[]` |
+| GET | `/?q=&category=&sort=` | — | `IdeaDTO[]` |
 
 ---
 
@@ -261,11 +306,21 @@ Access is revoked synchronously; money is refunded asynchronously via webhook.
 
 ### Membership shapes
 
-`MembershipDTO` = `{ plan, billing, gateway, planLabel, price, status, startedAt, renewsAt }`
-- `status` ∈ `active | canceled | expired`
+The membership shape embedded in `UserDTO.membership` and auth responses is
+built by `MembershipService.toMembershipShape()`:
 
-`User.membership` — embedded in all auth responses (`/register`, `/login`, `/google`)
-and `GET /api/payment/status`.
+```
+{
+  plan, billing, gateway, planLabel, price,
+  status,       // "active" | "canceled" | "expired"
+  startedAt,    // ISO date-time string
+  renewsAt      // ISO date-time string
+}
+```
+
+Note: `MembershipDTO.java` exists as a separate class with `{ id, plan, status,
+startDate, endDate }` — used internally by `GET /payment/status`. The shape above
+is what the frontend actually reads from `user.membership`.
 
 ### Membership expiry
 
@@ -281,20 +336,67 @@ where `renewsAt` has passed and revokes `isPremium`.
 | GET | `/dashboard` | — | `CreatorDashboardDTO` |
 | GET | `/earnings` | — | `CreatorEarningDTO[]` |
 | POST | `/ideas/{id}/read` | — | `{ success, message }` (increments read count) |
-| GET | `/payout-details` | — | `PayoutDetails` |
-| PUT | `/payout-details` | `PayoutDetailsRequest` | `PayoutDetails` |
+| GET | `/payout-details` | — | `PayoutDetailsResponse` |
+| PUT | `/payout-details` | `PayoutDetailsRequest` | `PayoutDetailsResponse` |
+
+### CreatorDashboardDTO
+
+```
+{
+  status:      { creatorPro, verified, premiumPublishing },
+  performance: { ideasPublished, totalReads, totalLikes, totalSaves, totalComments },
+  content:     [{ idea, reads, likes, comments, saves, score }],
+  premium:     { premiumIdeas, freeIdeas, premiumReads },
+  monthlyScore,
+  earnings:    { estimated }
+}
+```
+
+### CreatorEarningDTO
+
+```
+{
+  month,          // ISO 1st-of-month, e.g. "2026-06-01"
+  score, earning,
+  status,         // Estimating | Pending | Scheduled | Processing | Paid | Rolled_Over | Setup_Missing | Failed
+  scheduledFor,   // ISO date-time or null
+  paidAt,         // ISO date-time or null
+  destination,    // masked, e.g. "HDFC ****4321"
+  failureReason,  // null unless Failed/Setup_Missing
+  retryCount
+}
+```
 
 ### Payout details
 
-`PayoutDetailsRequest` = `{ accountName, accountNumber, ifsc }`
-(bank-only; UPI/VPA not supported)
+`PayoutDetailsRequest` = `{ legalName, mobileNumber, panNumber, accountHolderName, accountNumber, confirmAccountNumber, ifscCode, bankName, ownershipConfirmed }`
+(bank-only; UPI/VPA not supported. `legalName`, `mobileNumber`, `panNumber`,
+and `accountHolderName` are `@NotBlank`. `ownershipConfirmed` must be `true`.)
 
 Saving creates a RazorpayX contact + fund account server-side and persists
-their IDs on the user (`razorpay_contact_id`, `razorpay_fund_account_id`).
+their IDs on the payout account (`razorpay_contact_id`, `razorpay_fund_account_id`).
 
-`PayoutDetails` (response) = `{ configured, method, destination, accountName }`
+`PayoutDetailsResponse` = `{ configured, method, accountHolderName, bankName, destination, maskedPan, maskedMobile, active, verified, locked }`
 - `configured: false` when nothing saved yet
-- `destination` — masked, e.g. `"HDFC ****4321"`
+- `destination` — masked, e.g. `"XXXX XXXX 4321"`
+- `maskedPan` — e.g. `"ABCDE****F"`
+- `maskedMobile` — e.g. `"******7890"`
+- `locked: true` during payout processing window (13th 8 PM – 20th 12 AM IST).
+  PUT is rejected with 503 while locked. Frontend should disable the edit button.
+
+### Payout details lock cycle
+
+Each month, payout details follow a lock/unlock cycle to prevent mid-cycle changes:
+
+1. **10th 10 AM IST** — Early reminder email to unconfigured creators
+2. **13th 10 AM IST** — Final/urgent reminder ("fill by 8 PM today")
+3. **13th 8 PM IST** — All active payout accounts locked (`payout_locked = true`).
+   `PUT /api/creator/payout-details` returns 503 during lock window.
+4. **15th 1 AM IST** — Payout scheduling runs against locked details
+5. **20th 12 AM IST** — All payout accounts unlocked (`payout_locked = false`)
+
+Admin can override the lock for individual creators via
+`POST /api/admin/payout-accounts/{userId}/unlock`.
 
 ### Automated payouts
 
@@ -332,6 +434,19 @@ creator pool / 75% SoCreate.
 | POST | `/messages/{id}/react` | `{ emoji }` | `MessageDTO` (toggles; same emoji clears) |
 | DELETE | `/messages/{id}?scope=me\|everyone` | — | `{ message }` |
 
+### ConversationDTO
+
+```
+{
+  id, otherUserId, otherUserName, otherUserAvatar,
+  otherUserOnline, otherUserLastSeen, otherUserActivityStatusVisible,
+  otherUserVerifiedCreator,
+  lastMessage, lastMessageType, lastMessageAt, unreadCount,
+  status,       // "PENDING" | "ACCEPTED"
+  iInitiated    // true if logged-in user started this conversation
+}
+```
+
 ### Contacts & presence
 
 | Method | Path | Request | Response |
@@ -346,6 +461,8 @@ creator pool / 75% SoCreate.
 | GET | `/requests` | — | `MessageRequestDTO[]` |
 | POST | `/requests/{id}/accept` | — | `{ message }` |
 | POST | `/requests/{id}/decline` | — | `{ message }` |
+
+`MessageRequestDTO` = `{ id, fromUserId, name, avatar, preview, createdAt }`
 
 ### Block & report (within messaging)
 
@@ -378,6 +495,10 @@ Persists one `IDEA` message per recipient. Content is a JSON snapshot
 `MessageDTO` = `{ id, conversationId, senderId, senderName, senderAvatar, type, content, isRead, reaction, createdAt }`
 - `type` ∈ `TEXT | IMAGE | VOICE | FILE | IDEA | PROFILE`
 - `content` = text for TEXT, R2 URL for media, JSON snapshot for IDEA/PROFILE
+
+`ConversationMediaDTO` = `{ images: MessageDTO[], files: MessageDTO[], voiceNotes: MessageDTO[], links: LinkDTO[], totalCount }`
+
+`LinkDTO` = `{ messageId, url, senderName, createdAt }`
 
 ### Real-time (WebSocket)
 
@@ -461,6 +582,25 @@ All admin endpoints require `ROLE_ADMIN` (`@PreAuthorize`).
 |---|---|---|---|
 | DELETE | `/{id}` | `{ reason }` | `{ message }` (ban + permanent delete + email blocklist) |
 
+### Payout accounts  `/api/admin/payout-accounts`
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | `/` | — | `AdminPayoutDetailsDTO[]` |
+| POST | `/{userId}/unlock` | — | `{ message, userId, creatorName, creatorEmail }` |
+| POST | `/unlock-all` | — | `{ message, unlockedCount, unlockedUserIds[] }` |
+
+Returns all verified Creator Pro subscribers with full decrypted payout details.
+
+`AdminPayoutDetailsDTO` = `{ userId, creatorName, creatorEmail, creatorUsername, profileImage, payoutConfigured, payoutLocked, payoutAccountId, legalName, panNumber, mobileNumber, bankName, accountHolderName, accountNumber, accountNumberLast4, ifscCode, payoutMethod, razorpayContactId, razorpayFundAccountId, active, createdAt, updatedAt }`
+
+`payoutConfigured` = `true` only when method is `bank_account` and all KYC + bank
+fields are filled. Unconfigured creators have payout fields as `null`.
+
+`payoutLocked` = `true` between the 13th 8 PM IST and the 20th 12 AM IST each
+month. Admin can unlock individual accounts via `POST /{userId}/unlock` or all
+locked accounts at once via `POST /unlock-all`.
+
 ### Revenue & payouts  `/api/admin/pools`
 
 | Method | Path | Request | Response |
@@ -507,6 +647,10 @@ All admin endpoints require `ROLE_ADMIN` (`@PreAuthorize`).
 | Payout scheduling | 15th of month, 1:00 AM IST | `RevenueDistributionService` |
 | Payout processing + retry | Daily, 2:00 AM IST | `ScheduledPayoutRunner` |
 | Membership expiry | Daily, 2:30 AM IST | `MembershipExpiryService` |
+| Payout setup reminder | 10th of month, 10:00 AM IST | `PayoutSetupReminderJob` |
+| Payout setup FINAL reminder | 13th of month, 10:00 AM IST | `PayoutSetupReminderJob` |
+| Payout details LOCK | 13th of month, 8:00 PM IST | `PayoutSetupReminderJob` |
+| Payout details UNLOCK | 20th of month, 12:00 AM IST | `PayoutSetupReminderJob` |
 | Rate limiter cleanup | Hourly | `RateLimiterService` |
 
 All scheduled jobs run in-process on the single backend instance. Horizontal

@@ -27,6 +27,14 @@ public class AdminPayoutDetailsDTO {
     // ── Payout status ───────────────────────────────────────────────
     private boolean payoutConfigured;
 
+    /**
+     * Whether the payout account is currently locked for edits.
+     * True from the 13th 8 PM IST until the 20th 12:00 AM IST.
+     * Admin can unlock individual accounts via
+     * POST /api/admin/payout-accounts/{userId}/unlock.
+     */
+    private boolean payoutLocked;
+
     // ── Payout account (null when payoutConfigured = false) ─────────
     private UUID payoutAccountId;
 

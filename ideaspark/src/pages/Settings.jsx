@@ -467,25 +467,7 @@ export default function Settings() {
               }
               onClick={() => navigate("/membership")}
             />
-            {user?.isPremium && (
-              <Row
-                icon={
-                  <svg
-                    className="w-5 h-5 text-[#1565C0]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <rect x="2" y="5" width="20" height="14" rx="2" />
-                    <path d="M2 10h20" />
-                  </svg>
-                }
-                label="My Subscription"
-                sublabel="Plan details · Billing history · Cancel"
-                onClick={() => navigate("/account/subscription")}
-              />
-            )}
+
             {user?.creatorPro && (
               <Row
                 icon={

@@ -1,1 +1,1 @@
-web: java -jar ideaspark-backend-1.0.0.jar
+web: java -Xms256m -Xmx512m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -jar ideaspark-backend-1.0.0.jar

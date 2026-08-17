@@ -44,6 +44,14 @@ export const AuthProvider = ({ children }) => {
   // response interceptor only force-logs-out on a 401 from an
   // already-logged-in state, not from this best-effort probe).
   useEffect(() => {
+    // If there's no cached user this is a brand-new / logged-out visitor
+    // (onboarding, welcome, login pages). Calling /users/me without a
+    // session cookie will always 403, so skip the network round-trip and
+    // the noisy console error that comes with it. Returning users who DO
+    // have a cached user still get the server-side resync below.
+    const cached = readCachedUser()
+    if (!cached) return
+
     let cancelled = false
     fetchMe()
       .then(({ data }) => {

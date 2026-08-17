@@ -200,6 +200,20 @@ export const distributeRevenue = (month) =>
 export const getAdminPayoutAccounts = () =>
   api.get("/admin/payout-accounts");
 
+/**
+ * Admin — unlock a specific creator's payout account so they can
+ * edit their details during the lock window (13th 8 PM – 20th 12 AM).
+ */
+export const adminUnlockPayoutAccount = (userId) =>
+  api.post(`/admin/payout-accounts/${userId}/unlock`);
+
+/**
+ * Admin — unlock every currently-locked payout account in one call,
+ * instead of unlocking creators one at a time.
+ */
+export const adminUnlockAllPayoutAccounts = () =>
+  api.post(`/admin/payout-accounts/unlock-all`);
+
 function mockSavePayoutDetails(payload) {
   const accountNumber =
     String(payload.accountNumber ?? "");

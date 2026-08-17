@@ -67,6 +67,15 @@ public class PayoutAccount {
     @Builder.Default
     private Boolean isActive = true;
 
+    /**
+     * When true, the creator cannot modify their payout details.
+     * Locked on the 13th at 8 PM IST (before payout scheduling on the 15th),
+     * unlocked on the 20th at 12:00 AM IST.
+     */
+    @Column(name = "payout_locked", nullable = false)
+    @Builder.Default
+    private Boolean payoutLocked = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

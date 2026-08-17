@@ -169,6 +169,14 @@ export default function UpdateBankAccountModal({
   const handleSave = async () => {
     setError("");
 
+    // Double-check lock status in case it changed since the modal opened
+    if (current?.locked) {
+      setError(
+        "Payout details are locked for this month's payout cycle. They will be editable again after the 20th."
+      );
+      return;
+    }
+
     const validationError = validate();
 
     if (validationError) {
