@@ -34,7 +34,6 @@ export const CATEGORY_COLORS = {
   'E-commerce':              { bg: '#FFF7ED', text: '#9A3412', dot: '#F97316' },
   'Government':              { bg: '#F8FAFC', text: '#1E293B', dot: '#475569' },
   'Robotics & IoT':          { bg: '#EEF2FF', text: '#3730A3', dot: '#6366F1' },
-  'Pets & Animal Care':      { bg: '#FEFCE8', text: '#854D0E', dot: '#CA8A04' },
   'Arts & Creativity':       { bg: '#FDF2F8', text: '#831843', dot: '#EC4899' },
 };
 

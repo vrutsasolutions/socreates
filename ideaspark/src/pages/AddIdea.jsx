@@ -368,6 +368,35 @@ export default function AddIdea() {
     price: '99'
   });
 
+  // ── "Other" custom category ────────────────────────────────────────────────
+  const [customCategory, setCustomCategory] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const customCatRef = useRef(null);
+
+  useEffect(() => {
+    if (showCustomInput && customCatRef.current) customCatRef.current.focus();
+  }, [showCustomInput]);
+
+  const isCustomCategory = (cat) => cat && !CATEGORIES.includes(cat);
+
+  const handleCategoryClick = (cat) => {
+    if (cat === 'Other') {
+      setShowCustomInput(true);
+      setForm({ ...form, category: '' });
+      return;
+    }
+    setShowCustomInput(false);
+    setCustomCategory('');
+    setForm({ ...form, category: cat });
+  };
+
+  const confirmCustomCategory = () => {
+    const trimmed = customCategory.trim();
+    if (!trimmed) return;
+    setForm({ ...form, category: trimmed });
+    setShowCustomInput(false);
+  };
+
   // ── AI modal state ─────────────────────────────────────────────────────────
   const [aiModalOpen, setAiModalOpen] = useState(false);
 
@@ -695,11 +724,13 @@ export default function AddIdea() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-[230px] overflow-y-auto pr-1">
                 {CATEGORIES.map((cat) => {
                   const catColor = CATEGORY_COLORS[cat] || defaultColor;
-                  const selected = form.category === cat;
+                  const selected = cat === 'Other'
+                    ? showCustomInput || isCustomCategory(form.category)
+                    : form.category === cat;
                   return (
                     <button
                       key={cat}
-                      onClick={() => setForm({ ...form, category: cat })}
+                      onClick={() => handleCategoryClick(cat)}
                       className={`flex flex-col items-center gap-1.5 py-2.5 px-1.5 rounded-xl border transition text-center leading-tight ${
                         selected
                           ? 'bg-[#1565C0] text-white border-[#1565C0]'
@@ -720,6 +751,59 @@ export default function AddIdea() {
                   );
                 })}
               </div>
+
+              {/* Custom category input — shown when "Other" is tapped */}
+              {showCustomInput && (
+                <div className="mt-3 bg-gradient-to-br from-[#EAF2FF] to-[#F4F7FF] border border-[#BBDEFB] rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#1565C0]/10">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565C0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </span>
+                    <span className="text-xs font-bold text-[#0D2137]">Add your own category</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      ref={customCatRef}
+                      type="text"
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmCustomCategory(); } }}
+                      placeholder="e.g. Blockchain, Astronomy…"
+                      maxLength={50}
+                      className="flex-1 border border-[#BBDEFB] rounded-xl px-4 py-2.5 text-sm bg-white text-[#0D2137] placeholder:text-[#90A4AE] focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-[#1565C0]/20 transition shadow-sm"
+                    />
+                    <button
+                      onClick={confirmCustomCategory}
+                      disabled={!customCategory.trim()}
+                      className="bg-[#1565C0] hover:bg-[#0D47A1] text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 transition active:scale-95 shrink-0 shadow-sm shadow-blue-200/50"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Confirmed custom category — styled removable chip */}
+              {isCustomCategory(form.category) && !showCustomInput && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-2 bg-[#1565C0] text-white pl-3 pr-2 py-2 rounded-xl text-xs font-semibold shadow-sm shadow-blue-200/50">
+                    <span className="flex items-center justify-center w-5 h-5 rounded-md bg-white/20">
+                      <IdeaIcon category={form.category} color="#fff" size={12} />
+                    </span>
+                    {form.category}
+                    <button
+                      onClick={() => { setForm({ ...form, category: '' }); setShowCustomInput(false); setCustomCategory(''); }}
+                      className="ml-1 w-5 h-5 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 transition"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -36,7 +36,6 @@ export function IdeaIcon({ category, color = '#4F62F5', size = 26 }) {
     'E-commerce': (<><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 01-8 0" /></>),
     'Government': (<><path d="M3 21h18" /><path d="M4 10h16" /><path d="M12 3l9 5H3l9-5z" /><path d="M6 10v9M10 10v9M14 10v9M18 10v9" /></>),
     'Robotics & IoT': (<><rect x="5" y="8" width="14" height="10" rx="2" /><circle cx="9" cy="13" r="1" /><circle cx="15" cy="13" r="1" /><path d="M9 18v2M15 18v2M12 8V4M9 4h6" /></>),
-    'Pets & Animal Care': (<><circle cx="6" cy="8" r="2" /><circle cx="10" cy="5" r="2" /><circle cx="14" cy="5" r="2" /><circle cx="18" cy="8" r="2" /><path d="M12 12c-3 0-6 2-6 5a3 3 0 003 3c1 0 1.5-.5 3-.5s2 .5 3 .5a3 3 0 003-3c0-3-3-5-6-5z" /></>),
     'Arts & Creativity': (<><circle cx="12" cy="12" r="10" /><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32" /></>),
   };
 

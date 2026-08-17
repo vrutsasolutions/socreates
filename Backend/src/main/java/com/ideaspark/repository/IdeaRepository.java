@@ -53,6 +53,18 @@ public interface IdeaRepository extends JpaRepository<Idea, UUID> {
            "AND i.category = :category ORDER BY i.createdAt DESC")
     List<Idea> searchIdeasWithCategory(@Param("q") String q, @Param("category") String category);
 
+    // "Other" catch-all — ideas whose category is NOT in the preset list
+    @Query("SELECT i FROM Idea i WHERE i.category NOT IN :presetCategories ORDER BY i.createdAt DESC")
+    List<Idea> findByOtherCategoryOrderByCreatedAtDesc(@Param("presetCategories") List<String> presetCategories);
+
+    // Search + "Other" catch-all
+    @Query("SELECT i FROM Idea i WHERE " +
+           "(LOWER(i.title) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(i.description) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(i.creator.name) LIKE LOWER(CONCAT('%', :q, '%'))) " +
+           "AND i.category NOT IN :presetCategories ORDER BY i.createdAt DESC")
+    List<Idea> searchIdeasWithOtherCategory(@Param("q") String q, @Param("presetCategories") List<String> presetCategories);
+
     // For plagiarism check — get all descriptions
     @Query("SELECT i.description FROM Idea i")
     List<String> findAllDescriptions();
