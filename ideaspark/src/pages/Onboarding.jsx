@@ -72,7 +72,7 @@ export default function Onboarding() {
       return;
     }
     if (localStorage.getItem(ONBOARDING_SEEN_KEY)) {
-      navigate('/welcome', { replace: true });
+      navigate('/login', { replace: true });
     }
   }, [user, navigate]);
 
@@ -88,7 +88,7 @@ export default function Onboarding() {
   const next = () => {
     if (isLast) {
       markSeen();
-      navigate('/welcome');
+      navigate('/login');
     } else {
       setStep((s) => Math.min(s + 1, total - 1));
     }
@@ -96,7 +96,7 @@ export default function Onboarding() {
 
   const skip = () => {
     markSeen();
-    navigate('/welcome');
+    navigate('/login');
   };
 
   const onTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
@@ -186,7 +186,7 @@ export default function Onboarding() {
 
         {current.cta ? (
           <button
-            onClick={() => { markSeen(); navigate('/welcome'); }}
+            onClick={() => { markSeen(); navigate('/login'); }}
             className="w-full bg-white text-[#1565C0] font-bold py-4
                        rounded-2xl text-sm active:scale-95 transition-all
                        shadow-lg shadow-black/20"
