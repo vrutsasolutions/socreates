@@ -19,6 +19,7 @@ export default function FollowCreators() {
   const navigate = useNavigate();
   const [creators, setCreators]     = useState([]);
   const [followed, setFollowed]     = useState(new Set());   // Set<id> for O(1) lookup
+  const [requested, setRequested]   = useState(new Set());   // Set<id> — pending request (private accounts)
   const [busyIds, setBusyIds]       = useState(new Set());   // ids with in-flight requests
   const [loading, setLoading]       = useState(true);
   // Map of userId → ideaCount, loaded separately so the list renders fast
@@ -79,41 +80,51 @@ export default function FollowCreators() {
     if (busyIds.has(id)) return; // debounce double-taps
 
     const wasFollowing = followed.has(id);
+    const wasRequested = requested.has(id);
 
     // Optimistic UI update
-    setFollowed((prev) => {
-      const next = new Set(prev);
-      wasFollowing ? next.delete(id) : next.add(id);
-      return next;
-    });
+    if (wasFollowing || wasRequested) {
+      // Un-follow or cancel request
+      setFollowed((prev) => { const n = new Set(prev); n.delete(id); return n; });
+      setRequested((prev) => { const n = new Set(prev); n.delete(id); return n; });
+    } else {
+      setFollowed((prev) => new Set(prev).add(id));
+    }
     setBusyIds((prev) => new Set(prev).add(id));
 
     try {
-      const { data } = wasFollowing
+      const { data } = (wasFollowing || wasRequested)
         ? await unfollowUser(id)
         : await followUser(id);
 
-      // A private creator returns REQUESTED, not FOLLOWING — the optimistic
-      // tick above was wrong in that case, so roll it back. Onboarding
-      // deliberately doesn't grow a third "Requested" pill: the request IS
-      // sent and lives on the creator's approval queue, and adding a new
-      // state to the signup flow to explain it would cost more than it's
-      // worth. The user sees the real state on that creator's profile.
-      if (!wasFollowing && data?.status !== 'FOLLOWING'
-          && data?.status !== 'ALREADY_FOLLOWING') {
-        setFollowed((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
+      console.log('[FollowCreators] follow/unfollow response:', id, data);
+
+      if (!wasFollowing && !wasRequested) {
+        // We just tried to follow — inspect the outcome
+        if (data?.status === 'FOLLOWING' || data?.status === 'ALREADY_FOLLOWING') {
+          // Optimistic update was correct — keep it
+          setRequested((prev) => { const n = new Set(prev); n.delete(id); return n; });
+        } else if (data?.status === 'REQUESTED' || data?.status === 'ALREADY_REQUESTED') {
+          // Private account — move from followed → requested
+          setFollowed((prev) => { const n = new Set(prev); n.delete(id); return n; });
+          setRequested((prev) => new Set(prev).add(id));
+        } else {
+          // Unexpected status — roll back
+          console.warn('[FollowCreators] unexpected status:', data?.status);
+          setFollowed((prev) => { const n = new Set(prev); n.delete(id); return n; });
+        }
       }
-    } catch {
+      // For unfollow: optimistic removal already happened, nothing more to do
+    } catch (err) {
+      console.error('[FollowCreators] follow/unfollow failed:', id, err?.response?.status, err?.response?.data || err.message);
       // Revert on failure
-      setFollowed((prev) => {
-        const next = new Set(prev);
-        wasFollowing ? next.add(id) : next.delete(id);
-        return next;
-      });
+      if (wasFollowing) {
+        setFollowed((prev) => new Set(prev).add(id));
+      } else if (wasRequested) {
+        setRequested((prev) => new Set(prev).add(id));
+      } else {
+        setFollowed((prev) => { const n = new Set(prev); n.delete(id); return n; });
+      }
     } finally {
       setBusyIds((prev) => {
         const next = new Set(prev);
@@ -121,7 +132,7 @@ export default function FollowCreators() {
         return next;
       });
     }
-  }, [followed, busyIds]);
+  }, [followed, requested, busyIds]);
 
   /* ── Finish — belt-and-suspenders bulk-follow for any remaining ones ─
      Uses the correct `creatorIds` key (bug fix: was sending `userIds`)
@@ -194,8 +205,9 @@ export default function FollowCreators() {
                   </div>
                 ))
               : creators.map((creator) => {
-                  const isFollowed = followed.has(creator.id);
-                  const isBusy    = busyIds.has(creator.id);
+                  const isFollowed  = followed.has(creator.id);
+                  const isRequested = requested.has(creator.id);
+                  const isBusy     = busyIds.has(creator.id);
                   const count     = resolveCount(creator);
                   const countReady = ideaCounts[creator.id] !== undefined;
 
@@ -245,13 +257,17 @@ export default function FollowCreators() {
                         disabled={isBusy}
                         className={`shrink-0 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95
                           ${isBusy ? 'opacity-60 cursor-not-allowed' : ''}
-                          ${isFollowed
+                          ${(isFollowed || isRequested)
                             ? 'bg-[#E3F2FD] text-[#1565C0] border border-[#1565C0]'
                             : 'bg-[#1565C0] text-white hover:bg-[#0D47A1]'}`}
                       >
                         {isBusy
                           ? '...'
-                          : isFollowed ? '✓ Following' : 'Follow'}
+                          : isFollowed
+                            ? '✓ Following'
+                            : isRequested
+                              ? '⏳ Requested'
+                              : 'Follow'}
                       </button>
                     </div>
                   );
@@ -264,9 +280,11 @@ export default function FollowCreators() {
               onClick={handleFinish}
               className="w-full bg-[#1565C0] hover:bg-[#0D47A1] text-white font-semibold py-4 rounded-2xl transition-all active:scale-[0.97] shadow-md shadow-blue-200 text-[15px]"
             >
-              {followed.size > 0 ? `Following ${followed.size} · Go to Feed →` : 'Skip for now →'}
+              {(followed.size + requested.size) > 0
+                ? `Following ${followed.size + requested.size} · Go to Feed →`
+                : 'Skip for now →'}
             </button>
-            {followed.size === 0 && (
+            {(followed.size + requested.size) === 0 && (
               <p className="text-center text-[#90A4AE] text-sm mt-3">
                 You can follow creators from the feed anytime
               </p>
