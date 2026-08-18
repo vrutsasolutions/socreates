@@ -18,7 +18,7 @@ public class AiService {
     private String groqApiKey;
 
     private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-    private static final String MODEL = "llama-3.3-70b-versatile";
+    private static final String MODEL = "openai/gpt-oss-120b";
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
