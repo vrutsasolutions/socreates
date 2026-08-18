@@ -107,7 +107,15 @@ export const AuthProvider = ({ children }) => {
       console.error('[logout] failed to revoke session server-side', err)
     )
 
+    // Preserve the "onboarding seen" flag across sign-out — a returning
+    // user shouldn't be shown the onboarding carousel again, they should
+    // land straight on Login (see Onboarding.jsx). Everything else
+    // (auth/user data, cached tokens, etc.) still gets wiped.
+    const onboardingSeen = localStorage.getItem('sc_onboarding_seen')
     localStorage.clear()
+    if (onboardingSeen) {
+      localStorage.setItem('sc_onboarding_seen', onboardingSeen)
+    }
     setUser(null)
   }
 

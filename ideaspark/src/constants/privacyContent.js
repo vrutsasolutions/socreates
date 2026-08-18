@@ -11,7 +11,7 @@ export const PRIVACY_SECTIONS = [
       `Profile information: bio, profile photo, and the interests you select during onboarding.`,
       `Content: ideas, images, comments, likes, saves, and direct messages (including images, voice notes, and files you share in chat).`,
       `Subscription details: your chosen plan (Go Premium or Creators Pro), billing cycle, and payment confirmation identifiers returned by our payment gateways.`,
-      `Payout details (creators only): your legal name, mobile number, and PAN, together with your bank account name, account number, and IFSC code. These are used to send your earnings and to meet tax and regulatory reporting obligations (such as TDS). We store your PAN and bank destination in masked form; we never display your full PAN. Payout disbursement is not yet active — see "How We Share Information" for details on when and how a payout partner will be engaged.`,
+      `Payout details (creators only): your legal name, mobile number, and PAN, together with your bank account name, account number, and IFSC code. Once a payout has been sent, we also retain the bank transaction reference (UTR / transaction ID) returned by our bank. These are used to send your earnings from Vrutsa Solutions' company bank account and to meet tax and regulatory reporting obligations (such as TDS) in accordance with Reserve Bank of India (RBI) guidelines. We store your PAN and bank account details in masked form; we never display your full PAN.`,
       `Support and verification information you provide, such as messages to our team or documents for creator verification.`,
     ],
   },
@@ -27,7 +27,7 @@ export const PRIVACY_SECTIONS = [
     heading: 'Information from Third Parties',
     bullets: [
       `If you sign in with Google, we receive your name, email address, and profile photo from your Google account.`,
-      `Our payment gateways (Razorpay) send us confirmation of successful payments, including order, payment, and subscription identifiers; we never receive or store your full card number, CVV.`,
+      `Our payment gateway (Razorpay) sends us confirmation of successful payments, including order, payment, and subscription identifiers; we never receive or store your full card number or CVV.`,
     ],
   },
   {
@@ -36,8 +36,8 @@ export const PRIVACY_SECTIONS = [
       `To create and secure your account, verify your email via OTP, and let you sign in.`,
       `To publish your ideas to other members, and to power comments, likes, follows, search, and direct messaging.`,
       `To process subscription payments, manage renewals and cancellations, and unlock premium content and creator tools.`,
-      `To calculate Revenue Pool Sharing distributions, assess payout eligibility, and display creator earnings; once the payout service is activated, to process automatic payouts to your saved bank destination.`,
-      `To meet tax and regulatory obligations, including using your PAN and legal name for TDS and payout reporting where applicable.`,
+      `To calculate Revenue Pool Sharing distributions, assess payout eligibility, display creator earnings, and process payouts to your saved bank account through Vrutsa Solutions' company net-banking bulk-payment facility.`,
+      `To meet tax and regulatory obligations, including using your PAN and legal name for TDS and payout reporting where applicable, and to comply with applicable RBI guidelines.`,
       `To provide AI features: when you use idea generation, enhancement, summarization, categorization, or the AI assistant, the text you submit is processed by our AI provider to return a result; we do not use your private messages to train AI models.`,
       `To recommend ideas and creators based on your interests and activity.`,
       `To send service notifications (in-app and email) about your account, payments, and security, and, with your consent, product updates.`,
@@ -49,7 +49,7 @@ export const PRIVACY_SECTIONS = [
     bullets: [
       `We do not sell your personal data or your ideas.`,
       `Ideas you post publicly, along with your username, profile photo, and follower counts, are visible to other members by design; direct messages are visible to their participants.`,
-      `Payment processing: Razorpay processes subscription payments. We do not currently share creator payout details with any payout partner. When the payout service is activated, we will use a licensed payout provider (currently expected to be RazorpayX, Cashfree Payouts, or Easebuzz) to disburse earnings; each such provider acts under its own privacy policy.`,
+      `Payment processing: Razorpay processes subscription payments (money in) and acts under its own privacy policy. Creator payouts (money out) are sent from Vrutsa Solutions' own company bank account using our bank's net-banking bulk-payment facility. We do not use a third-party payout aggregator (such as RazorpayX, Cashfree Payouts, or Easebuzz) to disburse creator earnings, and we do not share your payout details with any such aggregator. Your bank account name, account number, IFSC code, and PAN are shared only with our own bank as part of a routine bank transfer, in the same way any account holder instructs their bank to make a payment.`,
       `Service providers: we use trusted infrastructure providers to host the Platform and database and to store and deliver uploaded images and media; they process data only on our instructions.`,
       `AI processing: prompts and content you submit to AI features are shared with Groq to generate the response.`,
       `Legal reasons: we may disclose information where required by law, court order, or a lawful request from government authorities, or to protect the rights, safety, and security of SoCreate and its members.`,
@@ -69,7 +69,7 @@ export const PRIVACY_SECTIONS = [
     bullets: [
       `Account, profile, and content data is retained while your account is active.`,
       `If you delete a post, a message (for everyone), or your account, we delete or de-identify the associated data within a reasonable period, except where a copy must be retained for legal, tax, accounting, fraud-prevention, or dispute purposes.`,
-      `Payment and payout records, including PAN and payout destination data, are retained as required by Indian tax and financial regulations.`,
+      `Payment and payout records, including PAN, bank account details, and transaction references, are retained as required by Indian tax, banking, and financial regulations.`,
       `Backups are purged on a rolling schedule after deletion.`,
     ],
   },
@@ -78,7 +78,7 @@ export const PRIVACY_SECTIONS = [
     bullets: [
       `Data is encrypted in transit (HTTPS/TLS) and at rest.`,
       `Passwords are stored as salted hashes, and payment card details never touch our servers.`,
-      `Access to personal data is restricted to authorized personnel on a need-to-know basis.`,
+      `Access to personal data, and in particular to creator PAN and bank account information, is restricted to authorized personnel on a need-to-know basis, consistent with RBI expectations for handling sensitive financial data.`,
       `Profiles are verified server-side before any premium access or payout is granted.`,
       `No system is completely secure; if we become aware of a personal data breach affecting you, we will notify you and the relevant authorities as required by law.`,
     ],

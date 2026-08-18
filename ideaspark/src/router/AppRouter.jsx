@@ -9,8 +9,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationToasts from "../components/common/NotificationToasts";
 import usePushNotifications from "../hooks/usePushNotifications";
-
-import Welcome from "../pages/Welcome";
 import Onboarding from "../pages/Onboarding";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
@@ -45,7 +43,6 @@ import IdeaDetail from "../pages/IdeaDetail";
 import PremiumDetail from "../pages/PremiumDetail";
 import GetVerified from "../pages/GetVerified";
 import CreatePremiumIdea from "../pages/CreatePremiumIdea";
-
 import EditProfile from "../pages/EditProfile";
 import FollowList from "../pages/FollowList";
 import SavedIdeas from "../pages/SavedIdeas";
@@ -98,8 +95,6 @@ export default function AppRouter() {
 
       <Routes>
         <Route path="/" element={<Onboarding />} />
-        
-        <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
         <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
         <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
