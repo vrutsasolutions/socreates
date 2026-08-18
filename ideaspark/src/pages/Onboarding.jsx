@@ -72,6 +72,9 @@ export default function Onboarding() {
       return;
     }
     if (localStorage.getItem(ONBOARDING_SEEN_KEY)) {
+      // Onboarding already seen on this device — this is a returning user
+      // (e.g. they just signed out), so skip straight to Login rather than
+      // Signup.
       navigate('/login', { replace: true });
     }
   }, [user, navigate]);
@@ -82,13 +85,13 @@ export default function Onboarding() {
   const markSeen = () => {
     try {
       localStorage.setItem(ONBOARDING_SEEN_KEY, '1');
-    } catch {}
+    } catch { /* empty */ }
   };
 
   const next = () => {
     if (isLast) {
       markSeen();
-      navigate('/login');
+      navigate('/register');
     } else {
       setStep((s) => Math.min(s + 1, total - 1));
     }
@@ -96,7 +99,7 @@ export default function Onboarding() {
 
   const skip = () => {
     markSeen();
-    navigate('/login');
+    navigate('/register');
   };
 
   const onTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
@@ -186,7 +189,7 @@ export default function Onboarding() {
 
         {current.cta ? (
           <button
-            onClick={() => { markSeen(); navigate('/login'); }}
+            onClick={() => { markSeen(); navigate('/register'); }}
             className="w-full bg-white text-[#1565C0] font-bold py-4
                        rounded-2xl text-sm active:scale-95 transition-all
                        shadow-lg shadow-black/20"
