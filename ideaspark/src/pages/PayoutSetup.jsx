@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getPayoutDetails, savePayoutDetails } from "../api/paymentApi";
 import { isPayoutComplete } from "../utils/payoutStatus";
-import { lookupBankName } from "../utils/ifscLookup";
+import {
+  lookupBranchDetails,
+  runPayoutValidations,
+} from "../utils/payoutValidation";
 
 /**
  * Full-page payout setup form — first-time only.
@@ -16,6 +19,12 @@ import { lookupBankName } from "../utils/ifscLookup";
  *   2. Bank — account number, confirm, IFSC, bank name (auto-filled from IFSC)
  *                   (account number, confirm, IFSC, bank name auto-filled)
  *   3. Tax        — PAN, ownership confirmation checkbox
+ *
+ * Enhanced validation (Aug 2026):
+ *   - IFSC → full branch details card (bank + branch + city/state)
+ *   - PAN 5th-character cross-checked against legal name surname
+ *   - Bank-specific account number length validation
+ *   - Warnings are dismissible (user can acknowledge and proceed)
  *
  * Layout: a single rounded white "card" (header + form) sits on a light
  * page background (no dark backdrop). On phones the card fills nearly
@@ -37,6 +46,11 @@ export default function PayoutSetup() {
   const [ifscLookupBusy, setIfscLookupBusy] = useState(false);
   const [locked, setLocked] = useState(false);
 
+  // Enhanced validation state
+  const [branchDetails, setBranchDetails] = useState(null);
+  const [warnings, setWarnings] = useState([]); // { field, message }[]
+  const [warningsDismissed, setWarningsDismissed] = useState(false);
+
   const [form, setForm] = useState({
     legalName: "",
     email: "",
@@ -54,6 +68,11 @@ export default function PayoutSetup() {
   const set = (k) => (e) => {
     const v = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setForm((f) => ({ ...f, [k]: v }));
+
+    // Reset dismissed warnings when user changes a field that had a warning
+    if (warnings.some((w) => w.field === k)) {
+      setWarningsDismissed(false);
+    }
   };
 
   const load = useCallback(async () => {
@@ -62,14 +81,6 @@ export default function PayoutSetup() {
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
       setForm((f) => ({ ...f, email: storedUser?.email ?? "" }));
 
-      // If details already exist AND are fully filled in, this creator
-      // arrived here by mistake (e.g. a stale bookmark) — bounce them to
-      // Settings. But if they're only partially set up (backend says
-      // configured because Razorpay is linked, but legal name / mobile /
-      // PAN are blank), we MUST let them in so they can finish. Using the
-      // raw `configured` flag here caused a redirect loop with the
-      // Settings page's "Set up payout details" button, since both sides
-      // thought the other should handle it.
       const { data } = await getPayoutDetails();
       if (data?.locked) setLocked(true);
       if (isPayoutComplete(data) && !fromPurchase) {
@@ -88,22 +99,26 @@ export default function PayoutSetup() {
     load();
   }, [load]);
 
-  // Best-effort IFSC → bank name lookup, debounced.
-  // Uses lookupBankName() which tries three sources in sequence:
-  //   1. Razorpay IFSC API  (fast, covers most private banks)
-  //   2. bankifsccode.com   (RBI-sourced; covers PSBs, merged banks like UBI)
-  //   3. Local prefix map   (offline fallback for ~40 common banks)
-  // Never blocks form submission — bank name field stays manually editable.
+  // ── Enhanced IFSC lookup — fetches full branch details ──────────────
   useEffect(() => {
     if (ifscDebounce.current) clearTimeout(ifscDebounce.current);
     const code = form.ifsc.trim().toUpperCase();
-    if (code.length !== 11) return;
+
+    if (code.length !== 11) {
+      setBranchDetails(null);
+      return;
+    }
 
     ifscDebounce.current = setTimeout(async () => {
       setIfscLookupBusy(true);
       try {
-        const name = await lookupBankName(code);
-        if (name) setForm((f) => ({ ...f, bankName: name }));
+        const details = await lookupBranchDetails(code);
+        if (details) {
+          setForm((f) => ({ ...f, bankName: details.bank }));
+          setBranchDetails(details);
+        } else {
+          setBranchDetails(null);
+        }
       } finally {
         setIfscLookupBusy(false);
       }
@@ -136,12 +151,37 @@ export default function PayoutSetup() {
 
   const handleSubmit = async () => {
     setError("");
+    setWarnings([]);
+
     const v = validate();
     if (v) {
       setError(v);
       return;
     }
 
+    // ── Run enhanced validations ─────────────────────────────────────
+    const issues = runPayoutValidations({
+      pan: form.pan.trim().toUpperCase(),
+      legalName: form.legalName.trim(),
+      accountNumber: form.accountNumber.trim(),
+      ifscCode: form.ifsc.trim().toUpperCase(),
+    });
+
+    // Hard errors — block submission
+    const errors = issues.filter((i) => i.severity === "error");
+    if (errors.length > 0) {
+      setError(errors[0].message);
+      return;
+    }
+
+    // Soft warnings — show once, user must dismiss before retrying
+    const newWarnings = issues.filter((i) => i.severity === "warning");
+    if (newWarnings.length > 0 && !warningsDismissed) {
+      setWarnings(newWarnings);
+      return;
+    }
+
+    // ── All checks passed — save ─────────────────────────────────────
     const payload = {
       legalName: form.legalName.trim(),
       panNumber: form.pan.trim().toUpperCase(),
@@ -158,8 +198,6 @@ export default function PayoutSetup() {
     setBusy(true);
     try {
       await savePayoutDetails(payload);
-      // Flip the header tick to green so the user gets a moment of
-      // "yes, saved" feedback before we route them away.
       setSaved(true);
       await new Promise((r) => setTimeout(r, 700));
       navigate(fromPurchase ? "/creator-dashboard" : "/payout-settings", {
@@ -180,8 +218,6 @@ export default function PayoutSetup() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FF]">
-      {/* The card — header + form. Fills the viewport edge-to-edge on
-          every screen size, phone through desktop. */}
       <div className="w-full min-h-screen bg-white flex flex-col">
         {/* ── Header ───────────────────────────────────────────────── */}
         <header className="bg-[#1565C0] px-5 sm:px-8 lg:px-10 pt-6 lg:pt-8 pb-7 lg:pb-9 shrink-0">
@@ -250,6 +286,59 @@ export default function PayoutSetup() {
                 {error && (
                   <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-sm rounded-xl px-3.5 py-2.5">
                     {error}
+                  </div>
+                )}
+
+                {/* ── Dismissible warnings ──────────────────────────── */}
+                {warnings.length > 0 && !warningsDismissed && (
+                  <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl px-4 py-3.5 space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <svg
+                        className="w-5 h-5 text-[#D97706] shrink-0 mt-0.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                        />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-[#92400E]">
+                          Please review the following
+                        </p>
+                        {warnings.map((w, i) => (
+                          <p
+                            key={i}
+                            className="text-sm text-[#B45309] mt-1.5 leading-relaxed"
+                          >
+                            {w.message}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWarningsDismissed(true);
+                          setWarnings([]);
+                        }}
+                        className="flex-1 rounded-lg bg-[#D97706] hover:bg-[#B45309] text-white text-sm font-semibold py-2 transition-colors"
+                      >
+                        I've verified — proceed anyway
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWarnings([])}
+                        className="flex-1 rounded-lg border border-[#FDE68A] bg-white text-[#92400E] text-sm font-semibold py-2 hover:bg-[#FFFBEB] transition-colors"
+                      >
+                        Let me fix it
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -367,6 +456,11 @@ export default function PayoutSetup() {
                           )}
                         </div>
                       </Field>
+
+                      {/* ── Branch confirmation card ─────────────────── */}
+                      {branchDetails && branchDetails.branch && (
+                        <BranchDetailsCard details={branchDetails} />
+                      )}
                   </div>
                 </div>
 
@@ -433,6 +527,65 @@ function Field({ label, children, className = "" }) {
       </span>
       {children}
     </label>
+  );
+}
+
+/**
+ * Shows full branch details fetched from the IFSC lookup so the user can
+ * visually confirm their branch. If they see a branch they don't recognize,
+ * they know the IFSC is wrong — without us hitting any paid API.
+ */
+function BranchDetailsCard({ details }) {
+  const { bank, branch, city, state, address, imps } = details;
+
+  // Build location string from available parts
+  const locationParts = [city, state].filter(Boolean);
+  const location = locationParts.join(", ");
+
+  return (
+    <div className="rounded-xl border border-[#C8E6C9] bg-[#F1F8E9] px-4 py-3">
+      <div className="flex items-start gap-2.5">
+        <svg
+          className="w-5 h-5 text-[#4CAF50] shrink-0 mt-0.5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-[#2E7D32]">
+            Branch identified
+          </p>
+          <p className="text-sm text-[#33691E] mt-1 font-medium">{bank}</p>
+          {branch && (
+            <p className="text-xs text-[#558B2F] mt-0.5">{branch}</p>
+          )}
+          {location && (
+            <p className="text-xs text-[#558B2F] mt-0.5">{location}</p>
+          )}
+          {address && address !== branch && (
+            <p className="text-xs text-[#689F38] mt-0.5 leading-relaxed">
+              {address}
+            </p>
+          )}
+          {imps === false && (
+            <p className="text-xs text-[#E65100] mt-1.5 font-medium">
+              ⚠ This branch does not support IMPS transfers. Payouts may be
+              processed via NEFT (slower).
+            </p>
+          )}
+          <p className="text-[11px] text-[#7CB342] mt-2">
+            Please confirm this is your bank branch.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
