@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { savePayoutDetails } from "../api/paymentApi";
-import { lookupBankName } from "../utils/ifscLookup";
+import {
+  lookupBranchDetails,
+  runPayoutValidations,
+} from "../utils/payoutValidation";
 
 /**
  * Change-bank-account modal.
@@ -10,6 +13,12 @@ import { lookupBankName } from "../utils/ifscLookup";
  *
  * The backend creates a new RazorpayX fund account, deactivates the previous
  * account and preserves payout-account history.
+ *
+ * Enhanced validation (Aug 2026):
+ *   - IFSC → full branch details card (bank + branch + city/state)
+ *   - PAN 5th-character cross-checked against legal name surname
+ *   - Bank-specific account number length validation
+ *   - Warnings are dismissible (user can acknowledge and proceed)
  */
 export default function UpdateBankAccountModal({
   isOpen,
@@ -20,6 +29,11 @@ export default function UpdateBankAccountModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [ifscLookupBusy, setIfscLookupBusy] = useState(false);
+
+  // Enhanced validation state
+  const [branchDetails, setBranchDetails] = useState(null);
+  const [warnings, setWarnings] = useState([]);
+  const [warningsDismissed, setWarningsDismissed] = useState(false);
 
   const [form, setForm] = useState({
     legalName: "",
@@ -41,6 +55,9 @@ export default function UpdateBankAccountModal({
     }
 
     setError("");
+    setWarnings([]);
+    setWarningsDismissed(false);
+    setBranchDetails(null);
 
     setForm({
       legalName: "",
@@ -58,6 +75,7 @@ export default function UpdateBankAccountModal({
     });
   }, [isOpen, current]);
 
+  // ── Enhanced IFSC lookup — fetches full branch details ──────────────
   useEffect(() => {
     if (!isOpen) {
       return undefined;
@@ -70,6 +88,7 @@ export default function UpdateBankAccountModal({
     const code = form.ifsc.trim().toUpperCase();
 
     if (code.length !== 11) {
+      setBranchDetails(null);
       return undefined;
     }
 
@@ -77,14 +96,14 @@ export default function UpdateBankAccountModal({
       setIfscLookupBusy(true);
 
       try {
-        // lookupBankName tries: Razorpay API → bankifsccode.com → local prefix map
-        // This covers PSBs, merged banks (e.g. UBI), co-ops, and all major private banks.
-        const name = await lookupBankName(code);
-        if (name) {
-          setForm((previous) => ({ ...previous, bankName: name }));
+        const details = await lookupBranchDetails(code);
+        if (details) {
+          setForm((previous) => ({ ...previous, bankName: details.bank }));
+          setBranchDetails(details);
+        } else {
+          setBranchDetails(null);
         }
       } finally {
-        // IFSC lookup is best-effort. Manual bank-name entry remains available.
         setIfscLookupBusy(false);
       }
     }, 500);
@@ -112,6 +131,11 @@ export default function UpdateBankAccountModal({
         ...previous,
         [field]: value,
       }));
+
+      // Reset dismissed warnings when user changes a field that had a warning
+      if (warnings.some((w) => w.field === field)) {
+        setWarningsDismissed(false);
+      }
     };
 
   const validate = () => {
@@ -168,6 +192,7 @@ export default function UpdateBankAccountModal({
 
   const handleSave = async () => {
     setError("");
+    setWarnings([]);
 
     // Double-check lock status in case it changed since the modal opened
     if (current?.locked) {
@@ -184,6 +209,29 @@ export default function UpdateBankAccountModal({
       return;
     }
 
+    // ── Run enhanced validations ─────────────────────────────────────
+    const issues = runPayoutValidations({
+      pan: form.panNumber.trim().toUpperCase(),
+      legalName: form.legalName.trim(),
+      accountNumber: form.accountNumber.replace(/\D/g, ""),
+      ifscCode: form.ifsc.trim().toUpperCase(),
+    });
+
+    // Hard errors — block submission
+    const errors = issues.filter((i) => i.severity === "error");
+    if (errors.length > 0) {
+      setError(errors[0].message);
+      return;
+    }
+
+    // Soft warnings — show once, user must dismiss before retrying
+    const newWarnings = issues.filter((i) => i.severity === "warning");
+    if (newWarnings.length > 0 && !warningsDismissed) {
+      setWarnings(newWarnings);
+      return;
+    }
+
+    // ── All checks passed — save ─────────────────────────────────────
     setBusy(true);
 
     try {
@@ -302,6 +350,59 @@ export default function UpdateBankAccountModal({
             </div>
           )}
 
+          {/* ── Dismissible warnings ──────────────────────────────── */}
+          {warnings.length > 0 && !warningsDismissed && (
+            <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl px-4 py-3.5 space-y-3">
+              <div className="flex items-start gap-2.5">
+                <svg
+                  className="w-5 h-5 text-[#D97706] shrink-0 mt-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                  />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#92400E]">
+                    Please review the following
+                  </p>
+                  {warnings.map((w, i) => (
+                    <p
+                      key={i}
+                      className="text-sm text-[#B45309] mt-1.5 leading-relaxed"
+                    >
+                      {w.message}
+                    </p>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWarningsDismissed(true);
+                    setWarnings([]);
+                  }}
+                  className="flex-1 rounded-lg bg-[#D97706] hover:bg-[#B45309] text-white text-sm font-semibold py-2 transition-colors"
+                >
+                  I've verified — proceed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWarnings([])}
+                  className="flex-1 rounded-lg border border-[#FDE68A] bg-white text-[#92400E] text-sm font-semibold py-2 hover:bg-[#FFFBEB] transition-colors"
+                >
+                  Let me fix it
+                </button>
+              </div>
+            </div>
+          )}
+
           <section className="space-y-3.5">
             <h3 className="text-sm font-bold text-[#0D2137]">
               Identity details
@@ -402,6 +503,11 @@ export default function UpdateBankAccountModal({
                 className={inputClass}
               />
             </Field>
+
+            {/* ── Branch confirmation card ─────────────────────────── */}
+            {branchDetails && branchDetails.branch && (
+              <BranchDetailsCard details={branchDetails} />
+            )}
           </section>
 
           <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#BBDEFB] bg-white px-4 py-3">
@@ -458,5 +564,61 @@ function Field({ label, children }) {
 
       {children}
     </label>
+  );
+}
+
+/**
+ * Shows full branch details fetched from the IFSC lookup so the user can
+ * visually confirm their branch.
+ */
+function BranchDetailsCard({ details }) {
+  const { bank, branch, city, state, address, imps } = details;
+  const locationParts = [city, state].filter(Boolean);
+  const location = locationParts.join(", ");
+
+  return (
+    <div className="rounded-xl border border-[#C8E6C9] bg-[#F1F8E9] px-4 py-3">
+      <div className="flex items-start gap-2.5">
+        <svg
+          className="w-5 h-5 text-[#4CAF50] shrink-0 mt-0.5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-[#2E7D32]">
+            Branch identified
+          </p>
+          <p className="text-sm text-[#33691E] mt-1 font-medium">{bank}</p>
+          {branch && (
+            <p className="text-xs text-[#558B2F] mt-0.5">{branch}</p>
+          )}
+          {location && (
+            <p className="text-xs text-[#558B2F] mt-0.5">{location}</p>
+          )}
+          {address && address !== branch && (
+            <p className="text-xs text-[#689F38] mt-0.5 leading-relaxed">
+              {address}
+            </p>
+          )}
+          {imps === false && (
+            <p className="text-xs text-[#E65100] mt-1.5 font-medium">
+              ⚠ This branch does not support IMPS transfers. Payouts may be
+              processed via NEFT (slower).
+            </p>
+          )}
+          <p className="text-[11px] text-[#7CB342] mt-2">
+            Please confirm this is your bank branch.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
