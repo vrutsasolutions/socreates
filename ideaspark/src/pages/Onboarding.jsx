@@ -189,7 +189,7 @@ export default function Onboarding() {
 
         {current.cta ? (
           <button
-            onClick={() => { markSeen(); navigate('/register'); }}
+            onClick={() => { markSeen(); navigate('/login'); }}
             className="w-full bg-white text-[#1565C0] font-bold py-4
                        rounded-2xl text-sm active:scale-95 transition-all
                        shadow-lg shadow-black/20"
