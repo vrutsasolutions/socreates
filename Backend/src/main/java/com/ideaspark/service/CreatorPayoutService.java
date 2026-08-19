@@ -9,6 +9,7 @@ import com.ideaspark.repository.CreatorEarningRepository;
 import com.ideaspark.repository.PayoutAccountRepository;
 import com.ideaspark.repository.UserRepository;
 import com.ideaspark.util.PayoutLockWindow;
+import com.ideaspark.util.PayoutValidationHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Manages creator payout-account setup.
@@ -118,6 +120,41 @@ public class CreatorPayoutService {
         // ──────────────────────────────────────────────────────────
 
         ValidatedPayoutDetails details = validate(request);
+
+        // ── Enhanced validation (Aug 2026) ────────────────────────
+        // PAN surname cross-check + bank-specific account length.
+        // These are advisory on the frontend (dismissible warnings),
+        // but logged on the backend for audit. Non-individual PANs
+        // (Company/HUF/Firm) are hard-blocked — creators must use a
+        // personal PAN.
+        List<String> validationWarnings =
+                PayoutValidationHelper.runValidations(
+                        details.panNumber(),
+                        details.legalName(),
+                        details.accountNumber(),
+                        details.ifscCode()
+                );
+
+        // Hard-block non-individual PANs
+        String panCheck = PayoutValidationHelper
+                .validatePanAgainstName(
+                        details.panNumber(),
+                        details.legalName()
+                );
+        if (panCheck != null
+                && panCheck.contains("non-individual")) {
+            throw new IllegalArgumentException(panCheck);
+        }
+
+        // Log advisory warnings for audit trail
+        if (!validationWarnings.isEmpty()) {
+            log.warn(
+                    "Payout validation warnings for user {}: {}",
+                    email,
+                    String.join(" | ", validationWarnings)
+            );
+        }
+        // ──────────────────────────────────────────────────────────
 
         String contactId = resolveContactId(
                 user,
@@ -346,8 +383,8 @@ public class CreatorPayoutService {
         return razorpayX.createBankFundAccount(
                 contactId,
                 details.accountHolderName(),
-                details.accountNumber(),
-                details.ifscCode()
+                details.ifscCode(),
+                details.accountNumber()
         );
     }
 
