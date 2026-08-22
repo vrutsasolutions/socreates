@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { submitPartnerApplication, getMyPartnerApplication } from '../api/partnerApi';
@@ -49,8 +49,6 @@ const inputClass =
   'focus:outline-none focus:ring-2 focus:ring-[var(--sc-primary-500)] ' +
   'focus:border-transparent transition placeholder:text-[var(--sc-neutral-400)]';
 
-const selectClass = inputClass + ' appearance-none cursor-pointer';
-
 const btnPrimary =
   'flex-1 py-3 rounded-xl font-semibold text-white text-sm ' +
   'bg-[var(--sc-primary-500)] active:bg-[var(--sc-primary-600)] ' +
@@ -60,6 +58,61 @@ const btnSecondary =
   'flex-1 py-3 rounded-xl font-semibold text-sm ' +
   'border border-[var(--sc-neutral-200)] text-[var(--sc-neutral-600)] ' +
   'active:bg-[var(--sc-neutral-100)] transition';
+
+/* ── Custom Dropdown (replaces native <select> everywhere in this form) ── */
+function CustomSelect({ value, onChange, options, placeholder = 'Select an option' }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`${inputClass} flex items-center justify-between text-left ${
+          !selected ? 'text-[var(--sc-neutral-400)]' : ''
+        }`}
+      >
+        <span className="truncate">{selected ? selected.label : placeholder}</span>
+        <Icon
+          name="chevron-down"
+          className={`w-4 h-4 shrink-0 ml-2 text-[var(--sc-neutral-400)] transition-transform duration-200 ${
+            open ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1.5 w-full max-h-56 overflow-y-auto rounded-xl border border-[var(--sc-neutral-200)] bg-white shadow-lg py-1">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={`w-full text-left px-4 py-2.5 text-sm transition ${
+                opt.value === value
+                  ? 'bg-[var(--sc-primary-50)] text-[var(--sc-primary-600)] font-medium'
+                  : 'text-[var(--sc-neutral-700)] active:bg-[var(--sc-neutral-50)]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ── Progress Bar ──────────────────────────────────────────────────────── */
 function StepProgress({ step }) {
@@ -107,7 +160,7 @@ function Step1({ form, onChange, onNext, errors }) {
       <DeadlineBadge />
 
       <div className="mt-5 space-y-4">
-        <Field label="Full Name" error={errors.fullName}>
+        <Field label="Full Name" error={errors.fullName} required>
           <input
             className={inputClass}
             placeholder="Your full name"
@@ -116,7 +169,7 @@ function Step1({ form, onChange, onNext, errors }) {
           />
         </Field>
 
-        <Field label="Email Address" error={errors.email}>
+        <Field label="Email Address" error={errors.email} required>
           <input
             className={inputClass}
             type="email"
@@ -126,7 +179,7 @@ function Step1({ form, onChange, onNext, errors }) {
           />
         </Field>
 
-        <Field label="Mobile Number (optional)">
+        <Field label="Mobile Number" optional>
           <input
             className={inputClass}
             placeholder="+91 00000 00000"
@@ -144,17 +197,13 @@ function Step1({ form, onChange, onNext, errors }) {
           />
         </Field>
 
-        <Field label="Age Group" error={errors.ageGroup}>
-          <select
-            className={selectClass}
+        <Field label="Age Group" error={errors.ageGroup} required>
+          <CustomSelect
             value={form.ageGroup}
-            onChange={(e) => onChange('ageGroup', e.target.value)}
-          >
-            <option value="">Select age group</option>
-            {AGE_GROUPS.map((label, i) => (
-              <option key={AGE_VALUES[i]} value={AGE_VALUES[i]}>{label}</option>
-            ))}
-          </select>
+            onChange={(v) => onChange('ageGroup', v)}
+            options={AGE_VALUES.map((v, i) => ({ value: v, label: AGE_GROUPS[i] }))}
+            placeholder="Select age group"
+          />
           {form.ageGroup === 'under_18' && (
             <p className="text-xs text-[var(--sc-error)] mt-1">
               This program is open to participants aged 18 and above.
@@ -162,17 +211,13 @@ function Step1({ form, onChange, onNext, errors }) {
           )}
         </Field>
 
-        <Field label="Participant Type" error={errors.participantType}>
-          <select
-            className={selectClass}
+        <Field label="Participant Type" error={errors.participantType} required>
+          <CustomSelect
             value={form.participantType}
-            onChange={(e) => onChange('participantType', e.target.value)}
-          >
-            <option value="">Select type</option>
-            {PARTICIPANT_TYPES.map((label, i) => (
-              <option key={PARTICIPANT_VALUES[i]} value={PARTICIPANT_VALUES[i]}>{label}</option>
-            ))}
-          </select>
+            onChange={(v) => onChange('participantType', v)}
+            options={PARTICIPANT_VALUES.map((v, i) => ({ value: v, label: PARTICIPANT_TYPES[i] }))}
+            placeholder="Select type"
+          />
         </Field>
       </div>
 
@@ -191,8 +236,8 @@ function Step1({ form, onChange, onNext, errors }) {
 
 /* ══════════════════════════════════════════════════════════════════════════
    STEP 2 — Student Details / Professional Details
-   Student: college mandatory, course/degree + year + graduation optional.
-   Professional: organisation mandatory, job title + industry + experience optional.
+   Student: college + current year mandatory, course/degree + graduation optional.
+   Professional: job title mandatory, organisation + industry + experience optional.
    ══════════════════════════════════════════════════════════════════════ */
 function Step2({ form, onChange, onNext, onBack, errors }) {
   const isStudent = form.participantType === 'student';
@@ -210,7 +255,7 @@ function Step2({ form, onChange, onNext, onBack, errors }) {
       <div className="space-y-4">
         {isStudent ? (
           <>
-            <Field label="College / University Name" error={errors.collegeName}>
+            <Field label="College / University Name" error={errors.collegeName} required>
               <input
                 className={inputClass}
                 placeholder="e.g. Delhi University"
@@ -218,7 +263,15 @@ function Step2({ form, onChange, onNext, onBack, errors }) {
                 onChange={(e) => onChange('collegeName', e.target.value)}
               />
             </Field>
-            <Field label="Course / Degree (optional)">
+            <Field label="Current Year" error={errors.currentYear} required>
+              <CustomSelect
+                value={form.currentYear}
+                onChange={(v) => onChange('currentYear', v)}
+                options={CURRENT_YEAR_VALUES.map((v, i) => ({ value: v, label: CURRENT_YEARS[i] }))}
+                placeholder="Select year"
+              />
+            </Field>
+            <Field label="Course / Degree" optional>
               <input
                 className={inputClass}
                 placeholder="e.g. B.Tech, B.A."
@@ -226,19 +279,7 @@ function Step2({ form, onChange, onNext, onBack, errors }) {
                 onChange={(e) => onChange('courseDegree', e.target.value)}
               />
             </Field>
-            <Field label="Current Year (optional)">
-              <select
-                className={selectClass}
-                value={form.currentYear}
-                onChange={(e) => onChange('currentYear', e.target.value)}
-              >
-                <option value="">Select year</option>
-                {CURRENT_YEARS.map((label, i) => (
-                  <option key={CURRENT_YEAR_VALUES[i]} value={CURRENT_YEAR_VALUES[i]}>{label}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Graduation Year (optional)">
+            <Field label="Graduation Year" optional>
               <input
                 className={inputClass}
                 placeholder="e.g. 2027"
@@ -249,15 +290,7 @@ function Step2({ form, onChange, onNext, onBack, errors }) {
           </>
         ) : (
           <>
-            <Field label="Organisation" error={errors.companyOrganisation}>
-              <input
-                className={inputClass}
-                placeholder="e.g. Acme Inc."
-                value={form.companyOrganisation}
-                onChange={(e) => onChange('companyOrganisation', e.target.value)}
-              />
-            </Field>
-            <Field label="Job Title / Role (optional)">
+            <Field label="Job Title / Role" error={errors.jobTitle} required>
               <input
                 className={inputClass}
                 placeholder="e.g. Marketing Manager"
@@ -265,29 +298,29 @@ function Step2({ form, onChange, onNext, onBack, errors }) {
                 onChange={(e) => onChange('jobTitle', e.target.value)}
               />
             </Field>
-            <Field label="Industry (optional)">
-              <select
-                className={selectClass}
-                value={form.industry}
-                onChange={(e) => onChange('industry', e.target.value)}
-              >
-                <option value="">Select industry</option>
-                {INDUSTRIES.map((ind) => (
-                  <option key={ind} value={ind.toLowerCase()}>{ind}</option>
-                ))}
-              </select>
+            <Field label="Company / Organisation" optional>
+              <input
+                className={inputClass}
+                placeholder="e.g. Acme Inc."
+                value={form.companyOrganisation}
+                onChange={(e) => onChange('companyOrganisation', e.target.value)}
+              />
             </Field>
-            <Field label="Years of Experience (optional)">
-              <select
-                className={selectClass}
+            <Field label="Industry" optional>
+              <CustomSelect
+                value={form.industry}
+                onChange={(v) => onChange('industry', v)}
+                options={INDUSTRIES.map((ind) => ({ value: ind.toLowerCase(), label: ind }))}
+                placeholder="Select industry"
+              />
+            </Field>
+            <Field label="Years of Experience" optional>
+              <CustomSelect
                 value={form.yearsOfExperience}
-                onChange={(e) => onChange('yearsOfExperience', e.target.value)}
-              >
-                <option value="">Select range</option>
-                {EXPERIENCE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
+                onChange={(v) => onChange('yearsOfExperience', v)}
+                options={EXPERIENCE_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
+                placeholder="Select range"
+              />
             </Field>
           </>
         )}
@@ -303,9 +336,38 @@ function Step2({ form, onChange, onNext, onBack, errors }) {
 
 /* ══════════════════════════════════════════════════════════════════════════
    STEP 3 — About You & SoCreate
-   Single question: What best describes you? (Creator / Reader / Both)
+   Order: what best describes you → usage purpose → how they heard →
+   partner/college/org name (optional). "Already registered" removed.
    ══════════════════════════════════════════════════════════════════════ */
+const USAGE_PURPOSE_OPTIONS = [
+  { value: 'writing_articles', label: 'Writing articles' },
+  { value: 'publishing_knowledge', label: 'Publishing knowledge' },
+  { value: 'building_portfolio', label: 'Building a portfolio' },
+  { value: 'professional_networking', label: 'Professional networking' },
+  { value: 'learning', label: 'Learning' },
+];
+
+const HEARD_FROM_OPTIONS = [
+  { value: 'college_university', label: 'College / University' },
+  { value: 'friend', label: 'Friend' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'telegram', label: 'Telegram' },
+  { value: 'partner_organisation', label: 'SoCreate Partner organisation' },
+  { value: 'other', label: 'Other' },
+];
+
 function Step3({ form, onChange, onNext, onBack }) {
+  const toggleUsagePurpose = (value) => {
+    const current = form.usagePurpose ? form.usagePurpose.split(',').filter(Boolean) : [];
+    const next = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
+    onChange('usagePurpose', next.join(','));
+  };
+  const selectedPurposes = form.usagePurpose ? form.usagePurpose.split(',').filter(Boolean) : [];
+
   return (
     <div className="px-5 pb-6">
       <StepProgress step={2} />
@@ -316,25 +378,62 @@ function Step3({ form, onChange, onNext, onBack }) {
         About You &amp; SoCreate
       </h2>
 
-      <div>
-        <label className="text-sm font-medium text-[var(--sc-neutral-700)] mb-3 block">
-          What best describes you?
-        </label>
-        <div className="flex gap-2">
-          {['Creator', 'Reader', 'Both'].map((opt) => (
-            <button
-              key={opt}
-              onClick={() => onChange('bestDescribes', opt.toLowerCase())}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition ${
-                form.bestDescribes === opt.toLowerCase()
-                  ? 'bg-[var(--sc-primary-500)] text-white border-[var(--sc-primary-500)]'
-                  : 'border-[var(--sc-neutral-200)] text-[var(--sc-neutral-600)]'
-              }`}
-            >
-              {opt}
-            </button>
-          ))}
+      <div className="space-y-6">
+        <div>
+          <label className="text-sm font-medium text-[var(--sc-neutral-700)] mb-3 block">
+            What best describes you?
+          </label>
+          <div className="flex gap-2">
+            {['Creator', 'Reader', 'Both'].map((opt) => (
+              <button
+                key={opt}
+                onClick={() => onChange('bestDescribes', opt.toLowerCase())}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition ${
+                  form.bestDescribes === opt.toLowerCase()
+                    ? 'bg-[var(--sc-primary-500)] text-white border-[var(--sc-primary-500)]'
+                    : 'border-[var(--sc-neutral-200)] text-[var(--sc-neutral-600)]'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
         </div>
+
+        <div>
+          <label className="text-sm font-medium text-[var(--sc-neutral-700)] mb-3 block">
+            What do you primarily want to use SoCreate for?
+          </label>
+          <div className="space-y-2.5">
+            {USAGE_PURPOSE_OPTIONS.map(({ value, label }) => (
+              <Checkbox
+                key={value}
+                checked={selectedPurposes.includes(value)}
+                onChange={() => toggleUsagePurpose(value)}
+              >
+                {label}
+              </Checkbox>
+            ))}
+          </div>
+        </div>
+
+        <Field label="How did you hear about the SoCreate Partner Program?">
+          <CustomSelect
+            value={form.heardFrom}
+            onChange={(v) => onChange('heardFrom', v)}
+            options={HEARD_FROM_OPTIONS}
+            placeholder="Select an option"
+          />
+        </Field>
+
+        <Field label="Partner / College / Organisation name" optional>
+          <input
+            className={inputClass}
+            placeholder="e.g. Acme Foundation"
+            value={form.partnerOrgName}
+            onChange={(e) => onChange('partnerOrgName', e.target.value)}
+          />
+        </Field>
       </div>
 
       <div className="flex gap-3 mt-6">
@@ -349,8 +448,6 @@ function Step3({ form, onChange, onNext, onBack }) {
    STEP 4 — Choose Your Subscription
    ══════════════════════════════════════════════════════════════════════ */
 function Step4({ form, onChange, onNext, onBack }) {
-  const isStudent = form.participantType === 'student';
-
   return (
     <div className="px-5 pb-6">
       <StepProgress step={3} />
@@ -361,10 +458,7 @@ function Step4({ form, onChange, onNext, onBack }) {
         Choose Your Subscription
       </h2>
       <p className="text-sm text-[var(--sc-neutral-500)] mb-5">
-        {isStudent
-          ? 'Students get 90 days free'
-          : 'Professionals get 60 days free'}{' '}
-        — activated once your registration is verified.
+        Get 30 days free — activated once your registration is verified.
       </p>
 
       <div className="space-y-3">
@@ -525,11 +619,17 @@ function StatusIcon({ icon, bg, color }) {
   );
 }
 
-function Field({ label, error, children }) {
+function Field({ label, error, required, optional, children }) {
   return (
     <div>
       <label className="text-sm font-medium text-[var(--sc-neutral-700)] mb-1.5 block">
         {label}
+        {required && <span className="text-[var(--sc-error)] ml-0.5">*</span>}
+        {optional && (
+          <span className="text-xs font-normal text-[var(--sc-neutral-400)] ml-1.5">
+            (optional)
+          </span>
+        )}
       </label>
       {children}
       {error && <p className="text-xs text-[var(--sc-error)] mt-1">{error}</p>}
@@ -550,7 +650,10 @@ function Checkbox({ checked, onChange, required, children }) {
       >
         {checked && <Icon name="check" className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
       </div>
-      <span className="text-sm text-[var(--sc-neutral-600)] leading-snug">{children}</span>
+      <span className="text-sm text-[var(--sc-neutral-600)] leading-snug">
+        {children}
+        {required && <span className="text-[var(--sc-error)] ml-0.5">*</span>}
+      </span>
     </label>
   );
 }
@@ -577,6 +680,9 @@ const EMPTY_FORM = {
   yearsOfExperience: '',
   // about
   bestDescribes: '',
+  usagePurpose: '',
+  heardFrom: '',
+  partnerOrgName: '',
   // subscription
   subscriptionChoice: 'creator_pro',
   // consent
@@ -646,8 +752,9 @@ export default function PartnersProgram() {
     const e = {};
     if (form.participantType === 'student') {
       if (!form.collegeName.trim()) e.collegeName = 'Required';
+      if (!form.currentYear) e.currentYear = 'Required';
     } else {
-      if (!form.companyOrganisation.trim()) e.companyOrganisation = 'Required';
+      if (!form.jobTitle.trim()) e.jobTitle = 'Required';
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -686,8 +793,10 @@ export default function PartnersProgram() {
   // ── Loading ───────────────────────────────────────────────────────────
   if (screen === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-8 h-8 border-3 border-[var(--sc-primary-200)] border-t-[var(--sc-primary-500)] rounded-full animate-spin" />
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-5">
+        <div className="w-full max-w-sm rounded-[28px] bg-white shadow-2xl flex items-center justify-center py-16">
+          <div className="w-8 h-8 border-3 border-[var(--sc-primary-200)] border-t-[var(--sc-primary-500)] rounded-full animate-spin" />
+        </div>
       </div>
     );
   }
@@ -696,73 +805,79 @@ export default function PartnersProgram() {
   const showClose = screen !== 'loading';
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Top bar with X */}
-      {showClose && (
-        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm flex items-center justify-between px-4 py-3">
-          <div className="w-8" />
-          <div />
-          <button onClick={goHome} className="p-1">
-            <Icon name="x" className="w-5 h-5 text-[var(--sc-neutral-500)]" />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-5 py-8">
+      {/* Card — same centered-splash treatment as the promo popup */}
+      <div className="relative w-full max-w-sm max-h-[85vh] rounded-[28px] overflow-hidden bg-white shadow-2xl flex flex-col">
+
+        {/* Close button */}
+        {showClose && (
+          <button
+            onClick={goHome}
+            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-[var(--sc-neutral-100)] text-[var(--sc-neutral-500)] active:bg-[var(--sc-neutral-200)] transition z-20"
+          >
+            <Icon name="x" className="w-5 h-5" />
           </button>
+        )}
+
+        <div className="overflow-y-auto pt-6">
+
+          {/* Screens */}
+
+          {screen === 'form' && step === 0 && (
+            <Step1
+              form={form}
+              onChange={onChange}
+              onNext={() => nextStep(validateStep1)}
+              errors={errors}
+            />
+          )}
+
+          {screen === 'form' && step === 1 && (
+            <Step2
+              form={form}
+              onChange={onChange}
+              onNext={() => nextStep(validateStep2)}
+              onBack={prevStep}
+              errors={errors}
+            />
+          )}
+
+          {screen === 'form' && step === 2 && (
+            <Step3
+              form={form}
+              onChange={onChange}
+              onNext={() => nextStep()}
+              onBack={prevStep}
+            />
+          )}
+
+          {screen === 'form' && step === 3 && (
+            <Step4
+              form={form}
+              onChange={onChange}
+              onNext={() => nextStep()}
+              onBack={prevStep}
+            />
+          )}
+
+          {screen === 'form' && step === 4 && (
+            <Step5
+              form={form}
+              onChange={onChange}
+              onSubmit={handleSubmit}
+              onBack={prevStep}
+              submitting={submitting}
+              error={submitError}
+            />
+          )}
+
+          {screen === 'queue' && (
+            <QueueScreen queuePosition={queuePosition} onContinue={goHome} />
+          )}
+
+          {screen === 'verified' && <VerifiedScreen onContinue={goHome} />}
         </div>
-      )}
-
-      {/* Screens */}
-
-      {screen === 'form' && step === 0 && (
-        <Step1
-          form={form}
-          onChange={onChange}
-          onNext={() => nextStep(validateStep1)}
-          errors={errors}
-        />
-      )}
-
-      {screen === 'form' && step === 1 && (
-        <Step2
-          form={form}
-          onChange={onChange}
-          onNext={() => nextStep(validateStep2)}
-          onBack={prevStep}
-          errors={errors}
-        />
-      )}
-
-      {screen === 'form' && step === 2 && (
-        <Step3
-          form={form}
-          onChange={onChange}
-          onNext={() => nextStep()}
-          onBack={prevStep}
-        />
-      )}
-
-      {screen === 'form' && step === 3 && (
-        <Step4
-          form={form}
-          onChange={onChange}
-          onNext={() => nextStep()}
-          onBack={prevStep}
-        />
-      )}
-
-      {screen === 'form' && step === 4 && (
-        <Step5
-          form={form}
-          onChange={onChange}
-          onSubmit={handleSubmit}
-          onBack={prevStep}
-          submitting={submitting}
-          error={submitError}
-        />
-      )}
-
-      {screen === 'queue' && (
-        <QueueScreen queuePosition={queuePosition} onContinue={goHome} />
-      )}
-
-      {screen === 'verified' && <VerifiedScreen onContinue={goHome} />}
+      </div>
     </div>
   );
 }
