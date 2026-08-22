@@ -2,8 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from './Icon';
 import { useAuth } from '../../context/AuthContext';
+import { getMyPartnerApplication } from '../../api/partnerApi';
 
+// Purely a UI-dismiss flag for the promotional "Join" popup itself (X button
+// or clicking Join both set this). It does NOT gate whether we check the
+// server — see VERIFIED_SEEN_KEY below for the only check that does that.
 const DISMISSED_KEY = 'sc_partner_popup_dismissed';
+// Set once the user has actually seen the "You're verified!" reveal, so we
+// never auto-redirect them there again after the first time. This is the
+// only flag allowed to skip the server check on mount.
+const VERIFIED_SEEN_KEY = 'sc_partner_verified_seen';
 
 // Only accounts created on or after this date are eligible for the
 // Partners Program promo. Everyone who already had an account before we
@@ -13,7 +21,9 @@ const DISMISSED_KEY = 'sc_partner_popup_dismissed';
 const ELIGIBILITY_CUTOFF = new Date('2026-08-22T00:00:00Z');
 
 /**
- * Splash-style popup that promotes the Partners Program.
+ * Splash-style popup that promotes the Partners Program, PLUS the mount-time
+ * watcher that auto-reveals approval.
+ *
  * Appears centered over a dimmed backdrop, white card theme, sized down
  * so it doesn't cover the whole screen — the Home feed stays visible
  * (dimmed) around the edges. Dismissing (X or backdrop tap) hides it
@@ -21,6 +31,23 @@ const ELIGIBILITY_CUTOFF = new Date('2026-08-22T00:00:00Z');
  *
  * Only shown to new users (account created on/after ELIGIBILITY_CUTOFF) —
  * existing users signed up before that date never see it.
+ *
+ * The user's application status on the server (via getMyPartnerApplication)
+ * is the only source of truth here — this component checks it fresh on
+ * every eligible Home mount (see the useEffect below for why it doesn't
+ * try to cache/skip that check), because localStorage alone doesn't survive
+ * a reinstall, a cleared cache, or a different device.
+ *
+ * This component also watches for approval so it can surface it proactively.
+ * If a user applies, closes the app while their application is still
+ * `pending`, and it gets approved later, we want them dropped straight onto
+ * the "You're verified!" screen the next time they open the app — not
+ * silently left on Home with no indication anything changed (the in-app
+ * notification bell also gets a message, but that's easy to miss). The
+ * moment a check comes back `approved`, we navigate straight to
+ * /partners-program (which renders the VerifiedScreen for an approved
+ * application) and set VERIFIED_SEEN_KEY so we only ever do this once —
+ * after that, this component has nothing further to do for this user.
  */
 export default function PartnerProgramPopup() {
   const navigate = useNavigate();
@@ -32,11 +59,62 @@ export default function PartnerProgramPopup() {
   useEffect(() => {
     if (!user?.createdAt) return; // not logged in yet, or user record hasn't loaded
     if (new Date(user.createdAt) < ELIGIBILITY_CUTOFF) return; // existing user — not eligible
+
+    let cancelled = false;
+
     try {
-      if (localStorage.getItem(DISMISSED_KEY)) return;
+      // Already shown the approval reveal once — this user's lifecycle here
+      // is complete, nothing left to check or show, ever again. This is the
+      // ONLY condition allowed to skip the server check below. (An earlier
+      // version of this component also tried to fast-path skip when
+      // DISMISSED_KEY was set, but DISMISSED_KEY gets set the moment a user
+      // clicks "Join" on the promo popup — before their application even
+      // exists yet, let alone before we've recorded a status for it. That
+      // meant a user who joined, applied, and came back later could get
+      // stuck: dismissed=true but no recorded status, so the fast path kept
+      // bailing out and the app never noticed they'd gone pending, let
+      // alone approved. Always checking the server here — bounded to once
+      // per Home mount, not per render — is cheap enough that this class of
+      // bug isn't worth reintroducing for the sake of skipping one fetch.)
+      if (localStorage.getItem(VERIFIED_SEEN_KEY)) return;
     } catch { /* empty */ }
-    setVisible(true);
-    requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+
+    // Ask the server whether this user already has an application on file
+    // — pending, approved, or otherwise — before deciding what (if
+    // anything) to show.
+    (async () => {
+      try {
+        const { data } = await getMyPartnerApplication();
+        if (cancelled) return;
+
+        // `applied === false` → never applied, or `status === 'rejected'` →
+        // PartnersProgram.jsx explicitly lets them re-apply, so the "Join"
+        // pitch is still the right prompt in both cases.
+        if (data.applied === false || data.status === 'rejected') {
+          setVisible(true);
+          requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+        } else if (data.status === 'approved') {
+          // Approved — possibly just now, possibly while the app was
+          // closed. Either way, take them straight to the reveal, once.
+          try { localStorage.setItem(VERIFIED_SEEN_KEY, '1'); } catch { /* empty */ }
+          navigate('/partners-program');
+        }
+        // else: pending — nothing to show. Deliberately no localStorage
+        // writes here, so the next Home mount checks again from scratch
+        // (see the comment above the VERIFIED_SEEN_KEY check for why).
+      } catch {
+        // If the status check fails (e.g. offline), fall back to showing
+        // the popup rather than silently hiding a real opportunity — worst
+        // case a user who already applied sees it once more, which is far
+        // better than eligible users never seeing it due to a network blip.
+        if (!cancelled) {
+          setVisible(true);
+          requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [user?.createdAt]);
 
   const dismiss = () => {
