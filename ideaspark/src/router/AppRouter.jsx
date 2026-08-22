@@ -56,6 +56,7 @@ import ImageEditor from "../pages/ImageEditor";
 import BlockedUsers from "../pages/BlockedUsers";
 import FollowRequests from "../pages/FollowRequests";
 import AdminPayoutAccounts from "../pages/AdminPayoutAccounts";
+import PartnersProgram from "../pages/PartnersProgram";
 
 
 function PrivateRoute({ children }) {
@@ -152,6 +153,8 @@ export default function AppRouter() {
         <Route path="/refund" element={<RefundPolicy />} />
         <Route path="/child-safety" element={<ChildSafety />} />
         <Route path="/create-premium" element={<PrivateRoute><CreatePremiumIdea /></PrivateRoute>} />
+
+        <Route path="/partners-program" element={<PartnersProgram />} />
 
         {/* Admin pages — backend enforces ROLE_ADMIN; frontend
             also guards via user.isAdmin on the page component. */}
