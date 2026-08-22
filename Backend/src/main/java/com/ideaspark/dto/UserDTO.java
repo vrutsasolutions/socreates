@@ -2,6 +2,7 @@ package com.ideaspark.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -13,6 +14,11 @@ public class UserDTO {
     private String profileImage;
     private String bio;
     private String authProvider;
+    // When this account was created. Used by the frontend to gate
+    // new-user-only promos (e.g. the Partners Program popup) so existing
+    // users don't see offers meant only for people who sign up going
+    // forward — see PartnerProgramPopup.jsx's cutoff check.
+    private LocalDateTime createdAt;
     // Pin the JSON key to "isPremium". For a boolean field "isPremium" Lombok
     // generates the getter isPremium(); Jackson then strips the "is" prefix and
     // would serialize it as "premium" — but the frontend reads user.isPremium,

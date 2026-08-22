@@ -235,6 +235,7 @@ public class AuthService {
         dto.setPremium(user.isPremium());
         dto.setAdmin(adminEmail != null && adminEmail.equalsIgnoreCase(user.getEmail()));
         dto.setAuthProvider(user.getAuthProvider());
+        dto.setCreatedAt(user.getCreatedAt());
         dto.setMembership(membershipService.activeMembershipShape(user));
 
         AuthResponse res = new AuthResponse();

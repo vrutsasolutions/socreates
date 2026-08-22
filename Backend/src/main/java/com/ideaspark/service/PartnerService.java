@@ -3,6 +3,7 @@ package com.ideaspark.service;
 import com.ideaspark.dto.PartnerApplicationRequest;
 import com.ideaspark.dto.PartnerApplicationResponse;
 import com.ideaspark.model.Membership;
+import com.ideaspark.model.Notification;
 import com.ideaspark.model.PartnerApplication;
 import com.ideaspark.model.User;
 import com.ideaspark.repository.MembershipRepository;
@@ -26,6 +27,7 @@ public class PartnerService {
     private final PartnerApplicationRepository applicationRepo;
     private final UserRepository userRepository;
     private final MembershipRepository membershipRepository;
+    private final NotificationService notificationService;
 
     // ── Submit a new application ────────────────────────────────────────
     @Transactional
@@ -52,8 +54,8 @@ public class PartnerService {
             user = userRepository.findByEmail(loggedInEmail).orElse(null);
         }
 
-        // Free days: 90 for students, 60 for everyone else
-        int freeDays = "student".equals(req.getParticipantType()) ? 90 : 60;
+        // Free days: 30 for everyone (students and professionals alike).
+        int freeDays = 30;
 
         PartnerApplication app = PartnerApplication.builder()
                 .user(user)
@@ -164,7 +166,7 @@ public class PartnerService {
         User user = optUser.get();
         String plan = "creator_pro".equals(app.getSubscriptionChoice()) ? "creator" : "reader";
         String planLabel = "creator".equals(plan) ? "Creators Pro (Partner)" : "Reader Pro (Partner)";
-        int days = app.getFreeDays() != null ? app.getFreeDays() : 60;
+        int days = app.getFreeDays() != null ? app.getFreeDays() : 30;
 
         // Set user flags
         user.setPremium(true);
@@ -186,6 +188,17 @@ public class PartnerService {
                 .endDate(LocalDateTime.now().plusDays(days))
                 .build();
         membershipRepository.save(membership);
+
+        // Let the user know — in-app bell + push (sendNotification handles
+        // both). SYSTEM type: not gated by the LIKE/COMMENT/NEW_IDEA
+        // opt-out toggles, since this is an account-level announcement the
+        // user should always see, same as FOLLOW/MESSAGE.
+        notificationService.sendNotification(Notification.builder()
+                .user(user)
+                .type(Notification.NotificationType.SYSTEM)
+                .message("You're approved! 🎉 Your " + planLabel
+                        + " subscription is now active for " + days + " days.")
+                .build());
 
         log.info("Granted {} days of {} to {} via Partners Program",
                 days, planLabel, app.getEmail());

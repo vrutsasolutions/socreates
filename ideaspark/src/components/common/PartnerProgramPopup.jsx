@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from './Icon';
+import { useAuth } from '../../context/AuthContext';
 
 const DISMISSED_KEY = 'sc_partner_popup_dismissed';
+
+// Only accounts created on or after this date are eligible for the
+// Partners Program promo. Everyone who already had an account before we
+// shipped this popup is an "existing user" and should never see it —
+// only people who sign up from here on ("new users") do. Bump this date
+// only if you deliberately want to re-open eligibility for a new cohort.
+const ELIGIBILITY_CUTOFF = new Date('2026-08-22T00:00:00Z');
 
 /**
  * Splash-style popup that promotes the Partners Program.
@@ -10,20 +18,26 @@ const DISMISSED_KEY = 'sc_partner_popup_dismissed';
  * so it doesn't cover the whole screen — the Home feed stays visible
  * (dimmed) around the edges. Dismissing (X or backdrop tap) hides it
  * permanently via localStorage.
+ *
+ * Only shown to new users (account created on/after ELIGIBILITY_CUTOFF) —
+ * existing users signed up before that date never see it.
  */
 export default function PartnerProgramPopup() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [visible, setVisible] = useState(false);
   const [entered, setEntered] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
+    if (!user?.createdAt) return; // not logged in yet, or user record hasn't loaded
+    if (new Date(user.createdAt) < ELIGIBILITY_CUTOFF) return; // existing user — not eligible
     try {
       if (localStorage.getItem(DISMISSED_KEY)) return;
     } catch { /* empty */ }
     setVisible(true);
     requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
-  }, []);
+  }, [user?.createdAt]);
 
   const dismiss = () => {
     setFadeOut(true);

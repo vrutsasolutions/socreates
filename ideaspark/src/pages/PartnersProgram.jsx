@@ -8,11 +8,17 @@ import Icon from '../components/common/Icon';
 const REGISTRATION_DEADLINE = 'September 30, 2026';
 const TOTAL_STEPS = 5;
 
+// Keep in sync with PartnerProgramPopup.jsx's ELIGIBILITY_CUTOFF — only
+// accounts created on/after this date ("new users") are eligible. This
+// guards direct navigation to /partners-program by an existing, logged-in
+// user who never saw (or bypassed) the popup.
+const ELIGIBILITY_CUTOFF = new Date('2026-08-22T00:00:00Z');
+
 const AGE_GROUPS = ['Under 18', '18-24', '25-34', '35+'];
 const AGE_VALUES = ['under_18', '18-24', '25-34', '35+'];
 
-const PARTICIPANT_TYPES = ['Student', 'Professional', 'Freelancer', 'Entrepreneur'];
-const PARTICIPANT_VALUES = ['student', 'professional', 'freelancer', 'entrepreneur'];
+const PARTICIPANT_TYPES = ['Student', 'Professional'];
+const PARTICIPANT_VALUES = ['student', 'professional'];
 
 const CURRENT_YEARS = ['1st', '2nd', '3rd', '4th', 'Postgraduate', 'Graduated'];
 const CURRENT_YEAR_VALUES = ['1st', '2nd', '3rd', '4th', 'postgraduate', 'graduated'];
@@ -590,16 +596,17 @@ function QueueScreen({ queuePosition, onContinue }) {
   );
 }
 
-function VerifiedScreen({ onContinue }) {
+function VerifiedScreen({ onContinue, planLabel, freeDays }) {
   return (
     <div className="flex flex-col items-center text-center px-6 pt-12 pb-8">
       <StatusIcon icon="check" bg="bg-[var(--sc-success-light)]" color="text-[var(--sc-success)]" />
       <h2 className="text-xl font-bold text-[var(--sc-neutral-900)] mt-5 mb-2">
-        You're verified! ✅
+        You're approved! 🎉
       </h2>
       <p className="text-sm text-[var(--sc-neutral-500)] mb-6 leading-relaxed max-w-xs">
-        Your complimentary Creator Pro subscription is now active. You can start
-        exploring the application right away.
+        Your {planLabel} (Partner) subscription is now active
+        {freeDays ? ` for ${freeDays} days` : ''}. You can start exploring the
+        application right away.
       </p>
       <button onClick={onContinue} className={btnPrimary + ' w-full max-w-xs'}>
         Continue Exploring
@@ -706,11 +713,25 @@ export default function PartnersProgram() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [queuePosition, setQueuePosition] = useState(null);
+  // Plan details for the approved/verified screen — sourced from the same
+  // application record the notification message is built from, so the two
+  // stay in sync (plan name + free days) instead of the screen using a
+  // hardcoded "Creator Pro" string.
+  const [approvedPlan, setApprovedPlan] = useState({ label: 'Creator Pro', freeDays: null });
 
   // Check existing application on mount
   useEffect(() => {
     if (!user) {
+      // Not logged in — allow through (anonymous applicants are, by
+      // definition, not an existing account yet).
       setScreen('form');
+      return;
+    }
+    // Existing users (account created before the cutoff) aren't eligible —
+    // keep them off the flow even if they land here directly by URL rather
+    // than through the (already-gated) popup.
+    if (user.createdAt && new Date(user.createdAt) < ELIGIBILITY_CUTOFF) {
+      navigate('/home', { replace: true });
       return;
     }
     (async () => {
@@ -722,6 +743,10 @@ export default function PartnersProgram() {
           setQueuePosition(data.queuePosition);
           setScreen('queue');
         } else if (data.status === 'approved') {
+          setApprovedPlan({
+            label: data.subscriptionChoice === 'reader_pro' ? 'Reader Pro' : 'Creator Pro',
+            freeDays: data.freeDays,
+          });
           setScreen('verified');
         } else {
           setScreen('form'); // rejected — let them re-apply
@@ -802,7 +827,10 @@ export default function PartnersProgram() {
   }
 
   // ── Shell ─────────────────────────────────────────────────────────────
-  const showClose = screen !== 'loading';
+  // No X on the queue screen — once an application is submitted, "Continue
+  // Exploring" (below, in QueueScreen) is the only way out, so it stays
+  // unambiguous that submitting doesn't get silently abandoned via the X.
+  const showClose = screen !== 'loading' && screen !== 'queue';
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-5 py-8">
@@ -875,7 +903,13 @@ export default function PartnersProgram() {
             <QueueScreen queuePosition={queuePosition} onContinue={goHome} />
           )}
 
-          {screen === 'verified' && <VerifiedScreen onContinue={goHome} />}
+          {screen === 'verified' && (
+            <VerifiedScreen
+              onContinue={goHome}
+              planLabel={approvedPlan.label}
+              freeDays={approvedPlan.freeDays}
+            />
+          )}
         </div>
       </div>
     </div>

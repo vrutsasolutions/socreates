@@ -15,7 +15,7 @@ public class PartnerApplicationRequest {
     private String mobileNumber;
     private String city;
     private String ageGroup;         // "under_18" | "18-24" | "25-34" | "35+"
-    private String participantType;  // "student" | "professional" | "freelancer" | "entrepreneur"
+    private String participantType;  // "student" | "professional"
 
     // Step 2a — Student Details (when participantType = "student")
     private String collegeName;

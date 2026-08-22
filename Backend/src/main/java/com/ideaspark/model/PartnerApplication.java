@@ -49,7 +49,7 @@ public class PartnerApplication {
     @Column(name = "age_group")
     private String ageGroup;
 
-    /** "student" | "professional" | "freelancer" | "entrepreneur" */
+    /** "student" | "professional" */
     @Column(name = "participant_type")
     private String participantType;
 
