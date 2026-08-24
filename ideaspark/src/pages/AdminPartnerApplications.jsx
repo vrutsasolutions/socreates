@@ -41,7 +41,6 @@ export default function AdminPartnerApplications() {
 
   useEffect(() => {
     if (!user?.isAdmin) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [user, load]);
 
@@ -260,29 +259,47 @@ export default function AdminPartnerApplications() {
                 {/* ── Collapsed header ────────────────────────────── */}
                 <button
                   onClick={() => setExpanded(isExpanded ? null : app.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                  className="w-full px-4 py-3 text-left"
                 >
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-[#E3F2FD] flex items-center justify-center text-[#1565C0] text-sm font-bold shrink-0">
-                    {(app.fullName || '?')
-                      .split(' ')
-                      .map((w) => w[0])
-                      .slice(0, 2)
-                      .join('')
-                      .toUpperCase()}
+                  <div className="flex items-center gap-3">
+                    {/* Avatar */}
+                    <div className="w-10 h-10 rounded-full bg-[#E3F2FD] flex items-center justify-center text-[#1565C0] text-sm font-bold shrink-0">
+                      {(app.fullName || '?')
+                        .split(' ')
+                        .map((w) => w[0])
+                        .slice(0, 2)
+                        .join('')
+                        .toUpperCase()}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-[#263238] truncate">
+                        {app.fullName || 'Unknown'}
+                      </p>
+                      <p className="text-xs text-[#78909C] truncate">
+                        {app.email || '—'}
+                      </p>
+                    </div>
+
+                    <svg
+                      className={`w-4 h-4 text-[#90A4AE] shrink-0 transition-transform ${
+                        isExpanded ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-[#263238] truncate">
-                      {app.fullName || 'Unknown'}
-                    </p>
-                    <p className="text-xs text-[#78909C] truncate">
-                      {app.email || '—'}
-                    </p>
-                  </div>
-
-                  {/* Status badges */}
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Status badges — below name so they don't squeeze text on mobile */}
+                  <div className="flex items-center gap-1.5 mt-2 ml-[52px] flex-wrap">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       app.participantType === 'student'
                         ? 'text-blue-700 bg-blue-100'
@@ -298,22 +315,6 @@ export default function AdminPartnerApplications() {
                       #{app.queuePosition}
                     </span>
                   </div>
-
-                  <svg
-                    className={`w-4 h-4 text-[#90A4AE] shrink-0 transition-transform ${
-                      isExpanded ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
                 </button>
 
                 {/* ── Expanded details ────────────────────────────── */}
