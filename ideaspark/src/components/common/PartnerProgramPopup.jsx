@@ -8,13 +8,6 @@ import { getMyPartnerApplication } from '../../api/partnerApi';
 // never auto-redirect them there again after the first time.
 const VERIFIED_SEEN_KEY = 'sc_partner_verified_seen';
 
-// Only accounts created on or after this date are eligible for the
-// Partners Program promo. Everyone who already had an account before we
-// shipped this popup is an "existing user" and should never see it —
-// only people who sign up from here on ("new users") do. Bump this date
-// only if you deliberately want to re-open eligibility for a new cohort.
-const ELIGIBILITY_CUTOFF = new Date('2026-08-22T00:00:00Z');
-
 /**
  * Splash-style popup that promotes the Partners Program, PLUS the mount-time
  * watcher that auto-reveals approval.
@@ -53,58 +46,29 @@ export default function PartnerProgramPopup() {
 
   useEffect(() => {
     if (!user) return; // not logged in
-    if (user.isPremium) return; // already a paid subscriber — no need for the free promo
-
-    // Only accounts created on or after the cutoff are eligible.
-    // If createdAt is missing or unparseable, show the popup anyway
-    // (better to show it to one extra user than miss an eligible one).
-    try {
-      const created = new Date(user.createdAt);
-      if (!isNaN(created.getTime()) && created < ELIGIBILITY_CUTOFF) return;
-    } catch { /* show popup if date parsing fails */ }
-
-    let cancelled = false;
+    if (user.isPremium) return; // already a paid subscriber
 
     try {
       if (localStorage.getItem(VERIFIED_SEEN_KEY)) return;
     } catch { /* empty */ }
 
-    // Ask the server whether this user already has an application on file
-    // — pending, approved, or otherwise — before deciding what (if
-    // anything) to show.
+    // Show the popup immediately — no API call needed.
+    // If the user already applied, clicking "Join" takes them to
+    // the partners-program page where they see their status.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVisible(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+
+    // Background check: if approved, redirect to reveal page.
     (async () => {
       try {
         const { data } = await getMyPartnerApplication();
-        if (cancelled) return;
-
-        // `applied === false` → never applied, or `status === 'rejected'` →
-        // PartnersProgram.jsx explicitly lets them re-apply, so the "Join"
-        // pitch is still the right prompt in both cases.
-        if (data.applied === false || data.status === 'rejected') {
-          setVisible(true);
-          requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
-        } else if (data.status === 'approved') {
-          // Approved — possibly just now, possibly while the app was
-          // closed. Either way, take them straight to the reveal, once.
+        if (data.status === 'approved') {
           try { localStorage.setItem(VERIFIED_SEEN_KEY, '1'); } catch { /* empty */ }
           navigate('/partners-program');
         }
-        // else: pending — nothing to show. Deliberately no localStorage
-        // writes here, so the next Home mount checks again from scratch
-        // (see the comment above the VERIFIED_SEEN_KEY check for why).
-      } catch {
-        // If the status check fails (e.g. offline), fall back to showing
-        // the popup rather than silently hiding a real opportunity — worst
-        // case a user who already applied sees it once more, which is far
-        // better than eligible users never seeing it due to a network blip.
-        if (!cancelled) {
-          setVisible(true);
-          requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
-        }
-      }
+      } catch { /* ignore — popup is already visible */ }
     })();
-
-    return () => { cancelled = true; };
   }, [user?.id]);
 
   const dismiss = () => {
@@ -140,7 +104,7 @@ export default function PartnerProgramPopup() {
         {/* Close button */}
         <button
           onClick={dismiss}
-          className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-[var(--sc-neutral-100)] text-[var(--sc-neutral-500)] active:bg-[var(--sc-neutral-200)] transition z-10"
+          className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-[var(--sc-neutral-100)] text-[var(--sc-neutral-500)] active:bg-[var(--sc-neutral-200)] transition z-20"
         >
           <Icon name="x" className="w-5 h-5" />
         </button>
