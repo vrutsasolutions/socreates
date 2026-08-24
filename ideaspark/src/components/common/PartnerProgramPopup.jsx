@@ -4,13 +4,8 @@ import Icon from './Icon';
 import { useAuth } from '../../context/AuthContext';
 import { getMyPartnerApplication } from '../../api/partnerApi';
 
-// Purely a UI-dismiss flag for the promotional "Join" popup itself (X button
-// or clicking Join both set this). It does NOT gate whether we check the
-// server — see VERIFIED_SEEN_KEY below for the only check that does that.
-const DISMISSED_KEY = 'sc_partner_popup_dismissed';
 // Set once the user has actually seen the "You're verified!" reveal, so we
-// never auto-redirect them there again after the first time. This is the
-// only flag allowed to skip the server check on mount.
+// never auto-redirect them there again after the first time.
 const VERIFIED_SEEN_KEY = 'sc_partner_verified_seen';
 
 // Only accounts created on or after this date are eligible for the
@@ -57,26 +52,20 @@ export default function PartnerProgramPopup() {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    if (!user?.createdAt) return; // not logged in yet, or user record hasn't loaded
+    if (!user) return; // not logged in
     if (user.isPremium) return; // already a paid subscriber — no need for the free promo
-    if (new Date(user.createdAt) < ELIGIBILITY_CUTOFF) return; // existing user — not eligible
+
+    // Only accounts created on or after the cutoff are eligible.
+    // If createdAt is missing or unparseable, show the popup anyway
+    // (better to show it to one extra user than miss an eligible one).
+    try {
+      const created = new Date(user.createdAt);
+      if (!isNaN(created.getTime()) && created < ELIGIBILITY_CUTOFF) return;
+    } catch { /* show popup if date parsing fails */ }
 
     let cancelled = false;
 
     try {
-      // Already shown the approval reveal once — this user's lifecycle here
-      // is complete, nothing left to check or show, ever again. This is the
-      // ONLY condition allowed to skip the server check below. (An earlier
-      // version of this component also tried to fast-path skip when
-      // DISMISSED_KEY was set, but DISMISSED_KEY gets set the moment a user
-      // clicks "Join" on the promo popup — before their application even
-      // exists yet, let alone before we've recorded a status for it. That
-      // meant a user who joined, applied, and came back later could get
-      // stuck: dismissed=true but no recorded status, so the fast path kept
-      // bailing out and the app never noticed they'd gone pending, let
-      // alone approved. Always checking the server here — bounded to once
-      // per Home mount, not per render — is cheap enough that this class of
-      // bug isn't worth reintroducing for the sake of skipping one fetch.)
       if (localStorage.getItem(VERIFIED_SEEN_KEY)) return;
     } catch { /* empty */ }
 
@@ -116,17 +105,17 @@ export default function PartnerProgramPopup() {
     })();
 
     return () => { cancelled = true; };
-  }, [user?.createdAt]);
+  }, [user?.id]);
 
   const dismiss = () => {
     setFadeOut(true);
     setEntered(false);
-    try { localStorage.setItem(DISMISSED_KEY, '1'); } catch { /* empty */ }
+    // No localStorage write — popup reappears on next Home visit
+    // until the user actually submits an application.
     setTimeout(() => setVisible(false), 250);
   };
 
   const join = () => {
-    try { localStorage.setItem(DISMISSED_KEY, '1'); } catch { /* empty */ }
     navigate('/partners-program');
   };
 
