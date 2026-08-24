@@ -58,6 +58,7 @@ export default function PartnerProgramPopup() {
 
   useEffect(() => {
     if (!user?.createdAt) return; // not logged in yet, or user record hasn't loaded
+    if (user.isPremium) return; // already a paid subscriber — no need for the free promo
     if (new Date(user.createdAt) < ELIGIBILITY_CUTOFF) return; // existing user — not eligible
 
     let cancelled = false;

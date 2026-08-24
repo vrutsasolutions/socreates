@@ -56,6 +56,7 @@ import ImageEditor from "../pages/ImageEditor";
 import BlockedUsers from "../pages/BlockedUsers";
 import FollowRequests from "../pages/FollowRequests";
 import AdminPayoutAccounts from "../pages/AdminPayoutAccounts";
+import AdminPartnerApplications from "../pages/AdminPartnerApplications";
 import PartnersProgram from "../pages/PartnersProgram";
 
 
@@ -159,6 +160,7 @@ export default function AppRouter() {
         {/* Admin pages — backend enforces ROLE_ADMIN; frontend
             also guards via user.isAdmin on the page component. */}
         <Route path="/admin/payout-accounts" element={<PrivateRoute><AdminPayoutAccounts /></PrivateRoute>} />
+        <Route path="/admin/partner-applications" element={<PrivateRoute><AdminPartnerApplications /></PrivateRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

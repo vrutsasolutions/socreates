@@ -91,6 +91,20 @@ public class PartnerController {
         return ResponseEntity.ok(partnerService.listPending());
     }
 
+    @PostMapping("/api/admin/partners/approve-all")
+    public ResponseEntity<?> approveAll(
+            @AuthenticationPrincipal UserDetails adminDetails) {
+        try {
+            int count = partnerService.approveAll(adminDetails.getUsername());
+            return ResponseEntity.ok(Map.of(
+                    "approved", count,
+                    "message", count + " application(s) approved"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Bulk approve failed: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/api/admin/partners/{id}/approve")
     public ResponseEntity<?> approve(
             @PathVariable UUID id,

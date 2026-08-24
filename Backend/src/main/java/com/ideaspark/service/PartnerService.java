@@ -133,6 +133,40 @@ public class PartnerService {
         return toResponse(app);
     }
 
+    // ── Admin: approve ALL pending applications in one action ────────────
+    @Transactional
+    public int approveAll(String adminEmail) {
+        List<PartnerApplication> pending =
+                applicationRepo.findByStatusOrderByQueuePositionAsc("pending");
+
+        if (pending.isEmpty()) return 0;
+
+        LocalDateTime now = LocalDateTime.now();
+        for (PartnerApplication app : pending) {
+            app.setStatus("approved");
+            app.setReviewedBy(adminEmail);
+            app.setReviewedAt(now);
+        }
+        applicationRepo.saveAll(pending);
+
+        // Grant memberships + notifications outside the status-update loop
+        // so a single grant failure doesn't roll back the whole batch.
+        int granted = 0;
+        for (PartnerApplication app : pending) {
+            try {
+                grantPartnerSubscription(app);
+                granted++;
+            } catch (Exception e) {
+                log.error("Failed to grant subscription for {}: {}",
+                        app.getEmail(), e.getMessage());
+            }
+        }
+
+        log.info("Bulk-approved {} partner applications ({} subscriptions granted) by {}",
+                pending.size(), granted, adminEmail);
+        return pending.size();
+    }
+
     // ── Admin: reject an application ────────────────────────────────────
     @Transactional
     public PartnerApplicationResponse reject(UUID applicationId, String adminEmail, String reason) {
@@ -154,6 +188,30 @@ public class PartnerService {
     }
 
     // ── Grant a complimentary membership ────────────────────────────────
+    // Called internally after approve / approveAll, and also from
+    // AuthService when a user registers with an email that already has
+    // an approved application (the "deferred grant" path).
+
+    /**
+     * If an approved partner application exists for this email AND no
+     * membership has been granted yet, grant it now.  Called from the
+     * registration flow so that users who were approved before they
+     * created a SoCreate account receive their membership automatically.
+     */
+    @Transactional
+    public void grantIfApproved(String email) {
+        applicationRepo.findByEmail(email).ifPresent(app -> {
+            if ("approved".equals(app.getStatus())) {
+                // Only grant if the user doesn't already have a partner
+                // membership (idempotency guard).
+                User user = userRepository.findByEmail(email).orElse(null);
+                if (user != null && !user.isPremium()) {
+                    grantPartnerSubscription(app);
+                }
+            }
+        });
+    }
+
     private void grantPartnerSubscription(PartnerApplication app) {
         // Find or create the user
         Optional<User> optUser = userRepository.findByEmail(app.getEmail());
@@ -170,6 +228,7 @@ public class PartnerService {
 
         // Set user flags
         user.setPremium(true);
+        user.setVerified(true);
         if ("creator".equals(plan)) {
             user.setCreatorPro(true);
         }

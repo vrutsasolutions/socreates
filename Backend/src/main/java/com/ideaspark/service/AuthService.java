@@ -30,6 +30,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final MembershipService membershipService;
+    private final PartnerService partnerService;
 
     @Value("${google.client.id}")
     private String googleClientId;
@@ -87,6 +88,12 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+
+        // If this email was approved via the Partner Program before the
+        // user created an account, grant their free membership now.
+        try { partnerService.grantIfApproved(email); }
+        catch (Exception ignored) { /* best-effort; don't block signup */ }
+
         return buildResponse(user);
     }
 
@@ -155,6 +162,11 @@ public class AuthService {
 
                         return userRepository.save(newUser);
                     });
+
+            // If this email was approved via the Partner Program before the
+            // user created an account, grant their free membership now.
+            try { partnerService.grantIfApproved(normalizedEmail); }
+            catch (Exception ignored) { /* best-effort; don't block login */ }
 
             return buildResponse(user);
 
