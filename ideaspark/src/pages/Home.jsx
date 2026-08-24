@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
 import { EmptyFeed, EmptyForYou } from '../components/common/EmptyStates.premium';
 import Icon from '../components/common/Icon';
+import PartnerProgramPopup from '../components/common/PartnerProgramPopup';
 import scWordmark from '../assets/sc-wordmark.png';
 
 const TABS = ['Trending', 'Latest', 'For You'];
@@ -201,6 +202,8 @@ export default function Home() {
           <path d="M19 13l.8 2.2L22 16l-2.2.8L19 19l-.8-2.2L16 16l2.2-.8L19 13z" />
         </svg>
       </button>
+
+      <PartnerProgramPopup />
 
       <BottomNav />
     </div>

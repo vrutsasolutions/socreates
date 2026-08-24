@@ -84,6 +84,10 @@ public class SecurityConfig {
     // as /api/admin/pools/** above: gated at both the URL and method level.
     .requestMatchers("/api/admin/users/**").hasRole("ADMIN")
     .requestMatchers("/api/admin/payout-accounts/**").hasRole("ADMIN")
+    .requestMatchers("/api/admin/partners/**").hasRole("ADMIN")
+    // Partners Program — apply is public (works for logged-in + anonymous)
+    .requestMatchers(HttpMethod.POST, "/api/partners/apply").permitAll()
+    .requestMatchers("/api/partners/**").authenticated()
     // Public endpoints — no token needed
     .requestMatchers("/api/auth/**").permitAll()
     // AI endpoints burn Groq quota per call — must be logged in to use them,

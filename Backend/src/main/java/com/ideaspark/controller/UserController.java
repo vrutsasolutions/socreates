@@ -331,6 +331,7 @@ public class UserController {
         dto.setAuthProvider(user.getAuthProvider());
         dto.setPremium(user.isPremium());
         dto.setAdmin(adminEmail != null && adminEmail.equalsIgnoreCase(user.getEmail()));
+        dto.setCreatedAt(user.getCreatedAt());
         dto.setIdeasCount(ideaRepository.countByCreatorId(user.getId()));
         dto.setLikesCount(ideaRepository.sumLikeCountByCreatorId(user.getId()));
         dto.setSavedCount((int) savedIdeaRepository.countByUserId(user.getId()));

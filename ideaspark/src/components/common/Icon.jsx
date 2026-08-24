@@ -64,6 +64,8 @@ const ICONS = {
   'alert-triangle': <><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h16.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /><path d="M12 9v4M12 17h.01" /></>,
   image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></>,
   mic: <><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0014 0M12 18v3M8.5 21h7" /></>,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>,
+  'chevron-down': <path d="M6 9l6 6 6-6" />,
 };
 
 export default function Icon({ name, size, className = '', strokeWidth = 2, ...rest }) {
