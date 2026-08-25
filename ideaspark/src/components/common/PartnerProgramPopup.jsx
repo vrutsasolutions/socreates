@@ -46,34 +46,30 @@ export default function PartnerProgramPopup() {
 
   useEffect(() => {
     if (!user) return; // not logged in
-    if (user.isPremium) return; // already a paid subscriber
     if (new Date() > new Date('2026-09-30T23:59:59')) return; // program registration closed
 
+    // Check if we already showed the verified screen
     try {
       if (localStorage.getItem(VERIFIED_SEEN_KEY)) return;
     } catch { /* empty */ }
 
     let cancelled = false;
 
-    // Check application status with a 3-second timeout.
-    // If API fails or times out → show popup (safe fallback).
-    const timeout = setTimeout(() => {
-      if (!cancelled) {
-        setVisible(true);
-        requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
-      }
-    }, 3000);
-
+    // If user is premium, they might have JUST been approved via the partner
+    // program. Check the API to see if we need to show the verified screen.
+    // If they're a regular paid user (not from partner program), the API
+    // returns applied:false and we skip the popup since isPremium is true.
     (async () => {
       try {
         const { data } = await getMyPartnerApplication();
-        clearTimeout(timeout);
         if (cancelled) return;
 
         if (data.status === 'approved') {
           // Approved → redirect to verified reveal screen (once)
           try { localStorage.setItem(VERIFIED_SEEN_KEY, '1'); } catch { /* empty */ }
           navigate('/partners-program');
+        } else if (user.isPremium) {
+          // Paid subscriber, not from partner program → no popup
         } else if (data.status === 'pending') {
           // Already in queue → don't show popup
         } else {
@@ -82,16 +78,15 @@ export default function PartnerProgramPopup() {
           requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
         }
       } catch {
-        clearTimeout(timeout);
-        if (!cancelled) {
-          // API failed → show popup as fallback
+        if (!cancelled && !user.isPremium) {
+          // API failed + free user → show popup as fallback
           setVisible(true);
           requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
         }
       }
     })();
 
-    return () => { cancelled = true; clearTimeout(timeout); };
+    return () => { cancelled = true; };
   }, [user?.id]);
 
   const dismiss = () => {
