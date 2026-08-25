@@ -724,6 +724,7 @@ export default function PartnersProgram() {
     if (!user) {
       // Not logged in — allow through (anonymous applicants are, by
       // definition, not an existing account yet).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setScreen('form');
       return;
     }
