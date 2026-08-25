@@ -25,3 +25,11 @@ export const adminRejectApplication = (id, reason) =>
 /** Approve ALL pending applications in one action. */
 export const adminApproveAllApplications = () =>
   api.post('/admin/partners/approve-all');
+
+/** List applications by status: 'pending' | 'approved' | 'rejected'. */
+export const getAdminApplicationsByStatus = (status) =>
+  api.get(`/admin/partners/list?status=${status}`);
+
+/** Get counts per status for tab badges. */
+export const getAdminPartnerCounts = () =>
+  api.get('/admin/partners/counts');

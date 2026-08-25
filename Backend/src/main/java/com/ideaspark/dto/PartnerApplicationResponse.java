@@ -24,4 +24,6 @@ public class PartnerApplicationResponse {
     private Integer freeDays;
     private LocalDateTime createdAt;
     private LocalDateTime reviewedAt;
+    private String reviewedBy;
+    private String rejectionReason;
 }

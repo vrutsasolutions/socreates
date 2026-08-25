@@ -91,6 +91,25 @@ public class PartnerController {
         return ResponseEntity.ok(partnerService.listPending());
     }
 
+    /**
+     * List applications by status: pending, approved, or rejected.
+     * GET /api/admin/partners/list?status=approved
+     */
+    @GetMapping("/api/admin/partners/list")
+    public ResponseEntity<?> listByStatus(@RequestParam(defaultValue = "pending") String status) {
+        if (!List.of("pending", "approved", "rejected").contains(status)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Invalid status: " + status));
+        }
+        return ResponseEntity.ok(partnerService.listByStatus(status));
+    }
+
+    /** Counts per status — used for tab badges. */
+    @GetMapping("/api/admin/partners/counts")
+    public ResponseEntity<Map<String, Long>> counts() {
+        return ResponseEntity.ok(partnerService.statusCounts());
+    }
+
     @PostMapping("/api/admin/partners/approve-all")
     public ResponseEntity<?> approveAll(
             @AuthenticationPrincipal UserDetails adminDetails) {
