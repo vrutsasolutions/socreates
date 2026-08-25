@@ -263,6 +263,26 @@ public class PartnerService {
                 days, planLabel, app.getEmail());
     }
 
+    // ── Admin: list applications by status ────────────────────────────
+    public List<PartnerApplicationResponse> listByStatus(String status) {
+        List<PartnerApplication> apps;
+        if ("pending".equals(status)) {
+            apps = applicationRepo.findByStatusOrderByQueuePositionAsc(status);
+        } else {
+            apps = applicationRepo.findByStatusOrderByReviewedAtDesc(status);
+        }
+        return apps.stream().map(this::toResponse).toList();
+    }
+
+    // ── Admin: counts per status ────────────────────────────────────────
+    public java.util.Map<String, Long> statusCounts() {
+        return java.util.Map.of(
+                "pending",  applicationRepo.countByStatus("pending"),
+                "approved", applicationRepo.countByStatus("approved"),
+                "rejected", applicationRepo.countByStatus("rejected")
+        );
+    }
+
     // ── Mapping ─────────────────────────────────────────────────────────
     private PartnerApplicationResponse toResponse(PartnerApplication app) {
         return PartnerApplicationResponse.builder()
@@ -276,6 +296,8 @@ public class PartnerService {
                 .freeDays(app.getFreeDays())
                 .createdAt(app.getCreatedAt())
                 .reviewedAt(app.getReviewedAt())
+                .reviewedBy(app.getReviewedBy())
+                .rejectionReason(app.getRejectionReason())
                 .build();
     }
 }
