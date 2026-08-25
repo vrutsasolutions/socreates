@@ -8,12 +8,6 @@ import Icon from '../components/common/Icon';
 const REGISTRATION_DEADLINE = 'September 30, 2026';
 const TOTAL_STEPS = 5;
 
-// Keep in sync with PartnerProgramPopup.jsx's ELIGIBILITY_CUTOFF — only
-// accounts created on/after this date ("new users") are eligible. This
-// guards direct navigation to /partners-program by an existing, logged-in
-// user who never saw (or bypassed) the popup.
-const ELIGIBILITY_CUTOFF = new Date('2026-08-22T00:00:00Z');
-
 const AGE_GROUPS = ['Under 18', '18-24', '25-34', '35+'];
 const AGE_VALUES = ['under_18', '18-24', '25-34', '35+'];
 
@@ -724,15 +718,7 @@ export default function PartnersProgram() {
     if (!user) {
       // Not logged in — allow through (anonymous applicants are, by
       // definition, not an existing account yet).
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setScreen('form');
-      return;
-    }
-    // Existing users (account created before the cutoff) aren't eligible —
-    // keep them off the flow even if they land here directly by URL rather
-    // than through the (already-gated) popup.
-    if (user.createdAt && new Date(user.createdAt) < ELIGIBILITY_CUTOFF) {
-      navigate('/home', { replace: true });
       return;
     }
     (async () => {
