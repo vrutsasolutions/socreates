@@ -28,4 +28,7 @@ public interface PartnerApplicationRepository extends JpaRepository<PartnerAppli
 
     /** Count applications by status. */
     long countByStatus(String status);
+
+    /** All applications of a given status, most recently reviewed first. */
+    List<PartnerApplication> findByStatusOrderByReviewedAtDesc(String status);
 }
