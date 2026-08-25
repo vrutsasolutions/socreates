@@ -47,28 +47,51 @@ export default function PartnerProgramPopup() {
   useEffect(() => {
     if (!user) return; // not logged in
     if (user.isPremium) return; // already a paid subscriber
+    if (new Date() > new Date('2026-09-30T23:59:59')) return; // program registration closed
 
     try {
       if (localStorage.getItem(VERIFIED_SEEN_KEY)) return;
     } catch { /* empty */ }
 
-    // Show the popup immediately — no API call needed.
-    // If the user already applied, clicking "Join" takes them to
-    // the partners-program page where they see their status.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVisible(true);
-    requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+    let cancelled = false;
 
-    // Background check: if approved, redirect to reveal page.
+    // Check application status with a 3-second timeout.
+    // If API fails or times out → show popup (safe fallback).
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        setVisible(true);
+        requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+      }
+    }, 3000);
+
     (async () => {
       try {
         const { data } = await getMyPartnerApplication();
+        clearTimeout(timeout);
+        if (cancelled) return;
+
         if (data.status === 'approved') {
+          // Approved → redirect to verified reveal screen (once)
           try { localStorage.setItem(VERIFIED_SEEN_KEY, '1'); } catch { /* empty */ }
           navigate('/partners-program');
+        } else if (data.status === 'pending') {
+          // Already in queue → don't show popup
+        } else {
+          // Not applied or rejected → show popup
+          setVisible(true);
+          requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
         }
-      } catch { /* ignore — popup is already visible */ }
+      } catch {
+        clearTimeout(timeout);
+        if (!cancelled) {
+          // API failed → show popup as fallback
+          setVisible(true);
+          requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+        }
+      }
     })();
+
+    return () => { cancelled = true; clearTimeout(timeout); };
   }, [user?.id]);
 
   const dismiss = () => {
