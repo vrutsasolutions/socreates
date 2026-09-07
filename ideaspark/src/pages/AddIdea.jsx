@@ -11,6 +11,7 @@ import { filesToCompressedDataURLs, dataURLsToFiles } from '../state/ImageCodec'
 import { CATEGORIES } from '../constants/categories';
 import { IdeaIcon } from '../components/common/categoryIcons';
 import { CATEGORY_COLORS, defaultColor } from '../components/common/categoryConstants';
+import { logEvent } from '../utils/analytics';
 
 const STEPS = ['Details', 'Media', 'Publish'];
 
@@ -444,6 +445,7 @@ export default function AddIdea() {
     const editorReturn  = params.get('edited')  === '1';
     if (!d) return;
     const p = params.get('price');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm((f) => ({
       ...f,
       ...(d.form || {}),
@@ -456,7 +458,9 @@ export default function AddIdea() {
     // files instead. Restoring draft images here would overwrite them.
     if (!editorReturn && Array.isArray(d.imageDataURLs) && d.imageDataURLs.length > 0) {
       const restoredFiles = dataURLsToFiles(d.imageDataURLs, 'restored');
+      // eslint-disable-next-line react-hooks/immutability
       setImages(restoredFiles);
+      // eslint-disable-next-line react-hooks/immutability
       setPreviews(restoredFiles.map((f) => URL.createObjectURL(f)));
     }
     // Return the user to the step they left from (the Media / upload-image
@@ -619,6 +623,8 @@ export default function AddIdea() {
       images.forEach((img) => fd.append('images', img));
 
       await api.post('/ideas', fd);
+
+      logEvent('idea_created', { is_premium: !!payload.isPremium, image_count: images.length });
 
       clearIdeaDraft();
       navigate('/home', { state: { publishSuccess: true } });

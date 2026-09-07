@@ -5,7 +5,9 @@
 // 3 lines exist:
 // ══════════════════════════════════════════════════════════════════════════
 
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { logScreenView } from "../utils/analytics";
 import { useAuth } from "../context/AuthContext";
 import NotificationToasts from "../components/common/NotificationToasts";
 import usePushNotifications from "../hooks/usePushNotifications";
@@ -87,11 +89,27 @@ function PushNotificationsBridge() {
   return null;
 }
 
+// Renders nothing — same bridge pattern as PushNotificationsBridge above.
+// Fires a Firebase Analytics screen_view on every route change (initial
+// load + all client-side navigations, since react-router doesn't trigger
+// real page loads). Uses the raw pathname as the screen name so entries in
+// the Firebase console line up 1:1 with app routes, at the cost of dynamic
+// segments showing up as literal ids (e.g. "/idea/3f2a...") rather than a
+// friendly "IdeaDetail" — acceptable for now; revisit if that gets noisy.
+function AnalyticsScreenTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    logScreenView(location.pathname);
+  }, [location.pathname]);
+  return null;
+}
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <NotificationToasts />
       <PushNotificationsBridge />
+      <AnalyticsScreenTracker />
       <BackButtonBridge />
       <DeepLinkBridge />
 

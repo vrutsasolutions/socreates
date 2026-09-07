@@ -16,6 +16,7 @@ import { USE_MOCK } from '../api/config';
 import { createOrder, subscribe, fetchMySubscription, buildMembership } from '../api/paymentApi';
 import Icon from '../components/common/Icon';
 import scLogo from '../assets/sc-logo-razorpay.png';
+import { logEvent } from '../utils/analytics';
 
 // What each tier's order summary lists (matches the checkout design).
 const INCLUDES = {
@@ -49,6 +50,11 @@ export default function Checkout() {
 
   const onSuccess = (data) => {
     login(data.user);
+    // Firebase's reserved 'purchase' event — value/currency drive revenue
+    // reporting in the console. `price` here is whatever numeric amount
+    // Checkout was opened with (see `order` above); INR is the only
+    // currency Razorpay is wired for in this app today.
+    logEvent('purchase', { currency: 'INR', value: Number(price) || 0, plan, billing });
     navigate('/membership/success', { state: { membership: data.user?.membership } });
   };
 

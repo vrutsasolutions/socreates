@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { unregisterDeviceToken } from '../api/pushNotificationApi'
 import { fetchMe } from '../api/userApi'
 import { logoutUser } from '../api/authApi'
+import { logEvent, setAnalyticsUserId, setAnalyticsUserProperty } from '../utils/analytics'
 
 const AuthContext = createContext(null)
 
@@ -61,6 +62,9 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('user', JSON.stringify(next))
           return next
         })
+        setAnalyticsUserId(data.id)
+        setAnalyticsUserProperty('is_premium', data.isPremium ?? data.premium)
+        setAnalyticsUserProperty('is_creator_pro', data.creatorPro)
       })
       .catch((err) => {
         // Offline / no session / server hiccup — keep the cached user
@@ -79,9 +83,16 @@ export const AuthProvider = ({ children }) => {
   // Authorization header rather than the cookie) — the web app itself no
   // longer needs or stores it; the login/register/google endpoints already
   // set the httpOnly cookie server-side as part of that same response.
-  const login = (userData) => {
+  // `event` lets call sites distinguish a brand-new account from a returning
+  // one — AuthContext itself can't tell the difference, since both paths
+  // end up calling this same setter with the same shape of userData.
+  // Defaults to 'login' since that's the more common path (Login.jsx);
+  // VerifyOtp.jsx passes 'sign_up' after a successful registration.
+  const login = (userData, event = 'login') => {
     localStorage.setItem('user', JSON.stringify(userData))
     setUser(userData)
+    setAnalyticsUserId(userData?.id)
+    logEvent(event, { method: userData?.authProvider || 'local' })
   }
 
   const logout = () => {
@@ -117,6 +128,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('sc_onboarding_seen', onboardingSeen)
     }
     setUser(null)
+    setAnalyticsUserId(null)
   }
 
   // Merge a partial patch into the current user and persist it.
