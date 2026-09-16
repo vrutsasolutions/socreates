@@ -46,7 +46,11 @@ export default function PartnerProgramPopup() {
 
   useEffect(() => {
     if (!user) return; // not logged in
-    if (new Date() > new Date('2026-09-30T23:59:59')) return; // program registration closed
+    if (new Date() > new Date('2026-09-30T23:59:59')) {
+      // Program over — popup never shows, set tour flag so guide starts
+      try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
+      return;
+    }
 
     // Check if we already showed the verified screen
     try {
@@ -90,6 +94,8 @@ export default function PartnerProgramPopup() {
   }, [user?.id]);
 
   const dismiss = () => {
+    // Mark tour as ready to start — TooltipGuide checks this flag
+    try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
     setFadeOut(true);
     setEntered(false);
     // No localStorage write — popup reappears on next Home visit
@@ -98,13 +104,15 @@ export default function PartnerProgramPopup() {
   };
 
   const join = () => {
+    // Also mark tour ready when user taps Join (they'll see tour on return)
+    try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
     navigate('/partners-program');
   };
 
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-5">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-5" data-partner-popup="true">
       {/* Dimmed backdrop — Home feed stays visible (dimmed) around the card */}
       <div
         onClick={dismiss}

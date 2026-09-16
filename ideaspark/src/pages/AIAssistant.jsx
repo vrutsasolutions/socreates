@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import TooltipGuide from '../components/common/TooltipGuide';
+import { AI_ASSISTANT_STEPS } from '../config/tourSteps';
 import { chatWithAssistant } from '../api/aiApi';
 
 const BRING_CHIPS = [
@@ -141,6 +143,7 @@ export default function AIAssistant() {
   const scrollRef = useRef(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMessages([
       {
         id: uid(), from: 'bot',
@@ -285,9 +288,12 @@ export default function AIAssistant() {
                 </div>
               </div>
 
-              {/* Quick reply chips */}
+              {/* Quick reply chips — bring + industry */}
               {m.chips && isLast && !typing && (
-                <div className="flex flex-wrap gap-2 pl-11">
+                <div data-tour={
+                  m.chips === BRING_CHIPS ? 'ai-bring-chips' :
+                  m.chips === INDUSTRY_CHIPS ? 'ai-industry-chips' : undefined
+                } className="flex flex-wrap gap-2 pl-11">
                   {m.chips.map((c) => (
                     <button key={c.label} onClick={() => handleSend(c.label)}
                             className={`px-4 py-2 rounded-full text-[13px] font-semibold
@@ -319,7 +325,7 @@ export default function AIAssistant() {
            style={{ boxShadow: '0 -4px 20px rgba(21,101,192,0.07)' }}>
 
         {/* Action chips */}
-        <div className="flex gap-2 px-4 pt-3 pb-1 overflow-x-auto">
+        <div data-tour="ai-action-chips" className="flex gap-2 px-4 pt-3 pb-1 overflow-x-auto">
           {ACTIONS.map((a) => (
             <button key={a.label}
                     onClick={() => handleSend(`${a.icon} ${a.label}`)}
@@ -337,6 +343,7 @@ export default function AIAssistant() {
         {/* Input row */}
         <div className="flex items-center gap-2.5 px-4 py-3">
           <input
+            data-tour="ai-chat-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
@@ -365,6 +372,8 @@ export default function AIAssistant() {
         </div>
       </div>
 
+      {/* ── Feature walkthrough guide ── */}
+      <TooltipGuide guideKey="tour_ai_assistant_v1" steps={AI_ASSISTANT_STEPS} />
     </div>
   );
 }

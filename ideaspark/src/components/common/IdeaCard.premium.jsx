@@ -152,7 +152,7 @@ export function IdeaCardSkeleton({ variant = 'card' } = {}) {
 }
 
 /* ── Main card ───────────────────────────────────────────── */
-export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
+export default function IdeaCard({ idea, onSaveToggle, variant = 'card', actionsTourTarget, saveTourTarget }) {
   const navigate        = useNavigate();
   const { user }        = useAuth();
   // `idea.locked` comes straight from the backend's per-idea, per-user gate
@@ -232,7 +232,7 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
 
   /* Shared actions row — identical colors/behavior across card & list layouts */
   const actionsRow = (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div data-tour={actionsTourTarget} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
 
@@ -300,6 +300,7 @@ export default function IdeaCard({ idea, onSaveToggle, variant = 'card' }) {
 
       {/* Save */}
       <button
+        data-tour={saveTourTarget}
         onClick={handleSave}
         disabled={saving}
         style={{

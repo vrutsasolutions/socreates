@@ -10,6 +10,8 @@
 // ════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import TooltipGuide from '../components/common/TooltipGuide';
+import { INBOX_STEPS } from '../config/tourSteps';
 import Avatar from '../components/messaging/Avatar';
 import { fetchConversations, fetchActiveUsers, fetchRequests, fetchConversation, formatInboxTime, startConversation } from '../api/messagingApi';
 import Icon from '../components/common/Icon';
@@ -363,6 +365,7 @@ export default function Inbox() {
           </button>
           <h1 className="flex-1 text-[28px] font-bold text-white leading-none">Messages</h1>
           <button
+            data-tour="inbox-new"
             onClick={() => navigate('/messages/new')}
             aria-label="New chat"
             className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg hover:bg-white/20 active:scale-95 transition-all"
@@ -375,7 +378,7 @@ export default function Inbox() {
 
         <div className="relative z-10 mt-6">
           <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 shadow-md">
-            <div className="relative">
+            <div data-tour="inbox-search" className="relative">
               <svg className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -420,7 +423,7 @@ export default function Inbox() {
 
             {/* Active now rail */}
             {active.length > 0 && (
-              <div className="px-4">
+              <div data-tour="inbox-active-users" className="px-4">
                 <p className="text-[11px] font-bold tracking-wider text-[#90A4AE] mb-3">ACTIVE NOW</p>
                 <div className="flex gap-4 overflow-x-auto pb-1">
                   {active.map((u) => (
@@ -444,6 +447,7 @@ export default function Inbox() {
             <div className={`px-4 ${active.length > 0 ? 'pt-4' : ''} pb-2 flex items-center justify-between`}>
               <p className="text-[12px] font-bold tracking-wider text-[#0D2137]">RECENT</p>
               <button
+                data-tour="inbox-requests"
                 onClick={() => navigate('/messages/requests')}
                 className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full bg-[#EAF2FF] text-[12px] font-bold tracking-wider text-[#1565C0] hover:bg-[#DBEAFE] active:opacity-70 transition-colors"
               >
@@ -471,6 +475,9 @@ export default function Inbox() {
           </div>
         </div>
       )}
+
+      {/* ── Feature walkthrough guide ── */}
+      <TooltipGuide guideKey="tour_inbox_v1" steps={INBOX_STEPS} />
     </div>
   );
 }

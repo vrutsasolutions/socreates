@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import TooltipGuide from "../components/common/TooltipGuide";
+import { PROFILE_STEPS } from "../config/tourSteps";
 import BottomNav from "../components/common/BottomNav.premium";
 import IdeaCard from "../components/common/IdeaCard.premium";
 import { useAuth } from "../context/AuthContext";
@@ -133,7 +135,7 @@ export default function Profile() {
           </h1>
 
           <div className="flex items-center gap-4">
-            {user?.id && <ProfileShareButton userId={user.id} name={user?.name} />}
+            {user?.id && <span data-tour="profile-share"><ProfileShareButton userId={user.id} name={user?.name} /></span>}
 
             <button
               onClick={() => navigate("/settings")}
@@ -162,7 +164,7 @@ export default function Profile() {
         </div>
 
         <div className="relative z-10 mt-6 flex justify-center">
-          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-5 w-full max-w-sm text-center">
+          <div data-tour="profile-avatar" className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-5 w-full max-w-sm text-center">
             <div className="flex justify-center">
               {user?.profileImage ? (
                 <img
@@ -227,7 +229,7 @@ export default function Profile() {
       <div className="bg-[#1565C0]">
         <div className="bg-white rounded-t-[32px] px-4 pt-6">
           {/* STATS */}
-          <div className="flex text-center py-4 border-b border-[#BBDEFB]">
+          <div data-tour="profile-stats" className="flex text-center py-4 border-b border-[#BBDEFB]">
             <button
               type="button"
               onClick={() => navigate("/profile/follows?tab=followers")}
@@ -261,6 +263,7 @@ export default function Profile() {
           {/* FOLLOW REQUESTS — only rendered when there's a queue to clear. */}
           {followRequestCount > 0 && (
             <button
+              data-tour="profile-follow-requests"
               onClick={() => navigate("/follow-requests")}
               className="mt-4 w-full bg-[#E3F2FD] border border-[#BBDEFB] text-[#1565C0] font-medium text-sm py-3 rounded-xl active:scale-[0.98] transition-transform"
             >
@@ -276,6 +279,7 @@ export default function Profile() {
 
           {/* EDIT BUTTON */}
           <button
+            data-tour="profile-edit"
             onClick={() => navigate("/edit-profile")}
             className="mt-4 w-full bg-[#F0F6FF] border border-[#BBDEFB] text-[#1565C0] font-medium text-sm py-3 rounded-xl"
           >
@@ -286,7 +290,7 @@ export default function Profile() {
           </button>
 
           {/* TABS */}
-          <div className="flex gap-2 mt-4 mb-4">
+          <div data-tour="profile-tabs" className="flex gap-2 mt-4 mb-4">
             {TABS.map((t) => (
               <button
                 key={t}
@@ -366,6 +370,9 @@ export default function Profile() {
         </div>
       </div>
       <BottomNav />
+
+      {/* ── Feature walkthrough guide ── */}
+      <TooltipGuide guideKey="tour_profile_v1" steps={PROFILE_STEPS} />
     </div>
   );
 }

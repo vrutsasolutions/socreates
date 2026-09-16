@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import TooltipGuide from "../components/common/TooltipGuide";
+import { CREATOR_DASHBOARD_STEPS } from "../config/tourSteps";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosInstance";
 import {
@@ -184,6 +186,7 @@ export default function CreatorDashboard() {
   }, [user?.creatorPro]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDashboard();
     loadRevenue();
     checkPayoutSetup();
@@ -457,6 +460,7 @@ export default function CreatorDashboard() {
               )}
 
               {/* ── Creator Status ─────────────────────────────── */}
+              <div data-tour="dashboard-status">
               <Section title="Creator Status">
                 <div className="bg-white rounded-2xl border border-[#E3F2FD] p-4 space-y-3.5 shadow-sm">
                   <StatusRow
@@ -476,8 +480,10 @@ export default function CreatorDashboard() {
                   />
                 </div>
               </Section>
+              </div>
 
               {/* ── Performance Overview ───────────────────────── */}
+              <div data-tour="dashboard-performance">
               <Section title="Performance Overview">
                 <div className="space-y-3">
                   {/* Wide highlighted card */}
@@ -510,8 +516,10 @@ export default function CreatorDashboard() {
                   </div>
                 </div>
               </Section>
+              </div>
 
               {/* ── Content Performance ────────────────────────── */}
+              <div data-tour="dashboard-content-table">
               <Section title="Content Performance">
                 <div className="bg-white rounded-2xl border border-[#E3F2FD] shadow-sm overflow-x-auto">
                   <table className="w-full text-sm min-w-[520px]">
@@ -587,10 +595,11 @@ export default function CreatorDashboard() {
                   />
                 </div>
               </Section>
+              </div>
 
               {/* ── Monthly Score + Payout Settings ────────────────── */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2.5">
+                <div data-tour="dashboard-monthly-score" className="space-y-2.5">
                   <h2 className="text-[11px] font-bold tracking-wider text-[#90A4AE] uppercase px-1">
                     Monthly Score
                   </h2>
@@ -600,7 +609,7 @@ export default function CreatorDashboard() {
                     </span>
                   </div>
                 </div>
-                <div className="space-y-2.5">
+                <div data-tour="dashboard-payout-setup" className="space-y-2.5">
                   <h2 className="text-[11px] font-bold tracking-wider text-[#90A4AE] uppercase px-1">
                     Payout Settings
                   </h2>
@@ -629,6 +638,7 @@ export default function CreatorDashboard() {
               </div>
 
               {/* ── Earnings history ────────────────────────────── */}
+              <div data-tour="dashboard-revenue">
               <Section title="Earnings history">
                 {/* Admin-only: run the monthly revenue distribution. Builds the
                     pool from captured payments and writes each creator's
@@ -846,10 +856,14 @@ export default function CreatorDashboard() {
                   </table>
                 </div>
               </Section>
+              </div>
             </>
           )}
         </div>
       </div>
+
+      {/* ── Feature walkthrough guide ── */}
+      <TooltipGuide guideKey="tour_creator_dashboard_v1" steps={CREATOR_DASHBOARD_STEPS} />
     </div>
   );
 }

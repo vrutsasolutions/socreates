@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import TooltipGuide from "../components/common/TooltipGuide";
+import { SETTINGS_STEPS } from "../config/tourSteps";
 import { useAuth } from "../context/AuthContext";
 import Icon from "../components/common/Icon";
 import {
@@ -27,9 +29,6 @@ const Toggle = ({ value, onChange }) => (
   </button>
 );
 
-// 5-star rating input for the Feedback popup. Renders its own SVGs (rather
-// than the shared <Icon>, which hardcodes fill="none") so each star can be
-// filled solid up to `value` (or up to the hovered star while hovering).
 const StarRating = ({ value, onChange }) => {
   const [hover, setHover] = useState(0);
   return (
@@ -86,20 +85,11 @@ export default function Settings() {
     showActivity: true,
     publicProfile: true,
   });
-  // Confirmation gate for switching Public -> Private. Not just a nicety:
-  // the switch converts every existing follower into a pending request they
-  // have to be re-approved from, so it needs an explicit yes.
   const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
   const [privacyBusy, setPrivacyBusy] = useState(false);
-  // Surfaced in the Privacy section when the toggle can't be saved. Silently
-  // swallowing this was the original sin here: a backend that doesn't know
-  // the field returns 200 with it absent, the optimistic fallback filled in
-  // the requested value, and the switch looked like it worked until reload.
   const [privacyError, setPrivacyError] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  // Load the user's saved notification preferences (defaults above are just
-  // the ON-by-default fallback shown while this is in flight / if it fails).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -113,18 +103,12 @@ export default function Settings() {
           });
         }
       } catch (err) {
-        console.error(
-          "[settings] failed to load notification preferences",
-          err,
-        );
+        console.error("[settings] failed to load notification preferences", err);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  // Optimistically flip a toggle, persist it, and roll back on failure.
   const toggleNotifPref = (key, value) => {
     const previous = notifs;
     setNotifs({ ...notifs, [key]: value });
@@ -134,7 +118,6 @@ export default function Settings() {
     });
   };
 
-  // Load the user's saved Activity Status preference.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -151,15 +134,9 @@ export default function Settings() {
         console.error("[settings] failed to load privacy preferences", err);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  // Optimistically flip Activity Status, persist it, and roll back on failure.
-  //
-  // Both privacy keys go in every request: an omitted boolean deserializes to
-  // false server-side, so sending only one would silently flip the other.
   const toggleActivityStatus = (value) => {
     const previous = privacy;
     setPrivacy({ ...privacy, showActivity: value });
@@ -167,24 +144,11 @@ export default function Settings() {
       showActivityStatus: value,
       publicProfile: privacy.publicProfile,
     }).catch((err) => {
-      console.error(
-        "[settings] failed to save activity status preference",
-        err,
-      );
+      console.error("[settings] failed to save activity status preference", err);
       setPrivacy(previous);
     });
   };
 
-  // Public Profile.
-  //
-  // Turning it OFF goes through a confirmation modal first, because the switch
-  // has side effects beyond this screen: every current follower is converted
-  // into a pending follow request and notified. Turning it back ON is
-  // harmless (pending requests are auto-accepted), so that path is direct.
-  //
-  // This one is NOT optimistic. The server does real follower-graph work here
-  // and echoes back the saved state, so the UI waits and then trusts the
-  // response rather than guessing.
   const persistPublicProfile = async (value) => {
     const previous = privacy;
     setPrivacyBusy(true);
@@ -194,17 +158,9 @@ export default function Settings() {
         showActivityStatus: privacy.showActivity,
         publicProfile: value,
       });
-
-      // The server MUST echo publicProfile back as a boolean. If it doesn't,
-      // it's running a build that predates this field: Spring's ObjectMapper
-      // ignores unknown request properties by default, so the call returns a
-      // cheerful 200 having saved nothing. Trusting it here would show the
-      // switch as flipped while the database still says public — which is
-      // exactly the state that makes follows keep going straight through.
       if (typeof data?.publicProfile !== "boolean") {
         throw new Error("STALE_BACKEND");
       }
-
       setPrivacy({
         showActivity: data.showActivityStatus ?? privacy.showActivity,
         publicProfile: data.publicProfile,
@@ -214,7 +170,7 @@ export default function Settings() {
       setPrivacy(previous);
       setPrivacyError(
         err?.message === "STALE_BACKEND"
-          ? "Couldn't save. The server doesn't support this setting yet \u2014 it needs redeploying."
+          ? "Couldn't save. The server doesn't support this setting yet — it needs redeploying."
           : "Couldn't save that. Check your connection and try again.",
       );
     } finally {
@@ -226,28 +182,20 @@ export default function Settings() {
   const togglePublicProfile = (value) => {
     if (privacyBusy) return;
     if (value === false) {
-      setShowPrivateConfirm(true); // going private — confirm first
+      setShowPrivateConfirm(true);
       return;
     }
     persistPublicProfile(true);
   };
 
-  // Delete-account confirmation modal state.
   const [showDelete, setShowDelete] = useState(false);
   const [deletePwd, setDeletePwd] = useState("");
   const [deleteError, setDeleteError] = useState("");
-
-  // Contact Support popup state.
   const [showSupport, setShowSupport] = useState(false);
   const SUPPORT_PHONE = "+91 9994586462";
   const SUPPORT_PHONE_TEL = "+919994586462";
   const SUPPORT_EMAIL = "contact@vrutsasolutions.com";
 
-  // Feedback popup state (Settings > Support > Feedback). `feedbackGiven`
-  // is null while loading, then a feedback object once submitted (ever),
-  // or false if this account hasn't given feedback yet — that null/false
-  // split keeps the Support row from flashing "Completed" before the
-  // GET /api/feedback/me check resolves.
   const [feedbackGiven, setFeedbackGiven] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -266,9 +214,7 @@ export default function Settings() {
         if (!cancelled) setFeedbackGiven(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const handleLogout = () => {
@@ -291,15 +237,12 @@ export default function Settings() {
     try {
       setDeleting(true);
       setDeleteError("");
-
       await deleteAccount(isGoogleUser ? null : deletePwd.trim());
-
       logout();
       navigate("/");
     } catch (err) {
       setDeleteError(
-        err?.response?.data?.message ||
-          "Failed to delete account. Please try again.",
+        err?.response?.data?.message || "Failed to delete account. Please try again.",
       );
     } finally {
       setDeleting(false);
@@ -307,7 +250,7 @@ export default function Settings() {
   };
 
   const openFeedbackModal = () => {
-    if (feedbackGiven) return; // one-time — already submitted, can't reopen
+    if (feedbackGiven) return;
     setFeedbackRating(0);
     setFeedbackReview("");
     setFeedbackError("");
@@ -335,13 +278,13 @@ export default function Settings() {
       setShowFeedback(false);
     } catch (err) {
       setFeedbackError(
-        err?.response?.data?.message ||
-          "Failed to submit feedback. Please try again.",
+        err?.response?.data?.message || "Failed to submit feedback. Please try again.",
       );
     } finally {
       setSubmittingFeedback(false);
     }
   };
+
   const Section = ({ title, children }) => (
     <div className="mb-6">
       <h2 className="text-[#90A4AE] text-xs font-semibold uppercase tracking-widest px-4 mb-2">
@@ -363,9 +306,7 @@ export default function Settings() {
         {icon}
       </span>
       <div className="flex-1 min-w-0">
-        <div
-          className={`text-sm font-medium ${danger ? "text-red-500" : "text-[#1565C0]"}`}
-        >
+        <div className={`text-sm font-medium ${danger ? "text-red-500" : "text-[#1565C0]"}`}>
           {label}
         </div>
         {sublabel && (
@@ -381,11 +322,7 @@ export default function Settings() {
             stroke="currentColor"
             strokeWidth={2.5}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 5l7 7-7 7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         ) : null)}
     </div>
@@ -401,18 +338,8 @@ export default function Settings() {
           aria-label="Go back"
           className="w-9 h-9 flex items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-90 transition-all"
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 19l-7-7 7-7"
-            />
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <h1 className="text-white font-bold text-lg">Settings</h1>
@@ -422,19 +349,13 @@ export default function Settings() {
         <div className="flex items-center gap-4 px-4 py-5 bg-[#1565C0]">
           <div className="w-14 h-14 rounded-2xl bg-[#BBDEFB] flex items-center justify-center text-[#1565C0] text-2xl font-bold shrink-0 overflow-hidden">
             {user?.profileImage ? (
-              <img
-                src={user.profileImage}
-                alt={user?.name || "Profile"}
-                className="w-full h-full object-cover"
-              />
+              <img src={user.profileImage} alt={user?.name || "Profile"} className="w-full h-full object-cover" />
             ) : (
               user?.name?.[0]?.toUpperCase()
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-white font-semibold truncate">
-              {user?.name}
-            </div>
+            <div className="text-white font-semibold truncate">{user?.name}</div>
             <div className="text-blue-200 text-xs truncate">{user?.email}</div>
           </div>
           <button
@@ -446,155 +367,128 @@ export default function Settings() {
         </div>
 
         <div className="bg-white rounded-t-[32px] pt-5 px-0">
-          <Section title="Account">
-            <Row
-              icon={<Icon name="user" className="w-5 h-5 text-[#1565C0]" />}
-              label="Edit Profile"
-              onClick={() => navigate("/edit-profile")}
-            />
-            <Row
-              icon={<Icon name="gem" className="w-5 h-5 text-[#7C3AED]" />}
-              label="Membership"
-              sublabel={
-                user?.isPremium ? "Active Premium · Verified" : "Free plan"
-              }
-              right={
-                user?.isPremium ? (
-                  <span className="text-[#10B981] text-xs font-semibold">
-                    Verified ✓
-                  </span>
-                ) : undefined
-              }
-              onClick={() => navigate("/membership")}
-            />
 
-            {user?.creatorPro && (
+          {/* ── Account ─────────────────────────────────── */}
+          <div data-tour="settings-account">
+            <Section title="Account">
               <Row
-                icon={
-                  <svg
-                    className="w-5 h-5 text-[#16A34A]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                }
-                label="Payout Settings"
-                sublabel="Bank details · Payout schedule"
-                onClick={() => navigate("/payout-settings")}
+                icon={<Icon name="user" className="w-5 h-5 text-[#1565C0]" />}
+                label="Edit Profile"
+                onClick={() => navigate("/edit-profile")}
               />
-            )}
-            <Row
-              icon={<Icon name="bookmark" className="w-5 h-5 text-[#10B981]" />}
-              label="Saved Ideas"
-              onClick={() => navigate("/saved-ideas")}
-            />
-          </Section>
+              <Row
+                icon={<Icon name="gem" className="w-5 h-5 text-[#7C3AED]" />}
+                label="Membership"
+                sublabel={user?.isPremium ? "Active Premium · Verified" : "Free plan"}
+                right={
+                  user?.isPremium ? (
+                    <span className="text-[#10B981] text-xs font-semibold">Verified ✓</span>
+                  ) : undefined
+                }
+                onClick={() => navigate("/membership")}
+              />
+              {user?.creatorPro && (
+                <Row
+                  icon={
+                    <svg className="w-5 h-5 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
+                  }
+                  label="Payout Settings"
+                  sublabel="Bank details · Payout schedule"
+                  onClick={() => navigate("/payout-settings")}
+                />
+              )}
+              <Row
+                icon={<Icon name="bookmark" className="w-5 h-5 text-[#10B981]" />}
+                label="Saved Ideas"
+                onClick={() => navigate("/saved-ideas")}
+              />
+            </Section>
+          </div>
+          {/* ── /Account ─────────────────────────────────── */}
 
-          <Section title="Notifications">
-            <Row
-              icon={
-                <Icon name="lightbulb" className="w-5 h-5 text-[#F59E0B]" />
-              }
-              label="New Idea Alerts"
-              sublabel="When creators you follow post"
-              right={
-                <Toggle
-                  value={notifs.newIdeas}
-                  onChange={(v) => toggleNotifPref("newIdeas", v)}
-                />
-              }
-            />
-            <Row
-              icon={<Icon name="heart" className="w-5 h-5 text-[#EF4444]" />}
-              label="Likes"
-              sublabel="When someone likes your idea"
-              right={
-                <Toggle
-                  value={notifs.likes}
-                  onChange={(v) => toggleNotifPref("likes", v)}
-                />
-              }
-            />
-            <Row
-              icon={
-                <Icon
-                  name="message-square"
-                  className="w-5 h-5 text-[#3B82F6]"
-                />
-              }
-              label="Comments"
-              sublabel="When someone comments"
-              right={
-                <Toggle
-                  value={notifs.comments}
-                  onChange={(v) => toggleNotifPref("comments", v)}
-                />
-              }
-            />
-          </Section>
+          {/* ── Notifications ───────────────────────────── */}
+          <div data-tour="settings-notifications">
+            <Section title="Notifications">
+              <Row
+                icon={<Icon name="lightbulb" className="w-5 h-5 text-[#F59E0B]" />}
+                label="New Idea Alerts"
+                sublabel="When creators you follow post"
+                right={
+                  <Toggle value={notifs.newIdeas} onChange={(v) => toggleNotifPref("newIdeas", v)} />
+                }
+              />
+              <Row
+                icon={<Icon name="heart" className="w-5 h-5 text-[#EF4444]" />}
+                label="Likes"
+                sublabel="When someone likes your idea"
+                right={
+                  <Toggle value={notifs.likes} onChange={(v) => toggleNotifPref("likes", v)} />
+                }
+              />
+              <Row
+                icon={<Icon name="message-square" className="w-5 h-5 text-[#3B82F6]" />}
+                label="Comments"
+                sublabel="When someone comments"
+                right={
+                  <Toggle value={notifs.comments} onChange={(v) => toggleNotifPref("comments", v)} />
+                }
+              />
+            </Section>
+          </div>
+          {/* ── /Notifications ───────────────────────────── */}
 
-          <Section title="Privacy">
-            <Row
-              icon={<Icon name="globe" className="w-5 h-5 text-[#1565C0]" />}
-              label="Public Profile"
-              sublabel={
-                privacy.publicProfile
-                  ? "Anyone can follow you and see your ideas"
-                  : "Private \u2014 followers need your approval"
-              }
-              right={
-                <Toggle
-                  value={privacy.publicProfile}
-                  onChange={togglePublicProfile}
+          {/* ── Privacy ─────────────────────────────────── */}
+          <div data-tour="settings-privacy">
+            <Section title="Privacy">
+              <Row
+                icon={<Icon name="globe" className="w-5 h-5 text-[#1565C0]" />}
+                label="Public Profile"
+                sublabel={
+                  privacy.publicProfile
+                    ? "Anyone can follow you and see your ideas"
+                    : "Private — followers need your approval"
+                }
+                right={
+                  <Toggle value={privacy.publicProfile} onChange={togglePublicProfile} />
+                }
+              />
+              {privacyError && (
+                <div className="mx-4 mb-2 rounded-xl bg-[#FEF2F2] border border-[#FECACA] px-3 py-2.5">
+                  <p className="text-xs text-[#DC2626] leading-relaxed">{privacyError}</p>
+                </div>
+              )}
+              <Row
+                icon={<Icon name="user-plus" className="w-5 h-5 text-[#1565C0]" />}
+                label="Follow Requests"
+                sublabel="People waiting for your approval"
+                onClick={() => navigate("/follow-requests")}
+              />
+              <Row
+                icon={<Icon name="activity" className="w-5 h-5 text-[#3347E8]" />}
+                label="Activity Status"
+                sublabel="Show when you're active"
+                right={
+                  <Toggle value={privacy.showActivity} onChange={toggleActivityStatus} />
+                }
+              />
+              <div data-tour="settings-blocked">
+                <Row
+                  icon={<Icon name="shield" className="w-5 h-5 text-[#EF4444]" />}
+                  label="Blocked Users"
+                  sublabel="Manage people you've blocked"
+                  onClick={() => navigate("/settings/blocked-users")}
                 />
-              }
-            />
-            {privacyError && (
-              <div className="mx-4 mb-2 rounded-xl bg-[#FEF2F2] border border-[#FECACA] px-3 py-2.5">
-                <p className="text-xs text-[#DC2626] leading-relaxed">
-                  {privacyError}
-                </p>
               </div>
-            )}
+            </Section>
+          </div>
+          {/* ── /Privacy ─────────────────────────────────── */}
 
-            {/* Always rendered, not gated on privacy.publicProfile. Hiding it
-                while public stranded any queue left over from a previous
-                private stint behind an entry point that no longer existed —
-                and made the feature undiscoverable if the toggle itself
-                misbehaved. The page handles the empty case on its own. */}
-            <Row
-              icon={<Icon name="user-plus" className="w-5 h-5 text-[#1565C0]" />}
-              label="Follow Requests"
-              sublabel="People waiting for your approval"
-              onClick={() => navigate("/follow-requests")}
-            />
-            <Row
-              icon={<Icon name="activity" className="w-5 h-5 text-[#3347E8]" />}
-              label="Activity Status"
-              sublabel="Show when you're active"
-              right={
-                <Toggle
-                  value={privacy.showActivity}
-                  onChange={toggleActivityStatus}
-                />
-              }
-            />
-            <Row
-              icon={<Icon name="shield" className="w-5 h-5 text-[#EF4444]" />}
-              label="Blocked Users"
-              sublabel="Manage people you've blocked"
-              onClick={() => navigate("/settings/blocked-users")}
-            />
-          </Section>
-
+          {/* ── Support ─────────────────────────────────── */}
           <Section title="Support">
             <Row
-              icon={
-                <Icon name="file-text" className="w-5 h-5 text-[#546E7A]" />
-              }
+              icon={<Icon name="file-text" className="w-5 h-5 text-[#546E7A]" />}
               label="Terms of Service"
               onClick={() => navigate("/terms")}
             />
@@ -604,41 +498,41 @@ export default function Settings() {
               onClick={() => navigate("/privacy")}
             />
             <Row
-              icon={
-                <Icon name="dollar-sign" className="w-5 h-5 text-[#546E7A]" />
-              }
+              icon={<Icon name="dollar-sign" className="w-5 h-5 text-[#546E7A]" />}
               label="Refund Policy"
               onClick={() => navigate("/refund")}
             />
             <Row
-              icon={
-                <Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />
-              }
+              icon={<Icon name="headphones" className="w-5 h-5 text-[#546E7A]" />}
               label="Contact Support"
               onClick={() => setShowSupport(true)}
             />
-            <Row
-              icon={<Icon name="star" className="w-5 h-5 text-[#F59E0B]" />}
-              label="Feedback"
-              sublabel={feedbackGiven ? undefined : "Rate your experience"}
-              right={
-                feedbackGiven ? (
-                  <span className="text-[#10B981] text-xs font-semibold">
-                    Completed ✓
-                  </span>
-                ) : undefined
-              }
-              onClick={feedbackGiven ? undefined : openFeedbackModal}
-            />
+            <div data-tour="settings-feedback">
+              <Row
+                icon={<Icon name="star" className="w-5 h-5 text-[#F59E0B]" />}
+                label="Feedback"
+                sublabel={feedbackGiven ? undefined : "Rate your experience"}
+                right={
+                  feedbackGiven ? (
+                    <span className="text-[#10B981] text-xs font-semibold">Completed ✓</span>
+                  ) : undefined
+                }
+                onClick={feedbackGiven ? undefined : openFeedbackModal}
+              />
+            </div>
           </Section>
+          {/* ── /Support ─────────────────────────────────── */}
 
+          {/* ── Danger Zone ─────────────────────────────── */}
           <Section title="Danger Zone">
-            <Row
-              icon={<Icon name="log-out" className="w-5 h-5 text-red-500" />}
-              label="Logout"
-              danger
-              onClick={handleLogout}
-            />
+            <div data-tour="settings-logout">
+              <Row
+                icon={<Icon name="log-out" className="w-5 h-5 text-red-500" />}
+                label="Logout"
+                danger
+                onClick={handleLogout}
+              />
+            </div>
             <Row
               icon={<Icon name="trash" className="w-5 h-5 text-red-500" />}
               label="Delete Account"
@@ -647,18 +541,19 @@ export default function Settings() {
               onClick={openDeleteModal}
             />
           </Section>
+          {/* ── /Danger Zone ─────────────────────────────── */}
 
           <p className="text-center text-[#90A4AE] text-xs pb-6">
             SoCreate v1.0.0
           </p>
+
         </div>
       </div>
 
-      {/* Going-private confirmation. Spells out the follower conversion up
-          front — this is the one privacy toggle with a side effect the user
-          can't undo by just flipping it back (flipping back auto-accepts
-          whatever is still pending, but anything they rejected meanwhile is
-          gone). */}
+      {/* ── Feature walkthrough guide ── */}
+      <TooltipGuide guideKey="tour_settings_v1" steps={SETTINGS_STEPS} />
+
+      {/* ── Going-private confirmation modal ─────────── */}
       {showPrivateConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
@@ -674,24 +569,13 @@ export default function Settings() {
             <div className="w-12 h-12 rounded-2xl bg-[#E3F2FD] flex items-center justify-center mx-auto">
               <Icon name="lock" className="w-6 h-6 text-[#1565C0]" />
             </div>
-
-            <h3
-              id="private-profile-title"
-              className="mt-4 text-center text-lg font-bold text-[#0D2137]"
-            >
+            <h3 id="private-profile-title" className="mt-4 text-center text-lg font-bold text-[#0D2137]">
               Switch to a private profile?
             </h3>
-
             <ul className="mt-4 space-y-2.5 text-sm text-[#546E7A] leading-relaxed">
               <li className="flex gap-2">
                 <span className="text-[#1565C0] font-bold">&bull;</span>
-                <span>
-                  Your current followers will be moved to{" "}
-                  <span className="font-semibold text-[#0D2137]">
-                    pending requests
-                  </span>{" "}
-                  for you to approve or reject.
-                </span>
+                <span>Your current followers will be moved to <span className="font-semibold text-[#0D2137]">pending requests</span> for you to approve or reject.</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-[#1565C0] font-bold">&bull;</span>
@@ -699,25 +583,16 @@ export default function Settings() {
               </li>
               <li className="flex gap-2">
                 <span className="text-[#1565C0] font-bold">&bull;</span>
-                <span>
-                  New followers will need your approval before they can follow
-                  you.
-                </span>
+                <span>New followers will need your approval before they can follow you.</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-[#1565C0] font-bold">&bull;</span>
-                <span>
-                  Your ideas will be hidden from your profile page and from
-                  people who don't follow you.
-                </span>
+                <span>Your ideas will be hidden from your profile page and from people who don't follow you.</span>
               </li>
             </ul>
-
             <p className="mt-4 text-xs text-[#90A4AE] leading-relaxed">
-              Switching back to public later will automatically approve anyone
-              still waiting.
+              Switching back to public later will automatically approve anyone still waiting.
             </p>
-
             <div className="mt-5 flex gap-2">
               <button
                 type="button"
@@ -744,6 +619,7 @@ export default function Settings() {
         </div>
       )}
 
+      {/* ── Delete account modal ─────────────────────── */}
       {showDelete && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
@@ -759,49 +635,30 @@ export default function Settings() {
             <div className="w-11 h-11 rounded-full bg-[#FEE2E2] flex items-center justify-center mb-4">
               <Icon name="alert-triangle" className="w-5 h-5 text-[#DC2626]" />
             </div>
-
-            <h2
-              id="delete-account-title"
-              className="text-[#0D2137] text-lg font-bold"
-            >
+            <h2 id="delete-account-title" className="text-[#0D2137] text-lg font-bold">
               Delete your account
             </h2>
             <p className="text-[#546E7A] text-sm mt-1.5 leading-relaxed">
-              This will permanently delete your account and all associated data.
-              This can't be undone.
+              This will permanently delete your account and all associated data. This can't be undone.
             </p>
-
             {!isGoogleUser && (
               <>
-                <label
-                  htmlFor="delete-password"
-                  className="block text-[#90A4AE] text-xs font-medium mt-5 mb-2"
-                >
+                <label htmlFor="delete-password" className="block text-[#90A4AE] text-xs font-medium mt-5 mb-2">
                   Confirm your password
                 </label>
-
                 <input
                   id="delete-password"
                   type="password"
                   autoFocus
                   value={deletePwd}
-                  onChange={(e) => {
-                    setDeletePwd(e.target.value);
-                    if (deleteError) setDeleteError("");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") confirmDeleteAccount();
-                  }}
+                  onChange={(e) => { setDeletePwd(e.target.value); if (deleteError) setDeleteError(""); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") confirmDeleteAccount(); }}
                   placeholder="••••••••"
                   className="w-full bg-white border border-[#BBDEFB] rounded-xl px-4 py-3 text-[#0D2137] text-sm placeholder-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#1565C0]/20 focus:border-[#1565C0] transition"
                 />
               </>
             )}
-
-            {deleteError && (
-              <p className="text-red-500 text-xs mt-2">{deleteError}</p>
-            )}
-
+            {deleteError && <p className="text-red-500 text-xs mt-2">{deleteError}</p>}
             <div className="flex gap-3 mt-6">
               <button
                 type="button"
@@ -827,6 +684,7 @@ export default function Settings() {
         </div>
       )}
 
+      {/* ── Feedback modal ───────────────────────────── */}
       {showFeedback && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
@@ -842,26 +700,16 @@ export default function Settings() {
             <div className="w-11 h-11 rounded-full bg-[#FFF3E0] flex items-center justify-center mb-4 mx-auto">
               <Icon name="star" className="w-5 h-5 text-[#F59E0B]" />
             </div>
-
-            <h2
-              id="feedback-title"
-              className="text-[#0D2137] text-lg font-bold text-center"
-            >
+            <h2 id="feedback-title" className="text-[#0D2137] text-lg font-bold text-center">
               Rate Your Experience
             </h2>
             <p className="text-[#546E7A] text-sm mt-1.5 text-center leading-relaxed">
-              Your feedback helps us improve SoCreate. This can only be
-              submitted once, so take your time.
+              Your feedback helps us improve SoCreate. This can only be submitted once, so take your time.
             </p>
-
             <div className="mt-5">
               <StarRating value={feedbackRating} onChange={setFeedbackRating} />
             </div>
-
-            <label
-              htmlFor="feedback-review"
-              className="block text-[#90A4AE] text-xs font-medium mt-5 mb-2"
-            >
+            <label htmlFor="feedback-review" className="block text-[#90A4AE] text-xs font-medium mt-5 mb-2">
               Experience, changes, or fixes you'd like to see (optional)
             </label>
             <textarea
@@ -872,11 +720,7 @@ export default function Settings() {
               placeholder="Tell us what's working, what's not, and what you'd like to see next..."
               className="w-full bg-white border border-[#BBDEFB] rounded-xl px-4 py-3 text-[#0D2137] text-sm placeholder-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#1565C0]/20 focus:border-[#1565C0] transition resize-none"
             />
-
-            {feedbackError && (
-              <p className="text-red-500 text-xs mt-2">{feedbackError}</p>
-            )}
-
+            {feedbackError && <p className="text-red-500 text-xs mt-2">{feedbackError}</p>}
             <div className="flex gap-3 mt-6">
               <button
                 type="button"
@@ -902,6 +746,7 @@ export default function Settings() {
         </div>
       )}
 
+      {/* ── Contact Support modal ─────────────────────── */}
       {showSupport && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
@@ -914,29 +759,18 @@ export default function Settings() {
             className="w-full max-w-sm bg-[#F0F6FF] rounded-2xl shadow-2xl p-7"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2
-              id="support-title"
-              className="text-[#0D2137] text-2xl font-bold text-center mb-6"
-            >
+            <h2 id="support-title" className="text-[#0D2137] text-2xl font-bold text-center mb-6">
               Contact Support
             </h2>
-
-            <p className="text-[#0D2137] text-base font-medium mb-5">
-              Need help?
-            </p>
-
+            <p className="text-[#0D2137] text-base font-medium mb-5">Need help?</p>
             <div className="space-y-5 mb-6">
               <a
                 href={`tel:${SUPPORT_PHONE_TEL}`}
                 className="flex items-center gap-3 text-[#0D2137] text-base hover:opacity-70 transition"
               >
-                <Icon
-                  name="phone"
-                  className="w-5 h-5 text-[#546E7A] shrink-0"
-                />
+                <Icon name="phone" className="w-5 h-5 text-[#546E7A] shrink-0" />
                 <span>{SUPPORT_PHONE}</span>
               </a>
-
               <a
                 href={`mailto:${SUPPORT_EMAIL}`}
                 className="flex items-center gap-3 text-[#0D2137] text-base hover:opacity-70 transition"
@@ -945,12 +779,10 @@ export default function Settings() {
                 <span>{SUPPORT_EMAIL}</span>
               </a>
             </div>
-
             <div className="text-[#0D2137] text-base mb-8">
               <p>Mon - Sun</p>
               <p>9:00 AM - 6:00 PM</p>
             </div>
-
             <div className="flex gap-3">
               <button
                 type="button"

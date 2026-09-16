@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import TooltipGuide from '../components/common/TooltipGuide';
+import { ADD_IDEA_STEPS } from '../config/tourSteps';
 import BottomNav from '../components/common/BottomNav.premium';
 import api from '../api/axiosInstance';
 import { useAuth } from '../context/AuthContext';
@@ -670,7 +672,7 @@ export default function AddIdea() {
           <span className="text-blue-100 text-sm">{step + 1}/{STEPS.length}</span>
         </div>
 
-        <div className="mt-4 flex gap-2 relative z-10">
+        <div data-tour="add-idea-steps" className="mt-4 flex gap-2 relative z-10">
           {STEPS.map((_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
               <div
@@ -687,9 +689,11 @@ export default function AddIdea() {
 
         {step === 0 && (
           <div className="space-y-4">
-            <AIAssistantBar onActivate={handleAiActivate} />
+            <div data-tour="add-idea-ai-bar">
+              <AIAssistantBar onActivate={handleAiActivate} />
+            </div>
 
-            <div>
+            <div data-tour="add-idea-title">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-[#0D2137]">Idea Title</label>
                 <span className={`text-[11px] ${form.title.length >= TITLE_MAX ? 'text-[#E53935]' : 'text-[#90A4AE]'}`}>
@@ -705,7 +709,7 @@ export default function AddIdea() {
               />
             </div>
 
-            <div>
+            <div data-tour="add-idea-description">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-[#0D2137]">Description</label>
                 <span className={`text-[11px] ${form.description.length >= DESC_MAX ? 'text-[#E53935]' : 'text-[#90A4AE]'}`}>
@@ -725,7 +729,7 @@ export default function AddIdea() {
               </p>
             </div>
 
-            <div>
+            <div data-tour="add-idea-category">
               <label className="text-xs font-bold text-[#0D2137]">Category</label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-[230px] overflow-y-auto pr-1">
                 {CATEGORIES.map((cat) => {
@@ -816,7 +820,7 @@ export default function AddIdea() {
 
         {step === 1 && (
           <div className="space-y-4">
-            <div>
+            <div data-tour="add-idea-media">
               <label className="text-xs font-bold text-[#0D2137]">
                 Images <span className="text-[#90A4AE] font-normal">(up to {MAX_IMAGES})</span>
               </label>
@@ -886,7 +890,7 @@ export default function AddIdea() {
             </div>
 
             {creatorPro ? (
-              <div className="border border-[#BBDEFB] rounded-2xl p-4 bg-[#F4F7FF] flex justify-between items-center">
+              <div data-tour="add-idea-premium-toggle" className="border border-[#BBDEFB] rounded-2xl p-4 bg-[#F4F7FF] flex justify-between items-center">
                 <div>
                   <p className="font-semibold text-sm text-[#0D2137]">Premium Content</p>
                   <p className="text-xs text-[#90A4AE]">Paid users only</p>
@@ -968,6 +972,9 @@ export default function AddIdea() {
       </div>
 
       <BottomNav />
+
+      {/* ── Feature walkthrough guide ── */}
+      <TooltipGuide guideKey="tour_add_idea_v1" steps={ADD_IDEA_STEPS} />
     </div>
   );
 }

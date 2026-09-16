@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import TooltipGuide from '../components/common/TooltipGuide';
+import { MEMBERSHIP_STEPS } from '../config/tourSteps';
 import { useAuth } from '../context/AuthContext';
 import { cancelMembership } from '../api/paymentApi';
 import Icon from '../components/common/Icon';
@@ -196,7 +198,7 @@ export default function Membership() {
           </div>
 
           {/* Monthly / Yearly toggle */}
-          <div className="relative flex bg-white border border-[#DBEAFE]
+          <div data-tour="membership-billing-toggle" className="relative flex bg-white border border-[#DBEAFE]
                           rounded-2xl p-1 shadow-sm">
             <span
               className="absolute top-1 bottom-1 w-1/2 rounded-xl bg-[#1565C0]
@@ -244,6 +246,7 @@ export default function Membership() {
 
               return (
                 <div key={plan.id}
+                     data-tour={plan.id === 'reader' ? 'membership-reader-card' : 'membership-creator-card'}
                      ref={plan.id === emphasizedPlan ? emphasizedRef : null}
                      onClick={() => setSelected(plan.id)}
                      style={isEmph
@@ -362,6 +365,9 @@ export default function Membership() {
 
         </div>
       </div>
+
+      {/* ── Feature walkthrough guide ── */}
+      <TooltipGuide guideKey="tour_membership_v1" steps={MEMBERSHIP_STEPS} />
     </div>
   );
 }
@@ -445,7 +451,7 @@ function ActiveMembership({ user, loading, error, onCancel, navigate }) {
                           shadow-sm px-4 pt-5 pb-6 space-y-6">
 
             {/* Plan details */}
-            <div>
+            <div data-tour="membership-manage">
               <h2 className="text-[#0D2137] font-bold text-base mb-2">
                 Plan Details
               </h2>
