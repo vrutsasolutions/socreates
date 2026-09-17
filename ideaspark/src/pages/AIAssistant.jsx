@@ -143,7 +143,6 @@ export default function AIAssistant() {
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMessages([
       {
         id: uid(), from: 'bot',

@@ -217,7 +217,12 @@ function computeCardPos(spotRect, cardW, cardH) {
      waitForFlag  — localStorage key set by popup on dismiss;
                     guide waits until this flag exists
    ═══════════════════════════════════════════════════════════ */
-export default function TooltipGuide({ steps = [], guideKey, waitForFlag }) {
+// Date the tooltip feature was shipped.
+// Users who registered BEFORE this date are considered existing users
+// and will never see the tour. Change this when you ship.
+const TOUR_SHIP_DATE = new Date('2026-09-17T00:00:00.000Z');
+
+export default function TooltipGuide({ steps = [], guideKey, waitForFlag, userCreatedAt }) {
   const [active,   setActive]   = useState(false);
   const [stepIdx,  setStepIdx]  = useState(0);
   const [spotRect, setSpotRect] = useState(null);
@@ -227,11 +232,38 @@ export default function TooltipGuide({ steps = [], guideKey, waitForFlag }) {
   const step   = steps[stepIdx] ?? null;
   const isLast = stepIdx === steps.length - 1;
 
-  /* ── Show on first visit ──────────────────────────────── */
+  /* ── Show on first visit (new users only) ─────────────── */
   useEffect(() => {
+    // Already dismissed — never show again
     if (guideKey && localStorage.getItem(guideKey)) return;
 
-    const tryStart = () => setActive(true);
+    // If userCreatedAt is provided, only show tour to new users
+    // who registered on or after the ship date
+    if (userCreatedAt) {
+      const registeredAt = new Date(userCreatedAt);
+      if (registeredAt < TOUR_SHIP_DATE) {
+        // Existing user — silently mark as dismissed so it
+        // never checks again on future logins
+        if (guideKey) localStorage.setItem(guideKey, '1');
+        return;
+      }
+    }
+
+    const tryStart = () => {
+      // Double-check the partner popup isn't still on screen
+      // (safety net in case the flag was set before popup dismissed)
+      if (document.querySelector('[data-partner-popup]')) {
+        // Popup still visible — wait for it to go away
+        const wait = setInterval(() => {
+          if (!document.querySelector('[data-partner-popup]')) {
+            clearInterval(wait);
+            setTimeout(() => setActive(true), 400);
+          }
+        }, 300);
+        return;
+      }
+      setActive(true);
+    };
 
     if (!waitForFlag) { tryStart(); return; }
 
@@ -248,7 +280,7 @@ export default function TooltipGuide({ steps = [], guideKey, waitForFlag }) {
     }, 400);
 
     return () => clearInterval(interval);
-  }, [guideKey, waitForFlag]);
+  }, [guideKey, waitForFlag, userCreatedAt]);
 
   /* ── Inject CSS once ──────────────────────────────────── */
   useEffect(() => {
@@ -351,7 +383,7 @@ export default function TooltipGuide({ steps = [], guideKey, waitForFlag }) {
       {/* Dark backdrop */}
       <div onClick={dismiss} style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(6,10,30,0.78)',
+        background: 'rgba(6,10,30,0.35)',
         pointerEvents: 'all',
       }} />
 
@@ -364,7 +396,7 @@ export default function TooltipGuide({ steps = [], guideKey, waitForFlag }) {
             width: spotRect.width, height: spotRect.height,
             borderRadius: rx,
             background: 'transparent',
-            boxShadow: '0 0 0 9999px rgba(6,10,30,0.78)',
+            boxShadow: '0 0 0 9999px rgba(6,10,30,0.35)',
             pointerEvents: 'none',
             zIndex: 1,
           }} />
@@ -407,7 +439,7 @@ export default function TooltipGuide({ steps = [], guideKey, waitForFlag }) {
       >
         <div style={{
           background: '#fff', borderRadius: 20, overflow: 'hidden',
-          boxShadow: '0 24px 60px rgba(6,10,30,0.55), 0 6px 20px rgba(6,10,30,0.3), 0 0 0 1px rgba(120,140,255,0.15)',
+          boxShadow: '0 24px 60px rgba(6,10,30,0.35), 0 6px 20px rgba(6,10,30,0.3), 0 0 0 1px rgba(120,140,255,0.15)',
         }}>
 
           {/* Header */}

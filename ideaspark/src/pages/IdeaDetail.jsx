@@ -95,7 +95,6 @@ export default function IdeaDetail() {
   const fetchRef = useRef({ id: null, promise: null });
   useEffect(() => {
     let alive = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(false);
 
@@ -133,7 +132,6 @@ export default function IdeaDetail() {
 
   // Resolve whether the current user already follows this idea's creator.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!canFollow) { setFollowing(false); return; }
     let alive = true;
     fetchFollowStats(creatorId)

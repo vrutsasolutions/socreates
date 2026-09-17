@@ -71,21 +71,32 @@ export default function PartnerProgramPopup() {
         if (data.status === 'approved') {
           // Approved → redirect to verified reveal screen (once)
           try { localStorage.setItem(VERIFIED_SEEN_KEY, '1'); } catch { /* empty */ }
+          // No popup — set tour flag so guide starts immediately
+          try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
           navigate('/partners-program');
         } else if (user.isPremium) {
           // Paid subscriber, not from partner program → no popup
+          // Set tour flag so guide starts immediately
+          try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
         } else if (data.status === 'pending') {
           // Already in queue → don't show popup
+          // Set tour flag so guide starts immediately
+          try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
         } else {
           // Not applied or rejected → show popup
+          // Tour will start only after user dismisses the popup
           setVisible(true);
           requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
         }
       } catch {
         if (!cancelled && !user.isPremium) {
           // API failed + free user → show popup as fallback
+          // Tour will start only after user dismisses the popup
           setVisible(true);
           requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+        } else {
+          // API failed + premium user → no popup, start tour
+          try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
         }
       }
     })();

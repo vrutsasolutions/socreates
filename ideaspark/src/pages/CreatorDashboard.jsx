@@ -186,7 +186,6 @@ export default function CreatorDashboard() {
   }, [user?.creatorPro]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDashboard();
     loadRevenue();
     checkPayoutSetup();

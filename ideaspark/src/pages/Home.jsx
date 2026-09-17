@@ -234,6 +234,7 @@ export default function Home() {
         guideKey="tour_home_v2"
         steps={HOME_STEPS}
         waitForFlag="sc_tour_ready"
+        userCreatedAt={user?.createdAt}
       />
     </div>
   );
