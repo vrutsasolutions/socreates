@@ -5,7 +5,12 @@ import { submitPartnerApplication, getMyPartnerApplication } from '../api/partne
 import Icon from '../components/common/Icon';
 
 /* ── Constants ─────────────────────────────────────────────────────────── */
-const REGISTRATION_DEADLINE = 'September 30, 2026';
+const REGISTRATION_DEADLINE = 'December 31, 2026';
+// Fixed to India time (IST) so the cutoff is the same for everyone.
+// The server enforces the same deadline (PartnerService.java) — this is
+// just so the page can show "closed" instead of a form that would be rejected.
+const REGISTRATION_DEADLINE_AT = new Date('2026-12-31T23:59:59+05:30');
+const isRegistrationClosed = () => new Date() > REGISTRATION_DEADLINE_AT;
 const TOTAL_STEPS = 5;
 
 const AGE_GROUPS = ['Under 18', '18-24', '25-34', '35+'];
@@ -590,6 +595,24 @@ function QueueScreen({ queuePosition, onContinue }) {
   );
 }
 
+function ClosedScreen({ onContinue }) {
+  return (
+    <div className="flex flex-col items-center text-center px-6 pt-12 pb-8">
+      <StatusIcon icon="clock" bg="bg-[var(--sc-neutral-100)]" color="text-[var(--sc-neutral-500)]" />
+      <h2 className="text-xl font-bold text-[var(--sc-neutral-900)] mt-5 mb-2">
+        Registration is closed
+      </h2>
+      <p className="text-sm text-[var(--sc-neutral-500)] mb-6 leading-relaxed max-w-xs">
+        The SoCreate Partner Program registration ended on {REGISTRATION_DEADLINE}.
+        Thanks for your interest — keep an eye out for future programs.
+      </p>
+      <button onClick={onContinue} className={btnPrimary + ' w-full max-w-xs'}>
+        Continue Exploring
+      </button>
+    </div>
+  );
+}
+
 function VerifiedScreen({ onContinue, planLabel, freeDays }) {
   return (
     <div className="flex flex-col items-center text-center px-6 pt-12 pb-8">
@@ -696,7 +719,7 @@ export default function PartnersProgram() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [screen, setScreen] = useState('loading'); // loading | form | queue | verified
+  const [screen, setScreen] = useState('loading'); // loading | form | queue | verified | closed
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     ...EMPTY_FORM,
@@ -719,14 +742,17 @@ export default function PartnersProgram() {
       // Not logged in — allow through (anonymous applicants are, by
       // definition, not an existing account yet).
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setScreen('form');
+      setScreen(isRegistrationClosed() ? 'closed' : 'form');
       return;
     }
     (async () => {
       try {
         const { data } = await getMyPartnerApplication();
+        // Pending / approved users always see their status, even after the
+        // deadline. Everyone else (never applied, or rejected) gets the
+        // form only while registration is open.
         if (data.applied === false) {
-          setScreen('form');
+          setScreen(isRegistrationClosed() ? 'closed' : 'form');
         } else if (data.status === 'pending') {
           setQueuePosition(data.queuePosition);
           setScreen('queue');
@@ -737,10 +763,11 @@ export default function PartnersProgram() {
           });
           setScreen('verified');
         } else {
-          setScreen('form'); // rejected — let them re-apply
+          // rejected — let them re-apply, but only while registration is open
+          setScreen(isRegistrationClosed() ? 'closed' : 'form');
         }
       } catch {
-        setScreen('form');
+        setScreen(isRegistrationClosed() ? 'closed' : 'form');
       }
     })();
   }, [user]);
@@ -890,6 +917,8 @@ export default function PartnersProgram() {
           {screen === 'queue' && (
             <QueueScreen queuePosition={queuePosition} onContinue={goHome} />
           )}
+
+          {screen === 'closed' && <ClosedScreen onContinue={goHome} />}
 
           {screen === 'verified' && (
             <VerifiedScreen

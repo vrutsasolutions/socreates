@@ -46,7 +46,7 @@ export default function PartnerProgramPopup() {
 
   useEffect(() => {
     if (!user) return; // not logged in
-    if (new Date() > new Date('2026-09-30T23:59:59')) {
+    if (new Date() > new Date('2026-12-31T23:59:59')) {
       // Program over — popup never shows, set tour flag so guide starts
       try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
       return;
@@ -175,7 +175,7 @@ export default function PartnerProgramPopup() {
           {/* Deadline badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--sc-primary-50)] border border-[var(--sc-primary-100)] text-xs font-medium text-[var(--sc-primary-600)] mb-5">
             <Icon name="clock" className="w-3.5 h-3.5" />
-            Registration closes September 30, 2026
+            Registration closes December 31, 2026
           </div>
 
           <p className="text-sm text-[var(--sc-neutral-500)] leading-relaxed mb-7">

@@ -62,6 +62,7 @@ export default function Home() {
     }
   }, [activeTab]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchIdeas(); }, [fetchIdeas]);
 
   return (
@@ -228,7 +229,7 @@ export default function Home() {
       {/* ── Feature walkthrough guide ── */}
       {/* waitForFlag: guide only starts after PartnerProgramPopup sets
           'sc_tour_ready' in localStorage (on dismiss or join tap).
-          After Sep 30 2026 when the popup stops showing, the flag is
+          After Dec 31 2026 when the popup stops showing, the flag is
           set automatically on first render so the guide starts instantly. */}
       <TooltipGuide
         guideKey="tour_home_v2"
