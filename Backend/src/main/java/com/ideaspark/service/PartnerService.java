@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,9 +31,22 @@ public class PartnerService {
     private final MembershipRepository membershipRepository;
     private final NotificationService notificationService;
 
+    // Registration closes at the end of 31 Dec 2026, India time. Evaluated on
+    // the server so it can't be bypassed by changing a device clock or by
+    // calling the API directly. Keep in sync with the frontend
+    // (PartnersProgram.jsx / PartnerProgramPopup.jsx).
+    private static final ZoneId DEADLINE_ZONE = ZoneId.of("Asia/Kolkata");
+    private static final ZonedDateTime REGISTRATION_DEADLINE =
+            ZonedDateTime.of(2026, 12, 31, 23, 59, 59, 0, DEADLINE_ZONE);
+
     // ── Submit a new application ────────────────────────────────────────
     @Transactional
     public PartnerApplicationResponse submit(PartnerApplicationRequest req, String loggedInEmail) {
+
+        // Registration window
+        if (ZonedDateTime.now(DEADLINE_ZONE).isAfter(REGISTRATION_DEADLINE)) {
+            throw new IllegalArgumentException("Registration for the Partners Program has closed");
+        }
 
         // Prevent duplicate applications
         if (applicationRepo.existsByEmailAndStatusIn(req.getEmail(), List.of("pending", "approved"))) {

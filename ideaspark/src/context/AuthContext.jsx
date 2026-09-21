@@ -93,6 +93,9 @@ export const AuthProvider = ({ children }) => {
     setUser(userData)
     setAnalyticsUserId(userData?.id)
     logEvent(event, { method: userData?.authProvider || 'local' })
+    // Reset tour gate on every login so the Partners Program popup
+    // always appears first before the tooltip tour starts.
+    localStorage.removeItem('sc_tour_ready')
   }
 
   const logout = () => {

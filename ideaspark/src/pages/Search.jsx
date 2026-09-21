@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import TooltipGuide from '../components/common/TooltipGuide';
+import { SEARCH_STEPS } from '../config/tourSteps';
 import BottomNav from '../components/common/BottomNav.premium';
 import IdeaCard, { IdeaCardSkeleton } from '../components/common/IdeaCard.premium';
 import { searchIdeas } from '../api/searchApi';
@@ -74,7 +76,7 @@ export default function Search() {
             </svg>
           </button>
 
-          <div className="flex-1 flex items-center gap-3 bg-white border border-[#BBDEFB] rounded-2xl px-4 py-3 focus-within:border-[#1565C0] transition">
+          <div data-tour="search-input" className="flex-1 flex items-center gap-3 bg-white border border-[#BBDEFB] rounded-2xl px-4 py-3 focus-within:border-[#1565C0] transition">
             <svg className="w-4 h-4 text-[#90A4AE] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
@@ -93,7 +95,7 @@ export default function Search() {
         </div>
 
         {/* Category Filter */}
-        <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-hide pb-1">
+        <div data-tour="search-categories" className="flex gap-2 mt-3 overflow-x-auto scrollbar-hide pb-1">
           {CATEGORIES.map((cat) => (
             <button key={cat} onClick={() => setCategory(cat)}
               className={`shrink-0 px-3 py-1.5 rounded-2xl text-xs font-medium transition-all
@@ -110,7 +112,7 @@ export default function Search() {
 
         {/* Ideas of the Day — shown when no search active */}
         {!searched && (
-          <>
+          <div data-tour="search-ideas-of-day">
             <h2 className="text-[#0D2137] text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <Icon name="flame" className="w-4 h-4 text-[#EF4444]" /> Ideas of the Day
             </h2>
@@ -173,7 +175,7 @@ export default function Search() {
                 );
               })}
             </div>
-          </>
+          </div>
         )}
 
         {/* Loading Skeleton */}
@@ -218,6 +220,9 @@ export default function Search() {
       </div>
 
       <BottomNav/>
+
+      {/* ── Feature walkthrough guide ── */}
+      <TooltipGuide guideKey="tour_search_v1" steps={SEARCH_STEPS} />
     </div>
   );
 }

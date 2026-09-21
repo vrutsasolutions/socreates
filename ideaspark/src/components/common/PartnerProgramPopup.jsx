@@ -46,7 +46,11 @@ export default function PartnerProgramPopup() {
 
   useEffect(() => {
     if (!user) return; // not logged in
-    if (new Date() > new Date('2026-09-30T23:59:59')) return; // program registration closed
+    if (new Date() > new Date('2026-12-31T23:59:59')) {
+      // Program over — popup never shows, set tour flag so guide starts
+      try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
+      return;
+    }
 
     // Check if we already showed the verified screen
     try {
@@ -67,21 +71,32 @@ export default function PartnerProgramPopup() {
         if (data.status === 'approved') {
           // Approved → redirect to verified reveal screen (once)
           try { localStorage.setItem(VERIFIED_SEEN_KEY, '1'); } catch { /* empty */ }
+          // No popup — set tour flag so guide starts immediately
+          try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
           navigate('/partners-program');
         } else if (user.isPremium) {
           // Paid subscriber, not from partner program → no popup
+          // Set tour flag so guide starts immediately
+          try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
         } else if (data.status === 'pending') {
           // Already in queue → don't show popup
+          // Set tour flag so guide starts immediately
+          try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
         } else {
           // Not applied or rejected → show popup
+          // Tour will start only after user dismisses the popup
           setVisible(true);
           requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
         }
       } catch {
         if (!cancelled && !user.isPremium) {
           // API failed + free user → show popup as fallback
+          // Tour will start only after user dismisses the popup
           setVisible(true);
           requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+        } else {
+          // API failed + premium user → no popup, start tour
+          try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
         }
       }
     })();
@@ -90,6 +105,8 @@ export default function PartnerProgramPopup() {
   }, [user?.id]);
 
   const dismiss = () => {
+    // Mark tour as ready to start — TooltipGuide checks this flag
+    try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
     setFadeOut(true);
     setEntered(false);
     // No localStorage write — popup reappears on next Home visit
@@ -98,13 +115,15 @@ export default function PartnerProgramPopup() {
   };
 
   const join = () => {
+    // Also mark tour ready when user taps Join (they'll see tour on return)
+    try { localStorage.setItem('sc_tour_ready', '1'); } catch { /* empty */ }
     navigate('/partners-program');
   };
 
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-5">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-5" data-partner-popup="true">
       {/* Dimmed backdrop — Home feed stays visible (dimmed) around the card */}
       <div
         onClick={dismiss}
@@ -156,7 +175,7 @@ export default function PartnerProgramPopup() {
           {/* Deadline badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--sc-primary-50)] border border-[var(--sc-primary-100)] text-xs font-medium text-[var(--sc-primary-600)] mb-5">
             <Icon name="clock" className="w-3.5 h-3.5" />
-            Registration closes September 30, 2026
+            Registration closes December 31, 2026
           </div>
 
           <p className="text-sm text-[var(--sc-neutral-500)] leading-relaxed mb-7">

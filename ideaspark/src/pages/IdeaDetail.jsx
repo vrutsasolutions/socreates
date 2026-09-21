@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
+import TooltipGuide from '../components/common/TooltipGuide';
+import { IDEA_DETAIL_STEPS } from '../config/tourSteps';
 import BottomNav from '../components/common/BottomNav.premium';
 import Icon from '../components/common/Icon';
 import SharePostSheet from '../components/common/SharePostSheet';
@@ -326,6 +328,7 @@ export default function IdeaDetail() {
                 </button>
                 {canFollow && (
                   <button
+                    data-tour="idea-follow"
                     onClick={handleFollow}
                     disabled={followBusy}
                     aria-label={following ? 'Unfollow creator' : 'Follow creator'}
@@ -404,7 +407,7 @@ export default function IdeaDetail() {
                   </p>
 
                   {/* Engagement actions — like / comment / share / save */}
-                  <div className="flex items-center justify-between border-y border-[#ECEFF6] py-2.5 mb-5">
+                  <div data-tour="idea-like" className="flex items-center justify-between border-y border-[#ECEFF6] py-2.5 mb-5">
                     <div className="flex items-center gap-1">
                       {/* Like */}
                       <button
@@ -435,6 +438,7 @@ export default function IdeaDetail() {
                     <div className="flex items-center gap-1">
                       {/* Share */}
                       <button
+                        data-tour="idea-share"
                         onClick={() => setShareOpen(true)}
                         aria-label="Share idea"
                         className="flex items-center justify-center w-9 h-9 rounded-xl text-[#546E7A] hover:bg-[#F4F7FF] transition-all active:scale-95"
@@ -450,6 +454,7 @@ export default function IdeaDetail() {
 
                       {/* Save */}
                       <button
+                        data-tour="idea-save"
                         onClick={handleSave}
                         disabled={saving}
                         aria-label={saved ? 'Unsave idea' : 'Save idea'}
@@ -465,7 +470,7 @@ export default function IdeaDetail() {
                   </div>
 
                   {/* ── Comments ─────────────────────────────────── */}
-                  <h3 className="text-[#0D2137] font-bold text-base mb-3">
+                  <h3 data-tour="idea-comments" className="text-[#0D2137] font-bold text-base mb-3">
                     Comments {comments.length > 0 && <span className="text-[#90A4AE] font-medium">({comments.length})</span>}
                   </h3>
 
@@ -559,6 +564,9 @@ export default function IdeaDetail() {
         </div>,
         document.body,
       )}
+
+      {/* ── Feature walkthrough guide ── */}
+      <TooltipGuide guideKey="tour_idea_detail_v1" steps={IDEA_DETAIL_STEPS} />
 
       <BottomNav />
     </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import TooltipGuide from '../components/common/TooltipGuide';
+import { HOME_STEPS } from '../config/tourSteps';
 import BottomNav from '../components/common/BottomNav.premium';
 import NotificationBell from '../components/common/NotificationBell';
 import MessageBell from '../components/common/MessageBell';
@@ -60,6 +62,7 @@ export default function Home() {
     }
   }, [activeTab]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchIdeas(); }, [fetchIdeas]);
 
   return (
@@ -84,6 +87,7 @@ export default function Home() {
         {/* top bar */}
         <div className="flex items-center gap-5 relative z-10">
           <button
+            data-tour="home-menu"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open menu"
             className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
@@ -96,6 +100,7 @@ export default function Home() {
           </div>
 
           <button
+            data-tour="home-search"
             onClick={() => navigate('/search')}
             className="w-9 h-9 flex items-center justify-center text-white hover:opacity-80 active:scale-90 transition-all"
           >
@@ -104,9 +109,9 @@ export default function Home() {
             </svg>
           </button>
 
-          <NotificationBell />
+          <span data-tour="home-notifications"><NotificationBell /></span>
 
-          <MessageBell />
+          <span data-tour="home-messages"><MessageBell /></span>
         </div>
 
         {/* floating greeting card */}
@@ -141,7 +146,7 @@ export default function Home() {
         <div className="bg-white rounded-t-[32px] pt-6">
 
           {/* TABS */}
-          <div className="flex gap-3 px-4 mb-5 overflow-x-auto">
+          <div data-tour="home-tabs" className="flex gap-3 px-4 mb-5 overflow-x-auto">
             {TABS.map((tab) => (
               <button
                 key={tab}
@@ -168,12 +173,18 @@ export default function Home() {
               </div>
             ) : (
               <div>
-                {ideas.map((idea) => (
+                {ideas.map((idea, index) => (
                   <div
                     key={idea.id}
                     className="py-5 border-b border-[#F0F2F8] last:border-b-0"
+                    {...(index === 0 ? { 'data-tour': 'home-first-idea' } : {})}
                   >
-                    <IdeaCard idea={idea} variant="list" />
+                    <IdeaCard
+                      idea={idea}
+                      variant="list"
+                      actionsTourTarget={index === 0 ? 'home-idea-actions' : undefined}
+                      saveTourTarget={index === 0 ? 'home-idea-save' : undefined}
+                    />
                   </div>
                 ))}
               </div>
@@ -189,6 +200,7 @@ export default function Home() {
 
       {/* Floating AI assistant — sits above the bottom nav, opens the SparkBot chat */}
       <button
+        data-tour="home-ai-fab"
         onClick={() => navigate('/assistant')}
         aria-label="SoCreate AI"
         className="fixed right-4 bottom-24 z-40 w-14 h-14 rounded-2xl flex items-center justify-center text-white active:scale-95 transition-transform"
@@ -205,7 +217,26 @@ export default function Home() {
 
       <PartnerProgramPopup />
 
-      <BottomNav />
+      <div data-tour="bottom-nav">
+        <BottomNav
+          exploreTourTarget="bottom-nav-explore"
+          createTourTarget="bottom-nav-create"
+          premiumTourTarget="bottom-nav-premium"
+          profileTourTarget="bottom-nav-profile"
+        />
+      </div>
+
+      {/* ── Feature walkthrough guide ── */}
+      {/* waitForFlag: guide only starts after PartnerProgramPopup sets
+          'sc_tour_ready' in localStorage (on dismiss or join tap).
+          After Dec 31 2026 when the popup stops showing, the flag is
+          set automatically on first render so the guide starts instantly. */}
+      <TooltipGuide
+        guideKey="tour_home_v2"
+        steps={HOME_STEPS}
+        waitForFlag="sc_tour_ready"
+        userCreatedAt={user?.createdAt}
+      />
     </div>
   );
 }

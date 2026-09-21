@@ -97,7 +97,12 @@ const NAV_ITEMS = [
 ];
 
 /* ── Component ───────────────────────────────────────────── */
-export default function BottomNav() {
+export default function BottomNav({
+  exploreTourTarget,
+  createTourTarget,
+  premiumTourTarget,
+  profileTourTarget,
+} = {}) {
   const location = useLocation();
   const { user } = useAuth();
   const navRef = useRef(null);
@@ -177,6 +182,7 @@ export default function BottomNav() {
                 /* ── Floating Add (Create) button ─────────── */
                 <div
                   className="sc-nav-add"
+                  data-tour={createTourTarget}
                   style={{
                     width: 52,
                     height: 52,
@@ -198,7 +204,14 @@ export default function BottomNav() {
                 </div>
               ) : (
                 /* ── Regular tab ─────────────────────────── */
-                <div style={{
+                <div
+                  data-tour={
+                    label === 'Explore' ? exploreTourTarget :
+                    label === 'Premium' ? premiumTourTarget :
+                    label === 'Profile' ? profileTourTarget :
+                    undefined
+                  }
+                  style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
